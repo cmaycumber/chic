@@ -10,14 +10,28 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
+    "native": "bun --filter=@furnish/native",
+    "web": "bun --filter=@furnish/web",
+    "backend": "bun --filter=@furnish/backend",
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
-    "dev:server": "turbo -F @furnish/backend dev",
+    "dev:backend": "turbo -F @furnish/backend dev",
     "dev:setup": "turbo -F @furnish/backend dev:setup"
   },
   "dependencies": {},
   "devDependencies": {
-    "turbo": "^2.5.4"
+    "@biomejs/biome": "2.2.4",
+    "husky": "^9.1.7",
+    "lefthook": "^1.13.6",
+    "lint-staged": "^16.2.3",
+    "turbo": "2.5.9-canary.0",
+    "ultracite": "5.4.1"
   },
-  "packageManager": "bun@1.2.18"
+  "packageManager": "bun@1.2.18",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "bun x ultracite fix",
+      "bun x ultracite fix"
+    ]
+  }
 }
