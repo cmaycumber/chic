@@ -1,6 +1,6 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export const TabBarIcon = (props: {
-  name: React.ComponentProps<typeof FontAwesome>["name"];
+  name: React.ComponentProps<typeof Ionicons>["name"];
   color: string;
-}) => <FontAwesome size={24} style={{ marginBottom: -3 }} {...props} />;
+}) => <Ionicons size={24} style={{ marginBottom: -2 }} {...props} />;
