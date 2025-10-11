@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+# General Guidelines
+
+## Outputs
+
+- Don't create example files
+- Don't generate markdown explanations unless asked.

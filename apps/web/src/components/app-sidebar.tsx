@@ -3,8 +3,8 @@
 import {
   BookOpen,
   LayoutGrid,
-  MessageSquarePlus,
   Search,
+  Sparkles,
   SquareTerminal,
 } from "lucide-react";
 import Link from "next/link";
@@ -56,10 +56,12 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
           )}
         </SidebarHeader>
         <div className="grid gap-1 px-2 pb-2">
-          <SidebarAction
-            icon={<MessageSquarePlus className="size-5" />}
-            label="New chat"
-          />
+          <Link href="/">
+            <SidebarAction
+              icon={<Sparkles className="size-5" />}
+              label="New Consultation"
+            />
+          </Link>
           <SidebarAction
             icon={<Search className="size-5" />}
             label="Search chats"
@@ -98,13 +100,7 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
           </>
         )}
         <SidebarFooter>
-          <NavUser
-            user={{
-              name: "Chad Maycumber",
-              email: "chad.maycumber11@gmail.com",
-              avatar: "",
-            }}
-          />
+          <NavUser />
         </SidebarFooter>
       </SidebarContent>
     </Sidebar>

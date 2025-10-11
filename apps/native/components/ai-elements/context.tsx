@@ -1,5 +1,8 @@
 "use client";
 
+import type { LanguageModelUsage } from "ai";
+import { type ComponentProps, createContext, useContext } from "react";
+import { estimateCost, type ModelId } from "tokenlens";
 import { Button } from "@/components/ui/button";
 import {
   HoverCard,
@@ -8,9 +11,6 @@ import {
 } from "@/components/ui/hover-card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { LanguageModelUsage } from "ai";
-import { type ComponentProps, createContext, useContext } from "react";
-import { estimateCost, type ModelId } from "tokenlens";
 
 const PERCENT_MAX = 100;
 const ICON_RADIUS = 10;
@@ -194,7 +194,7 @@ export const ContextContentFooter = ({
   ...props
 }: ContextContentFooter) => {
   const { modelId, usage } = useContextValue();
-  const costUSD = modelId
+  const costUsd = modelId
     ? estimateCost({
         modelId,
         usage: {
@@ -206,7 +206,7 @@ export const ContextContentFooter = ({
   const totalCost = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(costUSD ?? 0);
+  }).format(costUsd ?? 0);
 
   return (
     <div

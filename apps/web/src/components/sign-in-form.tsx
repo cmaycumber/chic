@@ -45,9 +45,7 @@ export default function SignInForm({
   });
 
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
-
+    <div className="w-full">
       <form
         className="space-y-4"
         onSubmit={(e) => {

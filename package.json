@@ -16,7 +16,8 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev",
     "dev:backend": "turbo -F @furnish/backend run dev",
-    "dev:setup": "turbo -F @furnish/backend dev:setup"
+    "dev:setup": "turbo -F @furnish/backend dev:setup",
+    "fix": "bun x ultracite fix"
   },
   "dependencies": {
     "tailwindcss": "^4.1.13"
