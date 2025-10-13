@@ -49,8 +49,9 @@ const INITIAL_THREADS_LOAD = 20;
 const LOAD_MORE_THREADS_COUNT = 20;
 
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
-  const { collapsed } = useSidebar();
+  const { state } = useSidebar();
   const pathname = usePathname();
+  const collapsed = state === "collapsed";
 
   // Fetch user's threads
   const {
