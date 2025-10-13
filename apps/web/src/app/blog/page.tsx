@@ -1,3 +1,4 @@
+import { allPosts } from "content-collections";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicLayout } from "@/components/public-layout";
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getAllPosts } from "@/lib/blog/posts";
 
 export const metadata: Metadata = {
   title: "Blog | Furnish",
@@ -18,8 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default function BlogPage() {
-  const allPosts = getAllPosts();
-  const sortedPosts = allPosts.filter((post) => post.meta.published);
+  const sortedPosts = allPosts
+    .filter((post) => post.published)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <PublicLayout>
@@ -36,41 +37,41 @@ export default function BlogPage() {
           {sortedPosts.map((post) => (
             <Link className="group" href={`/blog/${post.slug}`} key={post.slug}>
               <Card className="hover:-translate-y-1 h-full transition-all hover:shadow-lg">
-                {post.meta.image ? (
+                {post.image ? (
                   <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
                     <div
-                      aria-label={post.meta.title}
+                      aria-label={post.title}
                       className="h-full w-full bg-center bg-cover transition-transform duration-300 group-hover:scale-105"
                       role="img"
-                      style={{ backgroundImage: `url(${post.meta.image})` }}
+                      style={{ backgroundImage: `url(${post.image})` }}
                     />
                   </div>
                 ) : null}
                 <CardHeader>
                   <div className="mb-2 flex items-center gap-2 text-muted-foreground text-sm">
-                    <time dateTime={post.meta.date}>
-                      {new Date(post.meta.date).toLocaleDateString("en-US", {
+                    <time dateTime={post.date}>
+                      {new Date(post.date).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
                       })}
                     </time>
-                    {post.meta.author ? (
+                    {post.author ? (
                       <>
                         <span>•</span>
-                        <span>{post.meta.author}</span>
+                        <span>{post.author}</span>
                       </>
                     ) : null}
                   </div>
                   <CardTitle className="transition-colors group-hover:text-primary">
-                    {post.meta.title}
+                    {post.title}
                   </CardTitle>
-                  <CardDescription>{post.meta.summary}</CardDescription>
+                  <CardDescription>{post.summary}</CardDescription>
                 </CardHeader>
-                {post.meta.tags && post.meta.tags.length > 0 ? (
+                {post.tags && post.tags.length > 0 ? (
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {post.meta.tags.map((tag) => (
+                      {post.tags.map((tag) => (
                         <Badge key={tag} variant="secondary">
                           {tag}
                         </Badge>
