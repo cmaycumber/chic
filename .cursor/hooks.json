@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "hooks": {
+        "stop": [
+            {
+                "command": "npx ultracite fix"
+            },
+            {
+                "command": "npx ultracite check"
+            }
+        ]
+    }
+}

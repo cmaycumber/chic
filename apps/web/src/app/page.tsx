@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useAction } from "convex/react";
+import { useMutation } from "convex/react";
 import {
   ArrowUp,
   Lightbulb,
@@ -21,7 +21,8 @@ import {
   PromptInputTextarea,
   PromptInputToolbar,
 } from "@/components/ai-elements/prompt-input";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { PublicFooter } from "@/components/public-footer";
+import { PublicHeader } from "@/components/public-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useSession } from "@/lib/auth-client";
@@ -49,9 +50,10 @@ const useCases = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [input, setInput] = useState("");
-  const startConsultation = useAction(
+  // Use mutation for optimistic updates and transactional guarantees
+  const startConsultation = useMutation(
     api.interiorDesignAgent.createDesignConsultation
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,33 +86,18 @@ export default function HomePage() {
     [isSubmitting, startConsultation, router, isAuthenticated]
   );
 
+  // Show loading state to prevent layout shift
+  if (isPending) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
-      {/* Fixed Header */}
-      {!isAuthenticated && (
-        <header className="fixed top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex h-16 items-center justify-between px-6">
-            <Link className="flex items-center gap-2" href="/">
-              <Sparkles className="size-6 text-primary" />
-              <span className="font-semibold text-lg">furnish</span>
-            </Link>
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <Link href="/login">
-                <Button size="sm" variant="ghost">
-                  Sign in
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm">
-                  <LogIn className="mr-2 size-4" />
-                  Sign up
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </header>
-      )}
+      {!isAuthenticated && <PublicHeader />}
 
       {/* Hero Section - 100vh */}
       <section className="relative flex min-h-screen justify-center px-6 pt-16">
@@ -238,56 +225,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-background py-12">
-        <div className="container mx-auto px-6">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="size-6 text-primary" />
-                <span className="font-semibold text-lg">furnish</span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Your AI interior design assistant
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold">Company</h4>
-              <div className="flex flex-col gap-2 text-muted-foreground text-sm">
-                <Link className="hover:text-foreground" href="/about">
-                  About Us
-                </Link>
-                <Link className="hover:text-foreground" href="/blog">
-                  Blog
-                </Link>
-                <Link className="hover:text-foreground" href="/login">
-                  Sign In
-                </Link>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold">Legal</h4>
-              <div className="flex flex-col gap-2 text-muted-foreground text-sm">
-                <Link className="hover:text-foreground" href="/privacy">
-                  Privacy Policy
-                </Link>
-                <Link className="hover:text-foreground" href="/terms">
-                  Terms of Service
-                </Link>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="font-semibold">Connect</h4>
-              <p className="text-muted-foreground text-sm">
-                © 2025 furnish. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

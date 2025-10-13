@@ -8,14 +8,16 @@
  * @module
  */
 
+import type * as agents_design from "../agents/design.js";
 import type * as auth from "../auth.js";
-import type * as chat from "../chat.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
-import type * as interiorDesignAgent from "../interiorDesignAgent.js";
+import type * as messages from "../messages.js";
 import type * as playground from "../playground.js";
 import type * as privateData from "../privateData.js";
-import type * as todos from "../todos.js";
+import type * as streamAbort from "../streamAbort.js";
+import type * as threads from "../threads.js";
+import type * as utils from "../utils.js";
 
 import type {
   ApiFromModules,
@@ -32,14 +34,16 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "agents/design": typeof agents_design;
   auth: typeof auth;
-  chat: typeof chat;
   healthCheck: typeof healthCheck;
   http: typeof http;
-  interiorDesignAgent: typeof interiorDesignAgent;
+  messages: typeof messages;
   playground: typeof playground;
   privateData: typeof privateData;
-  todos: typeof todos;
+  streamAbort: typeof streamAbort;
+  threads: typeof threads;
+  utils: typeof utils;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -9,13 +10,18 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-html,
-body {
-  @apply bg-white dark:bg-gray-950;
+html {
+  height: 100%;
+  @apply bg-background;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
+}
+
+body {
+  min-height: 100%;
+  @apply bg-background;
 }
 
 /* Chic — brand tokens
@@ -172,5 +178,15 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Prevent layout shift on theme change */
+  html.dark {
+    color-scheme: dark;
+  }
+  
+  /* Smooth transitions for theme changes (only after initial load) */
+  html:not(.no-transitions) * {
+    @apply transition-colors duration-150;
   }
 }

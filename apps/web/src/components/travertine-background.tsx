@@ -19,12 +19,35 @@ export function TravertineBackground({
     return null;
   }
 
-  const W = 1920;
-  const H = 1080;
+  const w = 1920;
+  const h = 1080;
+
+  // Ellipse positioning and sizing constants
+  const ellipse1CxRatio = 0.72;
+  const ellipse1CyRatio = 0.22;
+  const ellipse2CxRatio = 0.3;
+  const ellipse2CyRatio = 0.7;
+
+  // Curve path positioning constants
+  const curve1StartXratio = 0.1;
+  const curve1StartYratio = 0.58;
+  const curve1Cp1Xratio = 0.3;
+  const curve1Cp1Yratio = 0.45;
+  const curve1Cp2Xratio = 0.55;
+  const curve1Cp2Yratio = 0.85;
+  const curve1EndXratio = 0.9;
+  const curve1EndYratio = 0.35;
+
+  const curve2StartXratio = 0.15;
+  const curve2StartYratio = 0.3;
+  const curve2CpXratio = 0.45;
+  const curve2CpYratio = 0.5;
+  const curve2EndXratio = 0.85;
+  const curve2EndYratio = 0.65;
 
   // Using CSS variables that adapt to light/dark mode
   const svgString = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice">
       <defs>
         <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:oklch(0.97 0.01 85);stop-opacity:1" />
@@ -45,15 +68,15 @@ export function TravertineBackground({
       <!-- Soft shapes -->
       <g opacity="0.85">
         <ellipse 
-          cx="${W * 0.72}" 
-          cy="${H * 0.22}" 
+          cx="${w * ellipse1CxRatio}" 
+          cy="${h * ellipse1CyRatio}" 
           rx="420" 
           ry="260" 
           fill="oklch(0.92 0.02 15)"
         />
         <ellipse 
-          cx="${W * 0.3}" 
-          cy="${H * 0.7}" 
+          cx="${w * ellipse2CxRatio}" 
+          cy="${h * ellipse2CyRatio}" 
           rx="520" 
           ry="300" 
           fill="oklch(0.90 0.018 45)"
@@ -62,7 +85,7 @@ export function TravertineBackground({
       
       <!-- Accent curve -->
       <path 
-        d="M ${W * 0.1} ${H * 0.58} C ${W * 0.3} ${H * 0.45}, ${W * 0.55} ${H * 0.85}, ${W * 0.9} ${H * 0.35}" 
+        d="M ${w * curve1StartXratio} ${h * curve1StartYratio} C ${w * curve1Cp1Xratio} ${h * curve1Cp1Yratio}, ${w * curve1Cp2Xratio} ${h * curve1Cp2Yratio}, ${w * curve1EndXratio} ${h * curve1EndYratio}" 
         stroke="oklch(0.70 0.08 65)" 
         stroke-width="3" 
         fill="none" 
@@ -71,7 +94,7 @@ export function TravertineBackground({
       
       <!-- Additional subtle curves -->
       <path 
-        d="M ${W * 0.15} ${H * 0.3} Q ${W * 0.45} ${H * 0.5}, ${W * 0.85} ${H * 0.65}" 
+        d="M ${w * curve2StartXratio} ${h * curve2StartYratio} Q ${w * curve2CpXratio} ${h * curve2CpYratio}, ${w * curve2EndXratio} ${h * curve2EndYratio}" 
         stroke="oklch(0.88 0.015 85)" 
         stroke-width="2" 
         fill="none" 

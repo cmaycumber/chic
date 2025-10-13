@@ -1,21 +1,25 @@
 "use client";
 
+import {
+  optimisticallySendMessage,
+  type UIMessage,
+  useSmoothText,
+  useUIMessages,
+} from "@convex-dev/agent/react";
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useAction } from "convex/react";
-import { RotateCcw, Sparkles } from "lucide-react";
+import { useMutation } from "convex/react";
+import { RotateCcw, Sparkles, StopCircle } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Loader } from "@/components/ai-elements/loader";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputBody,
-  type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
@@ -24,83 +28,59 @@ import { Response } from "@/components/ai-elements/response";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type ThreadMessage = {
-  _id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  _creationTime: number;
-};
+export default function ChatPage({
+  params,
+}: {
+  params: Promise<{ threadId: string }>;
+}) {
+  const { threadId } = use(params);
 
-export default function ChatPage({ params }: { params: { threadId: string } }) {
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Load messages with streaming support
+  const {
+    results: messages,
+    status,
+    loadMore,
+  } = useUIMessages(
+    api.messages.listThreadMessages,
+    { threadId },
+    { initialNumItems: 10, stream: true }
+  );
+
+  const sendMessage = useMutation(
+    api.messages.initiateAsyncStreaming
+  ).withOptimisticUpdate(
+    optimisticallySendMessage(api.messages.listThreadMessages)
+  );
+
+  const abortStreamByOrder = useMutation(api.streamAbort.abortStreamByOrder);
+
+  const [prompt, setPrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const getThreadMessages = useAction(
-    api.interiorDesignAgent.getThreadMessages
-  );
-  const continueConsultation = useAction(
-    api.interiorDesignAgent.continueDesignConsultation
-  );
-
-  useEffect(() => {
-    const loadMessages = async () => {
-      setIsLoadingMessages(true);
-      try {
-        const threadMessages = await getThreadMessages({
-          threadId: params.threadId,
-        });
-        setMessages(threadMessages as ThreadMessage[]);
-      } catch {
-        // Handle error silently
-      } finally {
-        setIsLoadingMessages(false);
-      }
-    };
-
-    loadMessages();
-  }, [params.threadId, getThreadMessages]);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   useEffect(() => {
     if (messages && messages.length > 0) {
-      scrollToBottom();
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, scrollToBottom]);
+  }, [messages]);
 
-  const handleSubmit = useCallback(
-    async (message: PromptInputMessage) => {
-      if (!message.text?.trim() || isSubmitting) {
-        return;
-      }
+  const handleSendMessage = () => {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt) {
+      return;
+    }
 
-      const prompt = message.text;
-      setInput("");
-      setIsSubmitting(true);
+    sendMessage({ threadId, prompt: trimmedPrompt }).catch(() => {
+      setPrompt(trimmedPrompt);
+    });
+    setPrompt("");
+  };
 
-      try {
-        await continueConsultation({ threadId: params.threadId, prompt });
-        const updatedMessages = await getThreadMessages({
-          threadId: params.threadId,
-        });
-        setMessages(updatedMessages as ThreadMessage[]);
-      } catch {
-        setInput(prompt);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [isSubmitting, continueConsultation, params.threadId, getThreadMessages]
-  );
+  const streamingMessage = messages?.find((m) => m.status === "streaming");
+  const isStreaming = Boolean(streamingMessage);
 
   return (
-    <div className="flex h-full flex-col bg-muted/30">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="flex h-screen flex-col bg-muted/30">
+      <header className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-16 items-center gap-4 px-6">
           <Sparkles className="size-6 text-primary" />
           <div className="flex-1">
@@ -120,24 +100,10 @@ export default function ChatPage({ params }: { params: { threadId: string } }) {
         </div>
       </header>
 
-      <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <Conversation className="flex-1">
           <ConversationContent>
-            {isLoadingMessages && (
-              <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
-                <Sparkles className="size-12 text-muted-foreground" />
-                <div className="space-y-1">
-                  <h3 className="font-medium text-sm">
-                    Loading conversation...
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Your design expert is getting ready
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!isLoadingMessages && messages.length === 0 && (
+            {messages?.length === 0 && (
               <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
                 <Sparkles className="size-12 text-muted-foreground" />
                 <div className="space-y-1">
@@ -145,54 +111,100 @@ export default function ChatPage({ params }: { params: { threadId: string } }) {
                     Start your consultation
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Ask a question to begin
+                    Ask me about styles, colors, furniture, budget, or materials
                   </p>
                 </div>
               </div>
             )}
 
-            {!isLoadingMessages &&
-              messages.length > 0 &&
-              messages.map((msg) => (
-                <Message from={msg.role} key={msg._id}>
-                  <MessageContent>
-                    <Response
-                      className={cn(msg.role === "user" && "text-foreground")}
+            {messages && messages.length > 0 && (
+              <>
+                {status === "CanLoadMore" && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      onClick={() => loadMore(10)}
+                      size="sm"
+                      variant="outline"
                     >
-                      {msg.content}
-                    </Response>
-                  </MessageContent>
-                </Message>
-              ))}
+                      Load more
+                    </Button>
+                  </div>
+                )}
+                {messages.map((m) => (
+                  <MessageItem key={m.key} message={m} />
+                ))}
+              </>
+            )}
 
-            {isSubmitting && <Loader />}
             <div ref={messagesEndRef} />
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="border-t bg-background p-4">
+        <div className="shrink-0 border-t bg-background p-4">
           <div className="mx-auto max-w-3xl">
-            <PromptInput onSubmit={handleSubmit}>
+            <PromptInput onSubmit={handleSendMessage}>
               <PromptInputBody>
                 <PromptInputTextarea
-                  disabled={isSubmitting}
-                  onChange={(e) => setInput(e.target.value)}
+                  onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Ask about styles, colors, furniture, budget, or materials..."
                   rows={2}
-                  value={input}
+                  value={prompt}
                 />
               </PromptInputBody>
               <PromptInputToolbar>
                 <div className="flex-1" />
-                <PromptInputSubmit disabled={!input.trim() || isSubmitting}>
-                  {isSubmitting ? "Sending..." : "Send"}
-                </PromptInputSubmit>
+                {isStreaming ? (
+                  <Button
+                    className="gap-1.5"
+                    onClick={() => {
+                      const order = streamingMessage?.order ?? 0;
+                      abortStreamByOrder({ threadId, order }).catch(
+                        (error: unknown) => {
+                          throw error;
+                        }
+                      );
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="destructive"
+                  >
+                    <StopCircle className="size-3.5" />
+                    Stop
+                  </Button>
+                ) : (
+                  <PromptInputSubmit disabled={!prompt.trim()}>
+                    Send
+                  </PromptInputSubmit>
+                )}
               </PromptInputToolbar>
             </PromptInput>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function MessageItem({ message }: { message: UIMessage }) {
+  const isUser = message.role === "user";
+  const [visibleText] = useSmoothText(message.text, {
+    startStreaming: message.status === "streaming",
+  });
+
+  return (
+    <Message from={message.role}>
+      <MessageContent>
+        <Response
+          className={cn(
+            isUser && "text-foreground",
+            message.status === "streaming" && "animate-pulse",
+            message.status === "failed" && "text-destructive"
+          )}
+        >
+          {visibleText || "..."}
+        </Response>
+      </MessageContent>
+    </Message>
   );
 }

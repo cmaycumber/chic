@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
+const MIN_PASSWORD_LENGTH = 8;
+
 export default function SignUpForm({
   onSwitchToSignIn,
 }: {
@@ -29,7 +31,7 @@ export default function SignUpForm({
         },
         {
           onSuccess: () => {
-            router.push("/dashboard");
+            router.push("/");
             toast.success("Sign up successful");
           },
           onError: (error) => {
@@ -42,7 +44,12 @@ export default function SignUpForm({
       onSubmit: z.object({
         name: z.string().min(2, "Name must be at least 2 characters"),
         email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        password: z
+          .string()
+          .min(
+            MIN_PASSWORD_LENGTH,
+            `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+          ),
       }),
     },
   });
