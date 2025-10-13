@@ -17,18 +17,15 @@
     "dev:web": "turbo -F web dev",
     "dev:backend": "turbo -F @furnish/backend run dev",
     "dev:setup": "turbo -F @furnish/backend dev:setup",
-    "fix": "bun x ultracite fix"
-  },
-  "dependencies": {
-    "tailwindcss": "^4.1.13"
+    "fix": "bun x biome check --write"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.4",
+    "@biomejs/biome": "2.2.6",
     "husky": "^9.1.7",
     "lefthook": "^1.13.6",
-    "lint-staged": "^16.2.3",
-    "turbo": "2.5.9-canary.0",
-    "ultracite": "5.4.1"
+    "lint-staged": "^16.2.4",
+    "turbo": "2.5.8",
+    "ultracite": "5.6.2"
   },
   "packageManager": "bun@1.2.18",
   "lint-staged": {

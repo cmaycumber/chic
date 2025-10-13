@@ -1,13 +1,90 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["ultracite"],
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noUnknownAtRules": "warn"
+      },
+      "performance": {
+        "noNamespaceImport": "warn"
+      },
+      "style": {
+        "noMagicNumbers": "warn",
+        "useNamingConvention": "warn"
+      }
+    }
+  },
   "overrides": [
+    {
+      "includes": ["**/apps/native/app/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/convex/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["**/components/ui/**"],
       "linter": {
         "rules": {
           "performance": {
-            "noNamespaceImport": "off"
+            "noNamespaceImport": "off",
+            "noImgElement": "off"
+          },
+          "style": {
+            "noNestedTernary": "off",
+            "useCollapsedIf": "off"
+          },
+          "a11y": {
+            "useFocusableInteractive": "off",
+            "useSemanticElements": "off",
+            "noNoninteractiveElementInteractions": "off",
+            "useKeyWithClickEvents": "off"
+          },
+          "correctness": {
+            "noNestedComponentDefinitions": "off"
+          },
+          "nursery": {
+            "noShadow": "off",
+            "useImageSize": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/components/ai-elements/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noImgElement": "off"
+          },
+          "nursery": {
+            "useImageSize": "off"
+          },
+          "style": {
+            "useCollapsedIf": "off"
           }
         }
       }

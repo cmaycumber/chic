@@ -68,9 +68,9 @@
     "lucide-react": "^0.544.0",
     "lucide-react-native": "^0.544.0",
     "nanoid": "^5.1.6",
-    "nativewind": "^5.0.0-preview.1",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
+    "nativewind": "^5.0.0-preview.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
     "react-native": "0.81.4",
     "react-native-css": "^3.0.0",
     "react-native-gesture-handler": "~2.28.0",
@@ -87,10 +87,10 @@
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@tailwindcss/postcss": "^4.1.13",
-    "@types/react": "~19.1.10",
+    "@types/react": "~19.2.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
-    "typescript": "~5.8.2"
+    "typescript": "~5.9.3"
   },
   "private": true
 }
