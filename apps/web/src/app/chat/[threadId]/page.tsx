@@ -86,15 +86,10 @@ export default function ChatPage({
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <header className="shrink-0 border-b bg-background">
-        <div className="flex h-14 items-center gap-4 px-6">
-          <Sparkles className="size-5 text-primary" />
-          <div className="flex-1">
-            <h1 className="font-semibold text-base">
-              Interior Design Consultant
-            </h1>
-          </div>
+        <div className="flex h-14 items-center justify-between px-6">
+          <h1 className="font-semibold text-base">Chat</h1>
           <Link href="/chat">
-            <Button className="gap-1.5" size="sm" variant="outline">
+            <Button className="gap-1.5" size="sm" variant="ghost">
               <RotateCcw className="size-3.5" />
               New Chat
             </Button>
@@ -102,7 +97,7 @@ export default function ChatPage({
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
+      <div className="flex min-h-0 flex-1 flex-col bg-background">
         <Conversation className="flex-1">
           <ConversationContent className="p-4">
             {messages && messages.length > 0 && (
