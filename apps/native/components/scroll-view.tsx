@@ -13,7 +13,7 @@ export type ScrollViewProps = ComponentPropsWithoutRef<typeof StyledScrollView>;
 const ScrollViewBase = (
   { ...props }: ScrollViewProps,
   ref: ForwardedRef<RnScrollView>
-) => <StyledScrollView ref={ref} {...props} />;
+) => <StyledScrollView  {...props} />;
 
 export const ScrollView = forwardRef(ScrollViewBase);
 

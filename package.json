@@ -17,10 +17,11 @@
     "dev:web": "turbo -F web dev",
     "dev:backend": "turbo -F @furnish/backend run dev",
     "dev:setup": "turbo -F @furnish/backend dev:setup",
-    "fix": "bun x biome check --write"
+    "fix": "bun x ultracite fix"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.6",
+    "@manypkg/cli": "^0.25.1",
     "husky": "^9.1.7",
     "lefthook": "^1.13.6",
     "lint-staged": "^16.2.4",
