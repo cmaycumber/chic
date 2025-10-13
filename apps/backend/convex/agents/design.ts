@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { Agent } from "@convex-dev/agent";
 import { components } from "../_generated/api";
 
@@ -8,7 +7,7 @@ import { components } from "../_generated/api";
  */
 export const designAgent = new Agent(components.agent, {
   name: "Interior Design Consultant",
-  languageModel: openai("gpt-4o-mini"),
+  languageModel: "openai/gpt-5-nano",
   instructions: `You are an expert interior design consultant with years of experience in residential and commercial spaces. 
 
 Your expertise includes:

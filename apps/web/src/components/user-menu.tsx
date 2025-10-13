@@ -69,7 +69,7 @@ export default function UserMenu() {
               authClient.signOut({
                 fetchOptions: {
                   onSuccess: () => {
-                    router.push("/dashboard");
+                    router.push("/");
                   },
                 },
               });
