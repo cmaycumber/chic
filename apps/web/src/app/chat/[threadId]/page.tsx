@@ -8,9 +8,9 @@ import {
 } from "@convex-dev/agent/react";
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
-import { RotateCcw, Sparkles, StopCircle } from "lucide-react";
+import { ArrowUp, RotateCcw, StopCircle } from "lucide-react";
 import Link from "next/link";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -20,6 +20,7 @@ import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputBody,
+  type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
@@ -63,60 +64,47 @@ export default function ChatPage({
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
-    const trimmedPrompt = prompt.trim();
-    if (!trimmedPrompt) {
-      return;
-    }
+  const handleSendMessage = useCallback(
+    (message: PromptInputMessage, event: React.FormEvent) => {
+      event.preventDefault();
+      const trimmedPrompt = message.text?.trim();
+      if (!trimmedPrompt) {
+        return;
+      }
 
-    sendMessage({ threadId, prompt: trimmedPrompt }).catch(() => {
-      setPrompt(trimmedPrompt);
-    });
-    setPrompt("");
-  };
+      sendMessage({ threadId, prompt: trimmedPrompt }).catch(() => {
+        setPrompt(trimmedPrompt);
+      });
+      setPrompt("");
+    },
+    [sendMessage, threadId]
+  );
 
   const streamingMessage = messages?.find((m) => m.status === "streaming");
   const isStreaming = Boolean(streamingMessage);
 
   return (
-    <div className="flex h-screen flex-col bg-muted/30">
-      <header className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center gap-4 px-6">
-          <Sparkles className="size-6 text-primary" />
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <header className="shrink-0 border-b bg-background">
+        <div className="flex h-14 items-center gap-4 px-6">
+          <Sparkles className="size-5 text-primary" />
           <div className="flex-1">
-            <h1 className="font-semibold text-lg">
+            <h1 className="font-semibold text-base">
               Interior Design Consultant
             </h1>
-            <p className="text-muted-foreground text-xs">
-              Your AI-powered design expert
-            </p>
           </div>
-          <Link href="/">
+          <Link href="/chat">
             <Button className="gap-1.5" size="sm" variant="outline">
               <RotateCcw className="size-3.5" />
-              New Consultation
+              New Chat
             </Button>
           </Link>
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
         <Conversation className="flex-1">
-          <ConversationContent>
-            {messages?.length === 0 && (
-              <div className="flex size-full flex-col items-center justify-center gap-4 p-8 text-center">
-                <Sparkles className="size-12 text-muted-foreground" />
-                <div className="space-y-1">
-                  <h3 className="font-medium text-sm">
-                    Start your consultation
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    Ask me about styles, colors, furniture, budget, or materials
-                  </p>
-                </div>
-              </div>
-            )}
-
+          <ConversationContent className="p-4">
             {messages && messages.length > 0 && (
               <>
                 {status === "CanLoadMore" && (
@@ -141,11 +129,12 @@ export default function ChatPage({
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="shrink-0 border-t bg-background p-4">
+        <div className="shrink-0 border-t bg-background p-6">
           <div className="mx-auto max-w-3xl">
             <PromptInput onSubmit={handleSendMessage}>
               <PromptInputBody>
                 <PromptInputTextarea
+                  className="min-h-[60px] text-base"
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Ask about styles, colors, furniture, budget, or materials..."
                   rows={2}
@@ -159,11 +148,9 @@ export default function ChatPage({
                     className="gap-1.5"
                     onClick={() => {
                       const order = streamingMessage?.order ?? 0;
-                      abortStreamByOrder({ threadId, order }).catch(
-                        (error: unknown) => {
-                          throw error;
-                        }
-                      );
+                      abortStreamByOrder({ threadId, order }).catch(() => {
+                        // Error handled silently
+                      });
                     }}
                     size="sm"
                     type="button"
@@ -174,11 +161,14 @@ export default function ChatPage({
                   </Button>
                 ) : (
                   <PromptInputSubmit disabled={!prompt.trim()}>
-                    Send
+                    <ArrowUp className="size-4" />
                   </PromptInputSubmit>
                 )}
               </PromptInputToolbar>
             </PromptInput>
+            <div className="mt-2 text-center text-muted-foreground text-xs">
+              Furnish can make mistakes. Check important info.
+            </div>
           </div>
         </div>
       </div>

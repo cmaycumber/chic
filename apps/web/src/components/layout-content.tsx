@@ -37,7 +37,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-svh w-full bg-background">
+      <div className="flex h-screen w-full overflow-hidden bg-background">
         <AppSidebar />
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>

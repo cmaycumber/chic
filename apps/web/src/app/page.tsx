@@ -53,9 +53,7 @@ export default function HomePage() {
   const { data: session, isPending } = useSession();
   const [input, setInput] = useState("");
   // Use mutation for optimistic updates and transactional guarantees
-  const startConsultation = useMutation(
-    api.interiorDesignAgent.createDesignConsultation
-  );
+  const createThread = useMutation(api.threads.createNewThread);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAuthenticated = !!session;
@@ -73,17 +71,20 @@ export default function HomePage() {
 
       setIsSubmitting(true);
       try {
-        const result = await startConsultation({
-          prompt: message.text,
+        const threadId = await createThread({
+          initialMessage: {
+            role: "user",
+            content: message.text,
+          },
         });
-        router.push(`/chat/${result.threadId}`);
+        router.push(`/chat/${threadId}`);
       } catch {
         // Error handled silently - could add toast notification
       } finally {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, startConsultation, router, isAuthenticated]
+    [isSubmitting, createThread, router, isAuthenticated]
   );
 
   // Show loading state to prevent layout shift

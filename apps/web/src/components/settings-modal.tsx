@@ -30,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { TabsContent } from "@/components/ui/tabs";
 
 const TABS = [
   { id: "general", label: "General", icon: Settings },
@@ -101,7 +100,7 @@ export function SettingsModal({
             <div>
               {/* General Tab */}
               {activeTab === "general" && (
-                <TabsContent className="m-0 space-y-6 p-6" value="general">
+                <div className="m-0 space-y-6 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">General</h2>
 
@@ -226,12 +225,12 @@ export function SettingsModal({
                       </div>
                     </div>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Notifications Tab */}
               {activeTab === "notifications" && (
-                <TabsContent className="m-0 p-6" value="notifications">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">
                       Notifications
@@ -240,12 +239,12 @@ export function SettingsModal({
                       Notification settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Personalization Tab */}
               {activeTab === "personalization" && (
-                <TabsContent className="m-0 p-6" value="personalization">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">
                       Personalization
@@ -254,12 +253,12 @@ export function SettingsModal({
                       Personalization settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Apps & Connectors Tab */}
               {activeTab === "apps" && (
-                <TabsContent className="m-0 p-6" value="apps">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">
                       Apps & Connectors
@@ -268,36 +267,36 @@ export function SettingsModal({
                       Apps & connectors settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Schedules Tab */}
               {activeTab === "schedules" && (
-                <TabsContent className="m-0 p-6" value="schedules">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">Schedules</h2>
                     <p className="text-muted-foreground">
                       Schedule settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Orders Tab */}
               {activeTab === "orders" && (
-                <TabsContent className="m-0 p-6" value="orders">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">Orders</h2>
                     <p className="text-muted-foreground">
                       Order settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Data Controls Tab */}
               {activeTab === "data" && (
-                <TabsContent className="m-0 p-6" value="data">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">
                       Data controls
@@ -306,24 +305,24 @@ export function SettingsModal({
                       Data control settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Security Tab */}
               {activeTab === "security" && (
-                <TabsContent className="m-0 p-6" value="security">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">Security</h2>
                     <p className="text-muted-foreground">
                       Security settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Parental Controls Tab */}
               {activeTab === "parental" && (
-                <TabsContent className="m-0 p-6" value="parental">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">
                       Parental controls
@@ -332,19 +331,19 @@ export function SettingsModal({
                       Parental control settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
 
               {/* Account Tab */}
               {activeTab === "account" && (
-                <TabsContent className="m-0 p-6" value="account">
+                <div className="m-0 p-6">
                   <div>
                     <h2 className="mb-6 font-semibold text-2xl">Account</h2>
                     <p className="text-muted-foreground">
                       Account settings coming soon...
                     </p>
                   </div>
-                </TabsContent>
+                </div>
               )}
             </div>
           </div>

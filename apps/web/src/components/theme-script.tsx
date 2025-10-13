@@ -12,6 +12,11 @@ export function ThemeScript() {
     } catch (e) {}
   `;
 
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: Required for preventing theme flash on page load - content is not user-generated
-  return <script dangerouslySetInnerHTML={{ __html: themeScript }} />;
+  return (
+    <script
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Required for preventing theme flash on page load - content is not user-generated
+      dangerouslySetInnerHTML={{ __html: themeScript }}
+      suppressHydrationWarning
+    />
+  );
 }

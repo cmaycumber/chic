@@ -9,7 +9,7 @@ import {
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { z } from "zod/v3";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import {
   type ActionCtx,
   action,
@@ -44,9 +44,15 @@ export const createNewThread = mutation({
       title,
     });
     if (initialMessage) {
-      await saveMessage(ctx, components.agent, {
+      const { messageId } = await saveMessage(ctx, components.agent, {
         threadId,
         message: initialMessage,
+      });
+
+      // Schedule the AI response to stream asynchronously
+      await ctx.scheduler.runAfter(0, internal.messages.streamAsync, {
+        threadId,
+        promptMessageId: messageId,
       });
     }
     return threadId;
