@@ -1,6 +1,6 @@
 import type * as CollapsiblePrimitive from "@rn-primitives/collapsible";
 import { ChevronDown, Search } from "lucide-react-native";
-import { Platform, Pressable, View, type ViewProps } from "react-native";
+import { Pressable, View, type ViewProps } from "react-native";
 import {
   Collapsible,
   CollapsibleContent,

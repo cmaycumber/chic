@@ -179,12 +179,12 @@ body {
   body {
     @apply bg-background text-foreground;
   }
-  
+
   /* Prevent layout shift on theme change */
   html.dark {
     color-scheme: dark;
   }
-  
+
   /* Smooth transitions for theme changes (only after initial load) */
   html:not(.no-transitions) * {
     @apply transition-colors duration-150;

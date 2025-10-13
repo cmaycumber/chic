@@ -1,5 +1,5 @@
 import { ArrowDown } from "lucide-react-native";
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   ScrollView,
   type ScrollViewProps,

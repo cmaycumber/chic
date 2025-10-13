@@ -48,7 +48,7 @@ function DialogOverlay({
             entering={FadeIn.delay(50)}
             exiting={FadeOut.duration(150)}
           >
-            <>{children}</>
+            {children}
           </NativeOnlyAnimatedView>
         </NativeOnlyAnimatedView>
       </DialogPrimitive.Overlay>
@@ -77,7 +77,7 @@ function DialogContent({
           )}
           {...props}
         >
-          <>{children}</>
+          {children}
           <DialogPrimitive.Close
             className={cn(
               "absolute top-4 right-4 rounded opacity-70 active:opacity-100",

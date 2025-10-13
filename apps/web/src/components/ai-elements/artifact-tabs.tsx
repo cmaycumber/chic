@@ -207,6 +207,3 @@ export function ArtifactTabs({
     </Tabs>
   );
 }
-
-
-

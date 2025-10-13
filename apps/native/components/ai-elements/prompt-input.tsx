@@ -335,11 +335,9 @@ export const PromptInput = ({
   // Note: File input cannot be programmatically set for security reasons
   // The syncHiddenInput prop is no longer functional
   useEffect(() => {
-    if (syncHiddenInput && inputRef.current) {
+    if (syncHiddenInput && inputRef.current && items.length === 0) {
       // Clear the input when items are cleared
-      if (items.length === 0) {
-        inputRef.current.value = "";
-      }
+      inputRef.current.value = "";
     }
   }, [items, syncHiddenInput]);
 
@@ -421,7 +419,7 @@ export const PromptInput = ({
     // Convert blob URLs to data URLs asynchronously
     Promise.all(
       items.map(async ({ id, ...item }) => {
-        if (item.url && item.url.startsWith("blob:")) {
+        if (item.url?.startsWith("blob:")) {
           return {
             ...item,
             url: await convertBlobUrlToDataUrl(item.url),

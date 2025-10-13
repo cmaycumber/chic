@@ -67,7 +67,7 @@ function SelectTrigger({
       ref={ref}
       {...props}
     >
-      <>{children}</>
+      {children}
       <Icon
         aria-hidden={true}
         as={ChevronDown}

@@ -61,7 +61,7 @@ function ContextMenuSubTrigger({
         )}
         {...props}
       >
-        <>{children}</>
+        {children}
         <Icon
           as={icon}
           className={cn(
@@ -222,7 +222,7 @@ function ContextMenuCheckboxItem({
             />
           </ContextMenuPrimitive.ItemIndicator>
         </View>
-        <>{children}</>
+        {children}
       </ContextMenuPrimitive.CheckboxItem>
     </TextClassContext.Provider>
   );
@@ -254,7 +254,7 @@ function ContextMenuRadioItem({
             <View className="h-2 w-2 rounded-full bg-foreground" />
           </ContextMenuPrimitive.ItemIndicator>
         </View>
-        <>{children}</>
+        {children}
       </ContextMenuPrimitive.RadioItem>
     </TextClassContext.Provider>
   );

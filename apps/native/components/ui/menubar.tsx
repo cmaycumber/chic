@@ -137,7 +137,7 @@ function MenubarSubTrigger({
         )}
         {...props}
       >
-        <>{children}</>
+        {children}
         <Icon
           as={icon}
           className={cn(
@@ -292,7 +292,7 @@ function MenubarCheckboxItem({
             />
           </MenubarPrimitive.ItemIndicator>
         </View>
-        <>{children}</>
+        {children}
       </MenubarPrimitive.CheckboxItem>
     </TextClassContext.Provider>
   );
@@ -324,7 +324,7 @@ function MenubarRadioItem({
             <View className="h-2 w-2 rounded-full bg-foreground" />
           </MenubarPrimitive.ItemIndicator>
         </View>
-        <>{children}</>
+        {children}
       </MenubarPrimitive.RadioItem>
     </TextClassContext.Provider>
   );
