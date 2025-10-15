@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "convex dev",
     "dev:setup": "convex dev --configure --until-success",
+    "deploy": "convex deploy",
     "agent-playground": "npx @convex-dev/agent-playground"
   },
   "author": "",
