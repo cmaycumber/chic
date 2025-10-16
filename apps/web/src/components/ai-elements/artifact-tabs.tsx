@@ -5,12 +5,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type ArtifactTab = {
@@ -106,44 +100,32 @@ export function ArtifactTabs({
       onValueChange={handleTabChange}
       value={currentActiveTab}
     >
-      <div className="flex items-center bg-muted/30 shadow-sm">
+      <div className="flex items-center border-b bg-background">
         <TabsList className="h-auto flex-1 justify-start rounded-none border-0 bg-transparent p-0">
           <div className="flex h-full items-center gap-0 overflow-x-auto">
             {tabs.map((tab) => (
-              <div
-                className="group relative flex items-center border-r"
-                key={tab.id}
-              >
+              <div className="group relative flex items-center" key={tab.id}>
                 <TabsTrigger
                   className={cn(
-                    "relative rounded-none border-transparent border-b-2 py-3 pr-9 pl-4 transition-colors hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none"
+                    "relative rounded-none border-transparent border-b-2 py-3 pr-8 pl-4 transition-colors data-[state=active]:border-foreground data-[state=active]:bg-transparent"
                   )}
                   value={tab.id}
                 >
-                  <span className="max-w-[150px] truncate font-medium text-sm">
+                  <span className="max-w-[150px] truncate text-sm">
                     {tab.title}
                   </span>
                 </TabsTrigger>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className={cn(
-                          "-translate-y-1/2 absolute top-1/2 right-2 z-10 inline-flex size-5 items-center justify-center rounded-md p-0 opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover:opacity-100",
-                          currentActiveTab === tab.id && "opacity-100"
-                        )}
-                        onClick={(e) => handleTabClose(e, tab.id)}
-                        type="button"
-                      >
-                        <XIcon className="size-3" />
-                        <span className="sr-only">Close tab</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Close artifact</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <button
+                  className={cn(
+                    "-translate-y-1/2 absolute top-1/2 right-2 z-10 inline-flex size-4 items-center justify-center rounded p-0 opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-70",
+                    currentActiveTab === tab.id && "opacity-70"
+                  )}
+                  onClick={(e) => handleTabClose(e, tab.id)}
+                  type="button"
+                >
+                  <XIcon className="size-3" />
+                  <span className="sr-only">Close tab</span>
+                </button>
               </div>
             ))}
           </div>
@@ -151,46 +133,28 @@ export function ArtifactTabs({
 
         <div className="flex shrink-0 items-center gap-1 px-2">
           {showAddButton && tabs.length < maxTabs && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="size-8 p-0"
-                    onClick={handleAddTab}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <PlusIcon className="size-4" />
-                    <span className="sr-only">Add new artifact</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add new artifact</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button
+              className="size-8 p-0"
+              onClick={handleAddTab}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <PlusIcon className="size-4" />
+              <span className="sr-only">Add new artifact</span>
+            </Button>
           )}
           {onPanelClose && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="size-8 p-0"
-                    onClick={onPanelClose}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <XIcon className="size-4" />
-                    <span className="sr-only">Close artifacts panel</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Close panel</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Button
+              className="size-8 p-0"
+              onClick={onPanelClose}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <XIcon className="size-4" />
+              <span className="sr-only">Close artifacts panel</span>
+            </Button>
           )}
         </div>
       </div>

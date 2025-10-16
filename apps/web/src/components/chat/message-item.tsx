@@ -1,7 +1,7 @@
 "use client";
 
 import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
-import { CopyIcon, RefreshCcwIcon } from "lucide-react";
+import { CopyIcon } from "lucide-react";
 import { Action, Actions } from "@/components/ai-elements/actions";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -124,15 +124,7 @@ export function MessageItem({
       </Message>
 
       {message.role === "assistant" && isLastMessage && !isStreaming && (
-        <Actions className="mt-2">
-          <Action
-            label="Retry"
-            onClick={() => {
-              // TODO: Implement regenerate functionality
-            }}
-          >
-            <RefreshCcwIcon className="size-3" />
-          </Action>
+        <Actions className="mt-3">
           <Action
             label="Copy"
             onClick={() => {

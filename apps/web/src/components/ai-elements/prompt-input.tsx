@@ -478,7 +478,7 @@ export const PromptInputBody = ({
   className,
   ...props
 }: PromptInputBodyProps) => (
-  <div className={cn(className, "flex flex-col")} {...props} />
+  <div className={cn(className, "flex flex-col border-b-0")} {...props} />
 );
 
 export type PromptInputTextareaProps = ComponentProps<typeof Textarea>;

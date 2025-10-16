@@ -57,7 +57,6 @@ export default function ChatPage({
 
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState<string>("gpt-4o");
-  const [webSearch, setWebSearch] = useState(false);
   const [isArtifactsPanelOpen, setIsArtifactsPanelOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -132,17 +131,16 @@ export default function ChatPage({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      <header className="shrink-0 border-b bg-background">
-        <div className="flex h-14 items-center justify-between px-6">
-          <h1 className="font-semibold text-base">Chat</h1>
+      <header className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-end px-6">
           <Button
-            className="gap-1.5"
+            className="gap-2"
             onClick={() => setIsArtifactsPanelOpen(!isArtifactsPanelOpen)}
             size="sm"
-            variant={isArtifactsPanelOpen ? "default" : "ghost"}
+            variant={isArtifactsPanelOpen ? "secondary" : "ghost"}
           >
-            <PanelRight className="size-3.5" />
-            Artifacts
+            <PanelRight className="size-4" />
+            <span className="text-sm">Artifacts</span>
           </Button>
         </div>
       </header>
@@ -150,16 +148,16 @@ export default function ChatPage({
       <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
         <div className="flex min-h-0 flex-1 flex-col">
           <Conversation className="mb-[-40px] flex-1" initial="instant">
-            <ConversationContent className="px-6 py-4">
+            <ConversationContent className="px-6 py-6">
               <div className="mx-auto max-w-3xl">
                 {messages && messages.length > 0 && (
                   <>
                     {status === "CanLoadMore" && (
-                      <div className="flex justify-center py-4">
+                      <div className="flex justify-center py-6">
                         <Button
                           onClick={() => loadMore(10)}
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
                         >
                           Load more
                         </Button>
@@ -176,7 +174,7 @@ export default function ChatPage({
                   </>
                 )}
 
-                <div className="pb-10" ref={messagesEndRef} />
+                <div className="pb-12" ref={messagesEndRef} />
               </div>
             </ConversationContent>
             <ConversationScrollButton />
@@ -195,9 +193,7 @@ export default function ChatPage({
               });
             }}
             onSubmit={handleSendMessage}
-            onWebSearchToggle={() => setWebSearch(!webSearch)}
             prompt={prompt}
-            webSearch={webSearch}
           />
         </div>
 
