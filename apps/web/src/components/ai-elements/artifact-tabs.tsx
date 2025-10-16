@@ -116,36 +116,34 @@ export function ArtifactTabs({
               >
                 <TabsTrigger
                   className={cn(
-                    "relative rounded-none border-transparent border-b-2 px-4 py-3 transition-colors hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none"
+                    "relative rounded-none border-transparent border-b-2 py-3 pr-9 pl-4 transition-colors hover:bg-muted/50 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:shadow-none"
                   )}
                   value={tab.id}
                 >
                   <span className="max-w-[150px] truncate font-medium text-sm">
                     {tab.title}
                   </span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          className={cn(
-                            "ml-2 size-5 p-0 opacity-0 transition-opacity group-hover:opacity-100",
-                            currentActiveTab === tab.id && "opacity-100"
-                          )}
-                          onClick={(e) => handleTabClose(e, tab.id)}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <XIcon className="size-3" />
-                          <span className="sr-only">Close tab</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Close artifact</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </TabsTrigger>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className={cn(
+                          "-translate-y-1/2 absolute top-1/2 right-2 z-10 inline-flex size-5 items-center justify-center rounded-md p-0 opacity-0 transition-opacity hover:bg-accent hover:text-accent-foreground group-hover:opacity-100",
+                          currentActiveTab === tab.id && "opacity-100"
+                        )}
+                        onClick={(e) => handleTabClose(e, tab.id)}
+                        type="button"
+                      >
+                        <XIcon className="size-3" />
+                        <span className="sr-only">Close tab</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Close artifact</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             ))}
           </div>
