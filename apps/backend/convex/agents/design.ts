@@ -30,11 +30,13 @@ export const create_design = createTool({
   description:
     "Create a design for a user when they describe an intention to create a new design. This could be explicit or by providing a new image, or idea.",
   args: z.object({
+    title: z.string().describe("The title of the design"),
     description: z.string().describe("The description of the design"),
   }),
   handler: async (ctx: ToolCtx, args): Promise<Doc<"designs">> => {
     // Create the design in the database
     const design = await ctx.runMutation(internal.designs.create, {
+      title: args.title,
       description: args.description,
     });
 

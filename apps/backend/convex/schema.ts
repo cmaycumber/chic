@@ -9,6 +9,7 @@ const design = v.object({
 
 export default defineSchema({
   designs: defineTable({
+    title: v.string(),
     description: v.string(),
   }),
 
