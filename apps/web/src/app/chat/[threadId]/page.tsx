@@ -68,7 +68,40 @@ export default function ChatPage({
         id: artifact._id,
         title: formatDesignTitle(artifact.design._id),
         type: artifact.type,
-        content: <ArtifactContent description={artifact.design.description} />,
+        content: (
+          <ArtifactContent
+            description={artifact.design.description}
+            onExport={() => {
+              // Download as JSON
+              const dataStr = JSON.stringify(artifact.design, null, 2);
+              const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(
+                dataStr
+              )}`;
+              const exportFileDefaultName = `${formatDesignTitle(artifact.design._id)}.json`;
+              const linkElement = document.createElement("a");
+              linkElement.setAttribute("href", dataUri);
+              linkElement.setAttribute("download", exportFileDefaultName);
+              linkElement.click();
+            }}
+            onRegenerate={() => {
+              // Send a message to regenerate the design
+              sendMessage({
+                threadId,
+                prompt: `Regenerate the design: ${artifact.design.description}`,
+              }).catch(() => {
+                // Error handled silently
+              });
+            }}
+            onShare={() => {
+              // Copy share link to clipboard
+              const shareUrl = `${window.location.origin}/chat/${threadId}?artifact=${artifact._id}`;
+              navigator.clipboard.writeText(shareUrl).catch(() => {
+                // Handle error silently
+              });
+            }}
+            title={formatDesignTitle(artifact.design._id)}
+          />
+        ),
       })
     ) ?? [];
 
