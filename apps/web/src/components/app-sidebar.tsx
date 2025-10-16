@@ -1,23 +1,46 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { usePaginatedQuery } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery } from "convex/react";
 import {
   Bookmark,
+  Check,
   Compass,
   Heart,
   Home,
   Lightbulb,
   Loader2,
   MessageCircle,
+  MoreHorizontal,
+  Pencil,
   PlusCircle,
   Sparkles,
   SquareTerminal,
+  Trash2,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { NavUser } from "@/components/nav-user";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
@@ -51,7 +74,15 @@ const LOAD_MORE_THREADS_COUNT = 20;
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
   const { state } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
   const collapsed = state === "collapsed";
+
+  const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [deleteThreadId, setDeleteThreadId] = useState<string | null>(null);
+
+  const updateThreadTitle = useMutation(api.threads.updateThreadTitleManually);
+  const deleteThreadAction = useAction(api.threads.deleteThread);
 
   // Fetch user's threads
   const {
@@ -63,6 +94,32 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
     {},
     { initialNumItems: INITIAL_THREADS_LOAD }
   );
+
+  const handleStartEdit = (threadId: string, currentTitle: string) => {
+    setEditingThreadId(threadId);
+    setEditingTitle(currentTitle || "Untitled conversation");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingThreadId(null);
+    setEditingTitle("");
+  };
+
+  const handleSaveEdit = async (threadId: string) => {
+    if (editingTitle.trim()) {
+      await updateThreadTitle({ threadId, title: editingTitle.trim() });
+    }
+    setEditingThreadId(null);
+    setEditingTitle("");
+  };
+
+  const handleDeleteThread = async (threadId: string) => {
+    await deleteThreadAction({ threadId });
+    setDeleteThreadId(null);
+    if (pathname === `/chat/${threadId}`) {
+      router.push("/chat");
+    }
+  };
 
   return (
     <Sidebar className={className} {...props}>
@@ -114,12 +171,12 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
               </div>
             </div>
 
-            <div className="flex-1 border-t">
-              <div className="px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+            <div className="flex min-h-0 flex-1 flex-col border-t">
+              <div className="shrink-0 px-4 py-3 font-medium text-muted-foreground text-xs uppercase tracking-wide">
                 Recent Chats
               </div>
-              <ScrollArea className="h-full px-3">
-                <div className="flex flex-col gap-0.5 pb-4">
+              <ScrollArea className="flex-1">
+                <div className="flex flex-col gap-0.5 px-3 pb-4">
                   {threads === undefined && (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -137,21 +194,109 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
                         const isActive = pathname === `/chat/${threadId}`;
                         const displayTitle =
                           thread.title || "Untitled conversation";
+                        const isEditing = editingThreadId === threadId;
+
                         return (
-                          <Link href={`/chat/${threadId}`} key={threadId}>
-                            <Button
-                              className={cn(
-                                "w-full cursor-pointer justify-start truncate text-left font-normal",
-                                isActive && "bg-accent font-medium"
-                              )}
-                              size="sm"
-                              type="button"
-                              variant={isActive ? "secondary" : "ghost"}
-                            >
-                              <SquareTerminal className="mr-2 size-4 shrink-0" />
-                              <span className="truncate">{displayTitle}</span>
-                            </Button>
-                          </Link>
+                          <div className="group relative" key={threadId}>
+                            {isEditing ? (
+                              <div className="flex items-center gap-1 rounded-md bg-accent px-2 py-1.5">
+                                <Input
+                                  autoFocus
+                                  className="h-7 flex-1 border-none bg-transparent px-1 py-0 font-normal text-sm focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  onBlur={() => handleSaveEdit(threadId)}
+                                  onChange={(e) =>
+                                    setEditingTitle(e.target.value)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      handleSaveEdit(threadId);
+                                    } else if (e.key === "Escape") {
+                                      handleCancelEdit();
+                                    }
+                                  }}
+                                  type="text"
+                                  value={editingTitle}
+                                />
+                                <Button
+                                  className="size-6"
+                                  onClick={() => handleSaveEdit(threadId)}
+                                  size="icon"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <Check className="size-3" />
+                                </Button>
+                                <Button
+                                  className="size-6"
+                                  onClick={handleCancelEdit}
+                                  size="icon"
+                                  type="button"
+                                  variant="ghost"
+                                >
+                                  <X className="size-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <Link
+                                  className="flex-1"
+                                  href={`/chat/${threadId}`}
+                                >
+                                  <Button
+                                    className={cn(
+                                      "w-full cursor-pointer justify-start truncate text-left font-normal",
+                                      isActive && "bg-accent font-medium"
+                                    )}
+                                    size="sm"
+                                    type="button"
+                                    variant={isActive ? "secondary" : "ghost"}
+                                  >
+                                    <SquareTerminal className="mr-2 size-4 shrink-0" />
+                                    <span className="truncate">
+                                      {displayTitle}
+                                    </span>
+                                  </Button>
+                                </Link>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      className={cn(
+                                        "size-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100",
+                                        isActive && "opacity-100"
+                                      )}
+                                      size="icon"
+                                      type="button"
+                                      variant="ghost"
+                                    >
+                                      <MoreHorizontal className="size-4" />
+                                      <span className="sr-only">
+                                        Thread options
+                                      </span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onSelect={() =>
+                                        handleStartEdit(threadId, displayTitle)
+                                      }
+                                    >
+                                      <Pencil className="mr-2 size-4" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onSelect={() =>
+                                        setDeleteThreadId(threadId)
+                                      }
+                                    >
+                                      <Trash2 className="mr-2 size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                       {status === "CanLoadMore" && (
@@ -175,6 +320,32 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
           <NavUser />
         </SidebarFooter>
       </SidebarContent>
+
+      <AlertDialog
+        onOpenChange={(open) => !open && setDeleteThreadId(null)}
+        open={deleteThreadId !== null}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              conversation and all its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() =>
+                deleteThreadId && handleDeleteThread(deleteThreadId)
+              }
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   );
 }

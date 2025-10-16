@@ -9,7 +9,9 @@
  */
 
 import type * as agents_design from "../agents/design.js";
+import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
+import type * as designs from "../designs.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
@@ -34,7 +36,9 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   "agents/design": typeof agents_design;
+  artifacts: typeof artifacts;
   auth: typeof auth;
+  designs: typeof designs;
   healthCheck: typeof healthCheck;
   http: typeof http;
   messages: typeof messages;

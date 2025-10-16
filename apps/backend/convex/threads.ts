@@ -94,6 +94,31 @@ export const updateThreadTitle = action({
   },
 });
 
+export const updateThreadTitleManually = mutation({
+  args: { threadId: v.string(), title: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { threadId, title }) => {
+    await authorizeThreadAccess(ctx, threadId);
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId,
+      patch: { title },
+    });
+    return null;
+  },
+});
+
+export const deleteThread = action({
+  args: { threadId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { threadId }) => {
+    await authorizeThreadAccess(ctx, threadId, true);
+    await ctx.runAction(components.agent.threads.deleteAllForThreadIdSync, {
+      threadId,
+    });
+    return null;
+  },
+});
+
 export async function authorizeThreadAccess(
   ctx: QueryCtx | MutationCtx | ActionCtx,
   threadId: string,
