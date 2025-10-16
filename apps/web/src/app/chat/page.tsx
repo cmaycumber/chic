@@ -113,7 +113,7 @@ export default function ChatHomePage() {
         </div>
 
         {/* Input Area */}
-        <div className="border-t bg-background p-6">
+        <div className="bg-background p-6">
           <div className="mx-auto max-w-2xl">
             <PromptInput onSubmit={handleSubmit}>
               <PromptInputBody>

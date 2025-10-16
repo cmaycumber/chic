@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useSession } from "@/lib/auth-client";
@@ -11,16 +10,6 @@ const AUTH_ROUTES = ["/login", "/signup"];
 export function LayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent hydration mismatch for theme/client-only content
-  if (!mounted) {
-    return null;
-  }
 
   const isAuthenticated = !!session;
   const isAuthRoute = AUTH_ROUTES.includes(pathname);

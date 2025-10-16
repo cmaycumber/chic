@@ -1,5 +1,21 @@
+import { openai } from "@ai-sdk/openai";
 import { Agent } from "@convex-dev/agent";
+import { defaultSettingsMiddleware, gateway, wrapLanguageModel } from "ai";
 import { components } from "../_generated/api";
+
+const gpt = wrapLanguageModel({
+  model: gateway.languageModel("openai/gpt-5-nano"),
+  middleware: defaultSettingsMiddleware({
+    settings: {
+      providerOptions: {
+        openai: {
+          reasoningEffort: "small",
+          reasoningSummary: "detailed",
+        },
+      },
+    },
+  }),
+});
 
 /**
  * Interior Design Agent
@@ -7,7 +23,12 @@ import { components } from "../_generated/api";
  */
 export const designAgent = new Agent(components.agent, {
   name: "Interior Design Consultant",
-  languageModel: "openai/gpt-5-nano",
+  languageModel: gpt,
+
+  tools: {
+    // biome-ignore lint/style/useNamingConvention: openai tools are not camelCase
+    web_search: openai.tools.webSearch(),
+  },
   instructions: `You are an expert interior design consultant with years of experience in residential and commercial spaces. 
 
 Your expertise includes:

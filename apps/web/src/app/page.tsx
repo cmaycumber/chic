@@ -50,7 +50,7 @@ const useCases = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const { data: session } = useSession();
   const [input, setInput] = useState("");
   // Use mutation for optimistic updates and transactional guarantees
   const createThread = useMutation(api.threads.createNewThread);
@@ -86,15 +86,6 @@ export default function HomePage() {
     },
     [isSubmitting, createThread, router, isAuthenticated]
   );
-
-  // Show loading state to prevent layout shift
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="size-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen">

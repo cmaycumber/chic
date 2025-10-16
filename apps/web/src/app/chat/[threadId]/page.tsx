@@ -17,7 +17,7 @@ import {
   StopCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { Fragment, use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import { Action, Actions } from "@/components/ai-elements/actions";
 import {
   Conversation,
@@ -46,6 +46,11 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
 import {
   Source,
@@ -101,29 +106,6 @@ export default function ChatPage({
   const [model, setModel] = useState<string>(models[0].value);
   const [webSearch, setWebSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const previousThreadIdRef = useRef<string>(threadId);
-  const previousMessageCountRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (messages && messages.length > 0) {
-      const threadChanged = previousThreadIdRef.current !== threadId;
-      const messagesAdded = messages.length > previousMessageCountRef.current;
-
-      // Instant scroll when switching threads or loading for the first time
-      // Smooth scroll when new messages are added to the current conversation
-      let behavior: ScrollBehavior = "auto";
-      if (threadChanged) {
-        behavior = "instant";
-      } else if (messagesAdded) {
-        behavior = "smooth";
-      }
-
-      messagesEndRef.current?.scrollIntoView({ behavior });
-
-      previousThreadIdRef.current = threadId;
-      previousMessageCountRef.current = messages.length;
-    }
-  }, [messages, threadId]);
 
   const handleSendMessage = useCallback(
     (message: PromptInputMessage, event: React.FormEvent) => {
@@ -193,12 +175,12 @@ export default function ChatPage({
               </>
             )}
 
-            <div ref={messagesEndRef} />
+            <div className="pb-4" ref={messagesEndRef} />
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="shrink-0 border-t bg-background p-6">
+        <div className="shrink-0 bg-background px-6 pb-6">
           <div className="mx-auto max-w-3xl">
             <PromptInput globalDrop multiple onSubmit={handleSendMessage}>
               <PromptInputBody>
@@ -294,18 +276,19 @@ function MessageItem({
   isStreaming: boolean;
 }) {
   const isUser = message.role === "user";
-  const [visibleText] = useSmoothText(message.text, {
-    startStreaming: message.status === "streaming",
-  });
 
-  // Parse message parts if available
-  // For now, we'll treat the whole message as text
-  // TODO: Update backend to send messages with parts (text, reasoning, source-url)
-  const parts = [{ type: "text" as const, text: visibleText || "..." }];
+  // Parse message parts if available, otherwise fall back to treating the whole message as text
+  const parts =
+    message.parts && message.parts.length > 0
+      ? message.parts
+      : [{ type: "text" as const, text: message.text || "..." }];
 
-  // Check if message has sources (mock for now)
+  // Check if message has sources
   const sources =
     message.parts?.filter((part) => part.type === "source-url") || [];
+
+  // Collect all reasoning parts for the Reasoning wrapper
+  const reasoningParts = parts.filter((part) => part.type === "reasoning");
 
   return (
     <div>
@@ -320,54 +303,138 @@ function MessageItem({
         </Sources>
       )}
 
-      {parts.map((part, i) => {
-        switch (part.type) {
-          case "text": {
-            return (
-              <Fragment key={`${message.key}-${i}`}>
-                <Message from={message.role}>
-                  <MessageContent>
-                    <Response
-                      className={cn(
-                        isUser && "text-foreground",
-                        message.status === "streaming" && "animate-pulse",
-                        message.status === "failed" && "text-destructive"
-                      )}
-                    >
-                      {part.text}
-                    </Response>
-                  </MessageContent>
-                </Message>
-                {message.role === "assistant" &&
-                  isLastMessage &&
-                  !isStreaming && (
-                    <Actions className="mt-2">
-                      <Action
-                        label="Retry"
-                        onClick={() => {
-                          // TODO: Implement regenerate functionality
-                        }}
-                      >
-                        <RefreshCcwIcon className="size-3" />
-                      </Action>
-                      <Action
-                        label="Copy"
-                        onClick={() => {
-                          navigator.clipboard.writeText(part.text);
-                        }}
-                      >
-                        <CopyIcon className="size-3" />
-                      </Action>
-                    </Actions>
-                  )}
-              </Fragment>
-            );
-          }
-          default: {
-            return null;
-          }
-        }
-      })}
+      <Message from={message.role}>
+        <MessageContent>
+          {parts.map((part, i) => {
+            const isStreamingThisPart =
+              message.status === "streaming" && i === parts.length - 1;
+
+            switch (part.type) {
+              case "text": {
+                return (
+                  <TextPart
+                    isStreaming={isStreamingThisPart}
+                    isUser={isUser}
+                    key={`${message.key}-${i}`}
+                    status={message.status}
+                    text={"text" in part ? part.text : ""}
+                  />
+                );
+              }
+              case "reasoning": {
+                // Check if this is the first reasoning part
+                const isFirstReasoning = parts
+                  .slice(0, i)
+                  .every((p) => p.type !== "reasoning");
+
+                if (!isFirstReasoning) {
+                  // Only render the Reasoning wrapper once
+                  return null;
+                }
+
+                // Render all reasoning parts together in a single Reasoning component
+                return (
+                  <Reasoning
+                    className="w-full"
+                    defaultOpen={false}
+                    isStreaming={isStreaming && isLastMessage}
+                    key={`${message.key}-reasoning`}
+                  >
+                    <ReasoningTrigger />
+                    {reasoningParts.map((reasoningPart, reasoningIndex) => {
+                      const partIndex = parts.indexOf(reasoningPart);
+                      const isStreamingThisReasoning =
+                        message.status === "streaming" &&
+                        isLastMessage &&
+                        partIndex === parts.length - 1;
+
+                      return (
+                        <ReasoningPart
+                          isStreaming={isStreamingThisReasoning}
+                          key={`${message.key}-reasoning-${reasoningIndex}`}
+                          text={
+                            "text" in reasoningPart ? reasoningPart.text : ""
+                          }
+                        />
+                      );
+                    })}
+                  </Reasoning>
+                );
+              }
+              default: {
+                return null;
+              }
+            }
+          })}
+        </MessageContent>
+      </Message>
+
+      {message.role === "assistant" && isLastMessage && !isStreaming && (
+        <Actions className="mt-2">
+          <Action
+            label="Retry"
+            onClick={() => {
+              // TODO: Implement regenerate functionality
+            }}
+          >
+            <RefreshCcwIcon className="size-3" />
+          </Action>
+          <Action
+            label="Copy"
+            onClick={() => {
+              navigator.clipboard.writeText(message.text);
+            }}
+          >
+            <CopyIcon className="size-3" />
+          </Action>
+        </Actions>
+      )}
     </div>
+  );
+}
+
+function TextPart({
+  text,
+  isStreaming,
+  isUser,
+  status,
+}: {
+  text: string;
+  isStreaming: boolean;
+  isUser: boolean;
+  status: UIMessage["status"];
+}) {
+  const [visibleText] = useSmoothText(text, {
+    startStreaming: isStreaming,
+  });
+
+  return (
+    <Response
+      className={cn(
+        isUser && "text-foreground",
+        isStreaming && "animate-pulse",
+        status === "failed" && "text-destructive"
+      )}
+    >
+      {visibleText || ""}
+    </Response>
+  );
+}
+
+function ReasoningPart({
+  text,
+  isStreaming,
+}: {
+  text: string;
+  isStreaming: boolean;
+}) {
+  const [visibleText] = useSmoothText(text, {
+    startStreaming: isStreaming,
+  });
+
+  return (
+    <ReasoningContent className={cn(isStreaming && "animate-pulse")}>
+      {visibleText || "..."}
+    </ReasoningContent>
   );
 }
