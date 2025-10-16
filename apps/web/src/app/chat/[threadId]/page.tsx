@@ -149,7 +149,7 @@ export default function ChatPage({
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col bg-background">
-        <Conversation className="flex-1">
+        <Conversation className="mb-[-40px] flex-1" initial="instant">
           <ConversationContent className="p-4">
             {messages && messages.length > 0 && (
               <>
@@ -180,7 +180,7 @@ export default function ChatPage({
           <ConversationScrollButton />
         </Conversation>
 
-        <div className="shrink-0 bg-background px-6 pb-6">
+        <div className="z-10 shrink-0 px-6 pb-6">
           <div className="mx-auto max-w-3xl">
             <PromptInput globalDrop multiple onSubmit={handleSendMessage}>
               <PromptInputBody>
