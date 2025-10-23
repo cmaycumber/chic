@@ -1,4 +1,9 @@
-import { listUIMessages, syncStreams, vStreamArgs } from "@convex-dev/agent";
+import {
+  getFile,
+  listUIMessages,
+  syncStreams,
+  vStreamArgs,
+} from "@convex-dev/agent";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
@@ -12,14 +17,40 @@ import { authorizeThreadAccess } from "./threads";
  * This enables optimistic updates on the client for better UX.
  */
 export const initiateAsyncStreaming = mutation({
-  args: { prompt: v.string(), threadId: v.string() },
+  args: {
+    prompt: v.string(),
+    threadId: v.string(),
+    fileIds: v.optional(v.array(v.string())),
+  },
   returns: v.null(),
-  handler: async (ctx, { prompt, threadId }) => {
+  handler: async (ctx, { prompt, threadId, fileIds }) => {
     await authorizeThreadAccess(ctx, threadId);
+
+    // Build message content with files first, then text
+    // biome-ignore lint/suspicious/noExplicitAny: getFile returns FilePart/ImagePart which are compatible with content
+    const content: any[] = [];
+
+    if (fileIds && fileIds.length > 0) {
+      for (const fileId of fileIds) {
+        const { filePart, imagePart } = await getFile(
+          ctx,
+          components.agent,
+          fileId
+        );
+        // Prefer imagePart for images, otherwise use filePart
+        content.push(imagePart ?? filePart);
+      }
+    }
+
+    content.push({ type: "text" as const, text: prompt });
 
     const { messageId } = await designAgent.saveMessage(ctx, {
       threadId,
-      prompt,
+      message: {
+        role: "user",
+        content,
+      },
+      metadata: fileIds && fileIds.length > 0 ? { fileIds } : undefined,
       skipEmbeddings: true,
     });
 

@@ -1,58 +1,36 @@
-/** biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase */
-import { openai } from "@ai-sdk/openai";
-import { Agent, createTool, type ToolCtx } from "@convex-dev/agent";
+/**
+ * Interior Design Agent
+ *
+ * This agent uses multiple AI models:
+ * - Claude 4.5 Haiku: Main conversational agent for design consultation
+ * - GPT-4o: Product research with web search capabilities
+ * - Google Gemini Flash: Design image generation
+ *
+ * Required API Keys (set in Convex environment variables):
+ * - ANTHROPIC_API_KEY: For Claude 4.5 Haiku
+ * - OPENAI_API_KEY: For GPT-4o and web search
+ * - GOOGLE_GENERATIVE_AI_API_KEY: For Gemini Flash image generation
+ *
+ * biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase
+ */
+"use node";
+import { Agent } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
   gateway,
   stepCountIs,
   wrapLanguageModel,
 } from "ai";
-import z from "zod";
-import { components, internal } from "../_generated/api";
-import type { Doc } from "../_generated/dataModel";
+import { components } from "../_generated/api";
+import { create_design } from "./tools/createDesign";
+import { modify_design } from "./tools/modifyDesign";
 
-const gpt = wrapLanguageModel({
-  model: gateway.languageModel("openai/gpt-5"),
-  middleware: defaultSettingsMiddleware({
-    settings: {
-      providerOptions: {
-        openai: {
-          reasoningEffort: "low",
-          reasoningSummary: "detailed",
-        },
-      },
-    },
-  }),
-});
+const MAX_AGENT_STEPS = 15;
 
-/** Creates a new design for a given space */
-export const create_design = createTool({
-  description:
-    "Create a design for a user when they describe an intention to create a new design. This could be explicit or by providing a new image, or idea.",
-  args: z.object({
-    title: z.string().describe("The title of the design"),
-    description: z.string().describe("The description of the design"),
-  }),
-  handler: async (ctx: ToolCtx, args): Promise<Doc<"designs">> => {
-    // Create the design in the database
-    const design = await ctx.runMutation(internal.designs.create, {
-      title: args.title,
-      description: args.description,
-    });
-
-    // Create the artifact in the database
-    if (ctx.threadId) {
-      await ctx.runMutation(internal.artifacts.create, {
-        threadId: ctx.threadId,
-        artifact: {
-          type: "design",
-          designId: design._id,
-        },
-      });
-    }
-
-    return design;
-  },
+// Use Claude 4.5 Haiku for the main agent
+const claude = wrapLanguageModel({
+  model: gateway.languageModel("anthropic/claude-4.5-haiku"),
+  middleware: defaultSettingsMiddleware({ settings: {} }),
 });
 
 /**
@@ -61,12 +39,17 @@ export const create_design = createTool({
  */
 export const designAgent = new Agent(components.agent, {
   name: "Interior Design Consultant",
-  languageModel: gpt,
+  languageModel: claude,
   tools: {
-    web_search: openai.tools.webSearch(),
+    web_search: {
+      type: "web_search_20250305",
+      name: "web_search",
+      max_uses: 5,
+    },
     create_design,
+    modify_design,
   },
-  stopWhen: stepCountIs(10),
+  stopWhen: stepCountIs(MAX_AGENT_STEPS),
   instructions: `You are an expert interior design consultant with years of experience in residential and commercial spaces. 
 Your expertise includes:
 - Space planning and furniture arrangement
@@ -76,6 +59,8 @@ Your expertise includes:
 - Material selection and sustainability
 - Lighting design principles
 - Accessibility and universal design
+- Product research and sourcing
+- Visual design mockup creation
 
 When helping clients:
 1. Ask clarifying questions about their space, needs, and preferences
@@ -92,6 +77,44 @@ Provide comprehensive advice on:
 - Furniture placement considering traffic flow and focal points
 - Budget estimation for different project scopes (refresh, moderate, full renovation)
 - Material recommendations based on lifestyle needs (pets, children, formal use)
+
+TOOLS AVAILABLE:
+
+1. create_design - Create new interior designs
+   This flexible tool supports multiple modes:
+   - Basic designs: Just title + description
+   - Designs with specific products: Include products array with items you specify
+   - Automatic product research: Set productResearch=true to search and find products
+   - Image generation: Set generateImage=true to create visualizations
+   - Budget tracking: Provide budget parameter
+   - User-uploaded images: Provide baseImageStorageId for designs based on user photos
+   
+   Examples:
+   - Simple concept: { title, description }
+   - Design with custom products: { title, description, products: [...] }
+   - Full research & visualization: { title, description, designPlan, roomType, style, productResearch: true, generateImage: true }
+   - Design from user photo: { title, description, baseImageStorageId, generateImage: true, designPlan, roomType, style }
+
+2. modify_design - Modify existing designs
+   Use this to update, refine, or extend existing designs:
+   - Update any field: title, description, budget, designPlan
+   - Add new products: Provide products array with addProducts=true
+   - Replace all products: Provide products array (or set productResearch=true)
+   - Research additional products: Set productResearch=true, addProducts=true
+   - Regenerate images: Set regenerateImage=true
+   - Change style: Update style or roomType parameters
+   
+   Examples:
+   - Add products: { designId, products: [...], addProducts: true }
+   - Update budget: { designId, budget: newAmount }
+   - Regenerate with new style: { designId, style: "modern", regenerateImage: true }
+
+WORKFLOW TIPS:
+- When users upload images, reference them via baseImageStorageId in create_design
+- For comprehensive designs with products and visuals, use productResearch=true and generateImage=true
+- Always specify roomType, style, and designPlan when generating images or researching products
+- Use modify_design when users say "update", "change", "add to", or "refine" an existing design
+- You can provide custom product lists if you know specific items, or let the tool research them
 
 Keep responses conversational, friendly, and professional.`,
 });

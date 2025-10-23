@@ -2,6 +2,7 @@
 
 import {
   createThread,
+  getFile,
   getThreadMetadata,
   saveMessage,
   vMessage,
@@ -36,17 +37,55 @@ export const listThreads = query({
 });
 
 export const createNewThread = mutation({
-  args: { title: v.optional(v.string()), initialMessage: v.optional(vMessage) },
-  handler: async (ctx, { title, initialMessage }) => {
+  args: {
+    title: v.optional(v.string()),
+    initialMessage: v.optional(vMessage),
+    fileIds: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { title, initialMessage, fileIds }) => {
     const userId = await getAuthUserId(ctx);
     const threadId = await createThread(ctx, components.agent, {
       userId,
       title,
     });
     if (initialMessage) {
+      // If there are fileIds, we need to modify the message content to include them
+      let messageToSave = initialMessage;
+
+      if (fileIds && fileIds.length > 0) {
+        // Ensure the message content is an array
+        const textContent =
+          typeof initialMessage.content === "string"
+            ? initialMessage.content
+            : initialMessage.content.find((c) => c.type === "text")?.text || "";
+
+        // Build content with file parts
+        // biome-ignore lint/suspicious/noExplicitAny: getFile returns FilePart/ImagePart which are compatible with content
+        const content: any[] = [];
+
+        for (const fileId of fileIds) {
+          const { filePart, imagePart } = await getFile(
+            ctx,
+            components.agent,
+            fileId
+          );
+          // Prefer imagePart for images, otherwise use filePart
+          content.push(imagePart ?? filePart);
+        }
+
+        content.push({ type: "text" as const, text: textContent });
+
+        messageToSave = {
+          role: "user",
+          // biome-ignore lint/suspicious/noExplicitAny: FilePart/ImagePart types are compatible but don't match exactly
+          content: content as any,
+        };
+      }
+
       const { messageId } = await saveMessage(ctx, components.agent, {
         threadId,
-        message: initialMessage,
+        message: messageToSave,
+        metadata: fileIds && fileIds.length > 0 ? { fileIds } : undefined,
       });
 
       // Schedule the AI response to stream asynchronously
@@ -112,6 +151,7 @@ export const deleteThread = action({
   returns: v.null(),
   handler: async (ctx, { threadId }) => {
     await authorizeThreadAccess(ctx, threadId, true);
+
     await ctx.runAction(components.agent.threads.deleteAllForThreadIdSync, {
       threadId,
     });
@@ -125,14 +165,17 @@ export async function authorizeThreadAccess(
   requireUser?: boolean
 ) {
   const userId = await getAuthUserId(ctx);
+
   if (requireUser && !userId) {
     throw new Error("Unauthorized: user is required");
   }
+
   const { userId: threadUserId } = await getThreadMetadata(
     ctx,
     components.agent,
     { threadId }
   );
+
   if (requireUser && threadUserId !== userId) {
     throw new Error("Unauthorized: user does not match thread user");
   }

@@ -1,7 +1,14 @@
 "use client";
 
 import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
-import { CopyIcon } from "lucide-react";
+import {
+  CopyIcon,
+  FileAudioIcon,
+  FileIcon,
+  FileVideoIcon,
+  ImageIcon,
+} from "lucide-react";
+import Image from "next/image";
 import { Action, Actions } from "@/components/ai-elements/actions";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -72,6 +79,16 @@ export function MessageItem({
                     key={`${message.key}-${i}`}
                     status={message.status}
                     text={"text" in part ? part.text : ""}
+                  />
+                );
+              }
+              case "file": {
+                return (
+                  <FilePartRenderer
+                    key={`${message.key}-file-${i}`}
+                    messageKey={message.key}
+                    part={part}
+                    partIndex={i}
                   />
                 );
               }
@@ -182,5 +199,200 @@ function ReasoningPart({
     <ReasoningContent className={cn(isStreaming && "animate-pulse")}>
       {visibleText || "..."}
     </ReasoningContent>
+  );
+}
+
+function FilePartRenderer({
+  part,
+  messageKey,
+  partIndex,
+}: {
+  part: { url?: string; mediaType?: string };
+  messageKey: string;
+  partIndex: number;
+}) {
+  const mimeType = part.mediaType ?? "";
+
+  // Check media type based on mimeType
+  if (mimeType.startsWith("image/")) {
+    return (
+      <ImagePart
+        key={`${messageKey}-image-${partIndex}`}
+        mimeType={mimeType}
+        url={part.url}
+      />
+    );
+  }
+
+  if (mimeType.startsWith("video/")) {
+    return (
+      <VideoPart
+        key={`${messageKey}-video-${partIndex}`}
+        mimeType={mimeType}
+        url={part.url}
+      />
+    );
+  }
+
+  if (mimeType.startsWith("audio/")) {
+    return (
+      <AudioPart
+        key={`${messageKey}-audio-${partIndex}`}
+        mimeType={mimeType}
+        url={part.url}
+      />
+    );
+  }
+
+  if (mimeType === "application/pdf") {
+    return (
+      <PdfPart
+        filename={part.url?.split("/").pop()}
+        key={`${messageKey}-pdf-${partIndex}`}
+        url={part.url}
+      />
+    );
+  }
+
+  // Default to generic file
+  return (
+    <FilePart
+      filename={part.url?.split("/").pop()}
+      key={`${messageKey}-file-${partIndex}`}
+      mimeType={mimeType}
+      url={part.url}
+    />
+  );
+}
+
+function ImagePart({ url, mimeType }: { url?: string; mimeType?: string }) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <ImageIcon className="size-5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">Loading image...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative my-2 overflow-hidden rounded-lg border border-border">
+      <Image
+        alt="Attached image"
+        className="max-h-96 w-auto object-contain"
+        height={400}
+        src={url}
+        unoptimized={mimeType?.includes("svg")}
+        width={600}
+      />
+    </div>
+  );
+}
+
+function VideoPart({ url, mimeType }: { url?: string; mimeType?: string }) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <FileVideoIcon className="size-5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">Loading video...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative my-2 overflow-hidden rounded-lg border border-border">
+      <video className="max-h-96 w-full" controls preload="metadata">
+        <source src={url} type={mimeType || "video/mp4"} />
+        <track kind="captions" label="No captions available" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  );
+}
+
+function AudioPart({ url, mimeType }: { url?: string; mimeType?: string }) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <FileAudioIcon className="size-5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">Loading audio...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="my-2 rounded-lg border border-border bg-muted/30 p-3">
+      <audio className="w-full" controls preload="metadata">
+        <source src={url} type={mimeType || "audio/mpeg"} />
+        <track kind="captions" label="No captions available" />
+        Your browser does not support the audio tag.
+      </audio>
+    </div>
+  );
+}
+
+function PdfPart({ url, filename }: { url?: string; filename?: string }) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <FileIcon className="size-5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">Loading PDF...</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      className="my-2 flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+      download={filename}
+      href={url}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <FileIcon className="size-5 text-muted-foreground" />
+      <div className="flex-1">
+        <div className="font-medium text-sm">{filename || "PDF Document"}</div>
+        <div className="text-muted-foreground text-xs">
+          Click to open or download
+        </div>
+      </div>
+    </a>
+  );
+}
+
+function FilePart({
+  url,
+  filename,
+  mimeType,
+}: {
+  url?: string;
+  filename?: string;
+  mimeType?: string;
+}) {
+  if (!url) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <FileIcon className="size-5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">Loading file...</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      className="my-2 flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+      download={filename}
+      href={url}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <FileIcon className="size-5 text-muted-foreground" />
+      <div className="flex-1">
+        <div className="font-medium text-sm">{filename || "Attached file"}</div>
+        {mimeType && (
+          <div className="text-muted-foreground text-xs">{mimeType}</div>
+        )}
+      </div>
+    </a>
   );
 }

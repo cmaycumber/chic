@@ -1,9 +1,13 @@
 "use client";
 
+import { XIcon } from "lucide-react";
 import React, { useCallback, useState } from "react";
-import type { ArtifactTab } from "@/components/ai-elements/artifact-tabs";
-import { ArtifactTabs } from "@/components/ai-elements/artifact-tabs";
+import type { ArtifactTab } from "@/components/chat/artifact-tabs";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+
+type ViewMode = "room" | "products";
 
 const MIN_PANEL_WIDTH = 300;
 const MAX_PANEL_WIDTH = 800;
@@ -17,6 +21,7 @@ type ArtifactsPanelProps = {
 export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("room");
 
   const handleMouseDown = useCallback(() => {
     setIsResizing(true);
@@ -43,6 +48,16 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
     setIsResizing(false);
   }, []);
 
+  const getArtifactCountLabel = () => {
+    if (artifacts.length === 0) {
+      return "No artifacts";
+    }
+    if (artifacts.length === 1) {
+      return "1 artifact";
+    }
+    return `${artifacts.length} artifacts`;
+  };
+
   // Add/remove mouse event listeners for resizing
   React.useEffect(() => {
     if (isResizing) {
@@ -57,20 +72,81 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
 
   return (
     <div
-      className="relative h-full shrink-0 border-l"
+      className="relative flex h-full shrink-0 flex-col bg-background"
       style={{ width: `${panelWidth}px` }}
     >
       {/* Resize handle */}
       <button
         aria-label="Resize artifacts panel"
         className={cn(
-          "absolute top-0 left-0 h-full w-1 cursor-col-resize hover:bg-primary/20",
+          "absolute top-0 left-0 z-50 h-full w-1 cursor-col-resize hover:bg-primary/20",
           isResizing && "bg-primary/20"
         )}
         onMouseDown={handleMouseDown}
         type="button"
       />
-      <ArtifactTabs onPanelClose={onClose} tabs={artifacts} />
+
+      {/* Artifacts Header */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-3">
+          <h2 className="font-semibold text-sm">Artifacts</h2>
+          <span className="text-muted-foreground text-xs">
+            {getArtifactCountLabel()}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {artifacts.length > 0 && (
+            <Tabs
+              className="w-auto"
+              onValueChange={(value) => setViewMode(value as ViewMode)}
+              value={viewMode}
+            >
+              <TabsList className="h-8">
+                <TabsTrigger className="text-xs" value="room">
+                  Room
+                </TabsTrigger>
+                <TabsTrigger className="text-xs" value="products">
+                  Products
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          <Button
+            className="size-8 p-0 transition-all hover:bg-destructive/10 hover:text-destructive"
+            onClick={onClose}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <XIcon className="size-4" />
+            <span className="sr-only">Close artifacts panel</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Artifacts Content */}
+      <div className="flex-1 overflow-auto">
+        {artifacts.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+            <p className="text-muted-foreground text-sm">No artifacts yet</p>
+            <p className="text-muted-foreground/60 text-xs">
+              Artifacts will appear here as you create them
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 p-4">
+            {artifacts.map((artifact) => (
+              <div className="rounded-lg border bg-card p-4" key={artifact.id}>
+                <h3 className="mb-2 font-semibold text-sm">{artifact.title}</h3>
+                <div className="rounded-md border bg-background">
+                  {artifact.content}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

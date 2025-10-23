@@ -8,7 +8,6 @@ import {
   MoreHorizontal,
   Pencil,
   PlusCircle,
-  Sparkles,
   SquareTerminal,
   Trash2,
   X,
@@ -16,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { Logo } from "@/components/logo";
 import { NavUser } from "@/components/nav-user";
 import {
   AlertDialog,
@@ -40,7 +40,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -60,6 +59,10 @@ type AppSidebarProps = Omit<
 
 const INITIAL_THREADS_LOAD = 20;
 const LOAD_MORE_THREADS_COUNT = 20;
+const LOGO_HEIGHT_EXPANDED = 20;
+const LOGO_WIDTH_EXPANDED = 49;
+const LOGO_HEIGHT_COLLAPSED = 16;
+const LOGO_WIDTH_COLLAPSED = 39;
 
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
   const { state } = useSidebar();
@@ -114,52 +117,67 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
   return (
     <Sidebar className={className} {...props}>
       <SidebarContent>
-        <SidebarHeader
-          className={cn(
-            "flex items-center gap-2.5 py-2",
-            collapsed ? "justify-center px-3" : "px-6"
-          )}
-        >
-          <div className="flex justify-items-start gap-2.5">
-            <Sparkles className="size-5 shrink-0 text-foreground" />
-            <span className="font-medium text-base">furnish</span>
+        <div className={cn("space-y-3", collapsed ? "px-2 py-3" : "px-3 py-4")}>
+          {/* Header with Logo */}
+          <div
+            className={cn(
+              "flex items-center",
+              collapsed ? "justify-center" : "px-3"
+            )}
+          >
+            <Link
+              className="flex items-center transition-opacity hover:opacity-80"
+              href="/chat"
+            >
+              <Logo
+                className="text-foreground"
+                height={
+                  collapsed ? LOGO_HEIGHT_COLLAPSED : LOGO_HEIGHT_EXPANDED
+                }
+                width={collapsed ? LOGO_WIDTH_COLLAPSED : LOGO_WIDTH_EXPANDED}
+              />
+            </Link>
           </div>
-        </SidebarHeader>
 
-        <div className={cn("py-4", collapsed ? "px-3" : "px-4")}>
-          {collapsed ? (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link href="/chat">
+          {/* New Chat Button */}
+          <div>
+            {collapsed ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button
-                      className="w-full"
+                      asChild
+                      className="w-full rounded-lg"
                       size="icon"
                       type="button"
-                      variant="default"
+                      variant="ghost"
                     >
-                      <PlusCircle className="size-4" />
-                      <span className="sr-only">New Chat</span>
+                      <Link href="/chat">
+                        <PlusCircle className="size-5" />
+                        <span className="sr-only">New Chat</span>
+                      </Link>
                     </Button>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>New Chat</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <Link href="/chat">
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>New Chat</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
               <Button
-                className="w-full gap-2 font-medium"
+                asChild
+                className="w-full justify-start gap-3 rounded-lg border border-border/40 bg-background font-normal shadow-none hover:bg-accent"
                 size="default"
-                variant="default"
+                type="button"
+                variant="outline"
               >
-                <PlusCircle className="size-4" />
-                New Chat
+                <Link href="/chat">
+                  <PlusCircle className="size-4" />
+                  <span>New chat</span>
+                </Link>
               </Button>
-            </Link>
-          )}
+            )}
+          </div>
         </div>
 
         {collapsed ? (
@@ -182,22 +200,21 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
                       return (
                         <Tooltip key={threadId}>
                           <TooltipTrigger asChild>
-                            <Link href={`/chat/${threadId}`}>
-                              <Button
-                                className={cn(
-                                  "w-full",
-                                  isActive
-                                    ? "bg-secondary/50"
-                                    : "bg-transparent"
-                                )}
-                                size="icon"
-                                type="button"
-                                variant="ghost"
-                              >
+                            <Button
+                              asChild
+                              className={cn(
+                                "w-full",
+                                isActive ? "bg-secondary/50" : "bg-transparent"
+                              )}
+                              size="icon"
+                              type="button"
+                              variant="ghost"
+                            >
+                              <Link href={`/chat/${threadId}`}>
                                 <SquareTerminal className="size-4 opacity-60" />
                                 <span className="sr-only">{displayTitle}</span>
-                              </Button>
-                            </Link>
+                              </Link>
+                            </Button>
                           </TooltipTrigger>
                           <TooltipContent side="right">
                             <p className="max-w-[200px] truncate">
@@ -214,11 +231,11 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="shrink-0 px-6 py-3 font-medium text-muted-foreground text-xs">
-              Recent
+            <div className="shrink-0 px-6 py-2 font-medium text-muted-foreground/70 text-xs uppercase tracking-wider">
+              Chats
             </div>
             <ScrollArea className="flex-1">
-              <div className="flex flex-col gap-1 px-4 pb-4">
+              <div className="flex flex-col gap-0.5 px-3 pb-4">
                 {threads === undefined && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -280,27 +297,25 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
                             </div>
                           ) : (
                             <div className="flex items-center gap-1">
-                              <Link
-                                className="flex-1"
-                                href={`/chat/${threadId}`}
+                              <Button
+                                asChild
+                                className={cn(
+                                  "w-full flex-1 cursor-pointer justify-start truncate rounded-lg px-3 text-left",
+                                  isActive
+                                    ? "bg-accent font-normal"
+                                    : "font-normal hover:bg-accent/50"
+                                )}
+                                size="sm"
+                                type="button"
+                                variant="ghost"
                               >
-                                <Button
-                                  className={cn(
-                                    "w-full cursor-pointer justify-start truncate rounded-lg text-left",
-                                    isActive
-                                      ? "bg-secondary/50 font-medium"
-                                      : "font-normal"
-                                  )}
-                                  size="sm"
-                                  type="button"
-                                  variant="ghost"
-                                >
-                                  <SquareTerminal className="mr-2 size-3.5 shrink-0 opacity-60" />
+                                <Link href={`/chat/${threadId}`}>
+                                  <SquareTerminal className="mr-2.5 size-4 shrink-0 opacity-50" />
                                   <span className="truncate text-sm">
                                     {displayTitle}
                                   </span>
-                                </Button>
-                              </Link>
+                                </Link>
+                              </Button>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -378,7 +393,7 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white hover:bg-destructive/90"
               onClick={() =>
                 deleteThreadId && handleDeleteThread(deleteThreadId)
               }

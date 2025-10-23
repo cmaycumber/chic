@@ -11,6 +11,20 @@ export default defineSchema({
   designs: defineTable({
     title: v.string(),
     description: v.string(),
+    imageStorageId: v.optional(v.id("_storage")),
+    products: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          price: v.number(),
+          imageUrl: v.string(),
+          productUrl: v.optional(v.string()),
+          description: v.optional(v.string()),
+        })
+      )
+    ),
+    budget: v.optional(v.number()),
+    designPlan: v.optional(v.string()),
   }),
 
   artifacts: defineTable({

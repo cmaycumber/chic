@@ -1,46 +1,83 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { ArrowUp, Mic } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
   PromptInput,
+  PromptInputActionAddAttachments,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuTrigger,
+  PromptInputAttachment,
+  PromptInputAttachments,
   PromptInputBody,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
+  PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { RecommendationCards } from "@/components/recommendation-cards";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
+
+// Helper function to convert data URL to ArrayBuffer
+async function dataUrlToArrayBuffer(dataUrl: string): Promise<ArrayBuffer> {
+  const response = await fetch(dataUrl);
+  return response.arrayBuffer();
+}
 
 export default function ChatHomePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [input, setInput] = useState("");
   const createThread = useMutation(api.threads.createNewThread);
+  const uploadFile = useAction(api.files.uploadFile);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = useCallback(
-    async (
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: File upload logic requires sequential steps with error handling
+    async function submitWithFiles(
       message: PromptInputMessage,
       event: React.FormEvent<HTMLFormElement>
-    ) => {
+    ) {
       event.preventDefault();
-      if (!message.text?.trim() || isSubmitting) {
+      const hasText = Boolean(message.text?.trim());
+      const hasAttachments = Boolean(message.files?.length);
+
+      if (!(hasText || hasAttachments) || isSubmitting) {
         return;
       }
 
       setIsSubmitting(true);
       try {
+        // Upload files first and get fileIds
+        const fileIds: string[] = [];
+        if (message.files && message.files.length > 0) {
+          for (const file of message.files) {
+            const arrayBuffer = await dataUrlToArrayBuffer(file.url);
+            // FileUIPart uses mediaType, not type
+            const mimeType = file.mediaType?.includes("/")
+              ? file.mediaType
+              : "application/octet-stream";
+            const fileId = await uploadFile({
+              data: arrayBuffer,
+              mimeType,
+              filename: file.filename,
+            });
+            fileIds.push(fileId);
+          }
+        }
+
         const threadId = await createThread({
           initialMessage: {
             role: "user",
-            content: message.text,
+            content: message.text || "Sent with attachments",
           },
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
         });
         router.push(`/chat/${threadId}`);
       } catch {
@@ -49,7 +86,7 @@ export default function ChatHomePage() {
         setIsSubmitting(false);
       }
     },
-    [isSubmitting, createThread, router]
+    [isSubmitting, createThread, uploadFile, router]
   );
 
   const userName = session?.user?.name || "there";
@@ -115,17 +152,33 @@ export default function ChatHomePage() {
         {/* Input Area */}
         <div className="bg-background p-6">
           <div className="mx-auto max-w-2xl">
-            <PromptInput onSubmit={handleSubmit}>
+            <PromptInput
+              accept="image/*"
+              globalDrop
+              multiple
+              onSubmit={handleSubmit}
+            >
               <PromptInputBody>
+                <PromptInputAttachments>
+                  {(attachment) => <PromptInputAttachment data={attachment} />}
+                </PromptInputAttachments>
                 <PromptInputTextarea
                   className="min-h-[60px]"
                   disabled={isSubmitting}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask anything..."
+                  placeholder="Ask anything about your space, or drop an image..."
                   value={input}
                 />
               </PromptInputBody>
               <PromptInputToolbar>
+                <PromptInputTools>
+                  <PromptInputActionMenu>
+                    <PromptInputActionMenuTrigger />
+                    <PromptInputActionMenuContent>
+                      <PromptInputActionAddAttachments />
+                    </PromptInputActionMenuContent>
+                  </PromptInputActionMenu>
+                </PromptInputTools>
                 <button
                   className="rounded-full p-2 hover:bg-accent"
                   disabled={isSubmitting}
@@ -134,7 +187,7 @@ export default function ChatHomePage() {
                   <Mic className="size-5 text-muted-foreground" />
                 </button>
                 <div className="flex-1" />
-                <PromptInputSubmit disabled={!input.trim() || isSubmitting}>
+                <PromptInputSubmit disabled={isSubmitting}>
                   <ArrowUp className="size-5" />
                 </PromptInputSubmit>
               </PromptInputToolbar>

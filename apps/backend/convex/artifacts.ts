@@ -39,7 +39,22 @@ export const listByThreadIdWithDetails = query({
       type: v.literal("design"),
       design: v.object({
         _id: v.string(),
+        title: v.string(),
         description: v.string(),
+        imageUrl: v.union(v.string(), v.null()),
+        products: v.optional(
+          v.array(
+            v.object({
+              name: v.string(),
+              price: v.number(),
+              imageUrl: v.string(),
+              productUrl: v.optional(v.string()),
+              description: v.optional(v.string()),
+            })
+          )
+        ),
+        budget: v.optional(v.number()),
+        designPlan: v.optional(v.string()),
       }),
     })
   ),
@@ -56,7 +71,18 @@ export const listByThreadIdWithDetails = query({
       type: "design";
       design: {
         _id: string;
+        title: string;
         description: string;
+        imageUrl: string | null;
+        products?: Array<{
+          name: string;
+          price: number;
+          imageUrl: string;
+          productUrl?: string;
+          description?: string;
+        }>;
+        budget?: number;
+        designPlan?: string;
       };
     }> = [];
 
@@ -64,6 +90,11 @@ export const listByThreadIdWithDetails = query({
       if (artifact.artifact.type === "design") {
         const design = await ctx.db.get(artifact.artifact.designId);
         if (design) {
+          let imageUrl: string | null = null;
+          if (design.imageStorageId) {
+            imageUrl = await ctx.storage.getUrl(design.imageStorageId);
+          }
+
           return {
             _id: artifact._id,
             _creationTime: artifact._creationTime,
@@ -71,7 +102,12 @@ export const listByThreadIdWithDetails = query({
             type: "design" as const,
             design: {
               _id: design._id,
+              title: design.title,
               description: design.description,
+              imageUrl,
+              products: design.products,
+              budget: design.budget,
+              designPlan: design.designPlan,
             },
           };
         }

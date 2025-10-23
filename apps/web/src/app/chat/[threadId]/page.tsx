@@ -5,24 +5,33 @@ import {
   useUIMessages,
 } from "@convex-dev/agent/react";
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { PanelRight } from "lucide-react";
 import { use, useCallback, useRef, useState } from "react";
-import type { ArtifactTab } from "@/components/ai-elements/artifact-tabs";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import {
-  ArtifactContent,
-  formatDesignTitle,
-} from "@/components/chat/artifact-content";
+import type { ArtifactTab } from "@/components/chat/artifact-tabs";
 import { ArtifactsPanel } from "@/components/chat/artifacts-panel";
 import { ChatInput } from "@/components/chat/chat-input";
+import { DesignArtifact } from "@/components/chat/design-artifact";
 import { MessageItem } from "@/components/chat/message-item";
 import { Button } from "@/components/ui/button";
+
+const DESIGN_ID_SLICE_LENGTH = 6;
+
+function formatDesignTitle(designId: string): string {
+  return `Design ${designId.slice(-DESIGN_ID_SLICE_LENGTH)}`;
+}
+
+// Helper function to convert data URL to ArrayBuffer
+async function dataUrlToArrayBuffer(dataUrl: string): Promise<ArrayBuffer> {
+  const response = await fetch(dataUrl);
+  return response.arrayBuffer();
+}
 
 export default function ChatPage({
   params,
@@ -48,6 +57,7 @@ export default function ChatPage({
     optimisticallySendMessage(api.messages.listThreadMessages)
   );
 
+  const uploadFile = useAction(api.files.uploadFile);
   const abortStreamByOrder = useMutation(api.streamAbort.abortStreamByOrder);
 
   // Fetch artifacts for this thread
@@ -68,8 +78,8 @@ export default function ChatPage({
         title: formatDesignTitle(artifact.design._id),
         type: artifact.type,
         content: (
-          <ArtifactContent
-            description={artifact.design.description}
+          <DesignArtifact
+            design={artifact.design}
             onExport={() => {
               // Download as JSON
               const dataStr = JSON.stringify(artifact.design, null, 2);
@@ -98,14 +108,17 @@ export default function ChatPage({
                 // Handle error silently
               });
             }}
-            title={formatDesignTitle(artifact.design._id)}
           />
         ),
       })
     ) ?? [];
 
   const handleSendMessage = useCallback(
-    (message: PromptInputMessage, event: React.FormEvent) => {
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: File upload logic requires sequential steps with error handling
+    async function sendWithFiles(
+      message: PromptInputMessage,
+      event: React.FormEvent
+    ) {
       event.preventDefault();
       const trimmedPrompt = message.text?.trim();
       const hasText = Boolean(trimmedPrompt);
@@ -115,24 +128,59 @@ export default function ChatPage({
         return;
       }
 
-      sendMessage({
-        threadId,
-        prompt: trimmedPrompt || "Sent with attachments",
-      }).catch(() => {
+      try {
+        // Upload files first and get fileIds
+        const fileIds: string[] = [];
+        if (message.files && message.files.length > 0) {
+          for (const file of message.files) {
+            const arrayBuffer = await dataUrlToArrayBuffer(file.url);
+            // FileUIPart uses mediaType, not type
+            const mimeType = file.mediaType?.includes("/")
+              ? file.mediaType
+              : "application/octet-stream";
+
+            const fileId = await uploadFile({
+              data: arrayBuffer,
+              mimeType,
+              filename: file.filename,
+            });
+
+            fileIds.push(fileId);
+          }
+        }
+
+        await sendMessage({
+          threadId,
+          prompt: trimmedPrompt || "Sent with attachments",
+          fileIds: fileIds.length > 0 ? fileIds : undefined,
+        });
+        setPrompt("");
+      } catch {
         setPrompt(trimmedPrompt || "");
-      });
-      setPrompt("");
+      }
     },
-    [sendMessage, threadId]
+    [sendMessage, uploadFile, threadId]
   );
 
   const streamingMessage = messages?.find((m) => m.status === "streaming");
   const isStreaming = Boolean(streamingMessage);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
-      <header className="shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-end px-6">
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Chat Section */}
+      <div className="flex min-h-0 flex-1 flex-col border-r">
+        {/* Chat Header */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-3">
+            {status === "LoadingFirstPage" && (
+              <span className="text-muted-foreground text-xs">Loading...</span>
+            )}
+            {isStreaming && (
+              <span className="text-muted-foreground text-xs">
+                Streaming...
+              </span>
+            )}
+          </div>
           <Button
             className="gap-2"
             onClick={() => setIsArtifactsPanelOpen(!isArtifactsPanelOpen)}
@@ -140,70 +188,71 @@ export default function ChatPage({
             variant={isArtifactsPanelOpen ? "secondary" : "ghost"}
           >
             <PanelRight className="size-4" />
-            <span className="text-sm">Artifacts</span>
+            <span className="text-sm">
+              {isArtifactsPanelOpen ? "Hide Artifacts" : "Show Artifacts"}
+            </span>
           </Button>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden bg-background">
-        <div className="flex min-h-0 flex-1 flex-col">
-          <Conversation className="mb-[-40px] flex-1" initial="instant">
-            <ConversationContent className="px-6 py-6">
-              <div className="mx-auto max-w-3xl">
-                {messages && messages.length > 0 && (
-                  <>
-                    {status === "CanLoadMore" && (
-                      <div className="flex justify-center py-6">
-                        <Button
-                          onClick={() => loadMore(10)}
-                          size="sm"
-                          variant="ghost"
-                        >
-                          Load more
-                        </Button>
-                      </div>
-                    )}
-                    {messages.map((m) => (
-                      <MessageItem
-                        isLastMessage={m === messages.at(-1)}
-                        isStreaming={m.status === "streaming"}
-                        key={m.key}
-                        message={m}
-                      />
-                    ))}
-                  </>
-                )}
+        {/* Chat Content */}
+        <Conversation className="mb-[-40px] flex-1" initial="instant">
+          <ConversationContent className="px-6 py-6">
+            <div className="mx-auto max-w-3xl">
+              {messages && messages.length > 0 && (
+                <>
+                  {status === "CanLoadMore" && (
+                    <div className="flex justify-center py-6">
+                      <Button
+                        onClick={() => loadMore(10)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Load more
+                      </Button>
+                    </div>
+                  )}
+                  {messages.map((m) => (
+                    <MessageItem
+                      isLastMessage={m === messages.at(-1)}
+                      isStreaming={m.status === "streaming"}
+                      key={m.key}
+                      message={m}
+                    />
+                  ))}
+                </>
+              )}
 
-                <div className="pb-12" ref={messagesEndRef} />
-              </div>
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
+              <div className="pb-12" ref={messagesEndRef} />
+            </div>
+          </ConversationContent>
+          <ConversationScrollButton />
+        </Conversation>
 
-          <ChatInput
-            isDisabled={status === "LoadingFirstPage"}
-            isStreaming={isStreaming}
-            model={model}
-            onModelChange={setModel}
-            onPromptChange={setPrompt}
-            onStopStreaming={() => {
-              const order = streamingMessage?.order ?? 0;
-              abortStreamByOrder({ threadId, order }).catch(() => {
-                // Error handled silently
-              });
-            }}
-            onSubmit={handleSendMessage}
-            prompt={prompt}
-          />
-        </div>
-
-        {isArtifactsPanelOpen && (
-          <ArtifactsPanel
-            artifacts={artifacts}
-            onClose={() => setIsArtifactsPanelOpen(false)}
-          />
-        )}
+        {/* Chat Input */}
+        <ChatInput
+          isDisabled={status === "LoadingFirstPage"}
+          isStreaming={isStreaming}
+          model={model}
+          onModelChange={setModel}
+          onPromptChange={setPrompt}
+          onStopStreaming={() => {
+            const order = streamingMessage?.order ?? 0;
+            abortStreamByOrder({ threadId, order }).catch(() => {
+              // Error handled silently
+            });
+          }}
+          onSubmit={handleSendMessage}
+          prompt={prompt}
+        />
       </div>
+
+      {/* Artifacts Panel */}
+      {isArtifactsPanelOpen && (
+        <ArtifactsPanel
+          artifacts={artifacts}
+          onClose={() => setIsArtifactsPanelOpen(false)}
+        />
+      )}
     </div>
   );
 }

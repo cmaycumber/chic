@@ -9,8 +9,10 @@ export const getAuthUserId = async (ctx: GenericCtx) => {
   const user = await authComponent.getAuthUser(
     ctx as unknown as BetterAuthCtx<DataModel>
   );
+
   if (!user) {
     throw new Error("User not found");
   }
-  return user.userId;
+
+  return user._id;
 };

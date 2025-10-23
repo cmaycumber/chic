@@ -21,7 +21,6 @@ export type ArtifactTabsProps = {
   onTabChange?: (tabId: string) => void;
   onTabClose?: (tabId: string) => void;
   onTabAdd?: () => void;
-  onPanelClose?: () => void;
   className?: string;
   showAddButton?: boolean;
   maxTabs?: number;
@@ -33,7 +32,6 @@ export function ArtifactTabs({
   onTabChange,
   onTabClose,
   onTabAdd,
-  onPanelClose,
   className,
   showAddButton = false,
   maxTabs = 10,
@@ -102,39 +100,44 @@ export function ArtifactTabs({
     >
       <div className="flex items-center border-b bg-background">
         <TabsList className="h-auto flex-1 justify-start rounded-none border-0 bg-transparent p-0">
-          <div className="flex h-full items-center gap-0 overflow-x-auto">
+          <div className="scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border hover:scrollbar-thumb-muted-foreground/20 flex h-full items-center gap-0 overflow-x-auto">
             {tabs.map((tab) => (
               <div className="group relative flex items-center" key={tab.id}>
                 <TabsTrigger
                   className={cn(
-                    "relative rounded-none border-transparent border-b-2 py-3 pr-8 pl-4 transition-colors data-[state=active]:border-foreground data-[state=active]:bg-transparent"
+                    "relative flex items-center gap-2 rounded-none border-transparent border-b-2 px-4 py-3 text-sm transition-colors",
+                    "hover:bg-muted/50 hover:text-foreground",
+                    "data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground",
+                    "data-[state=inactive]:text-muted-foreground"
                   )}
                   value={tab.id}
                 >
-                  <span className="max-w-[150px] truncate text-sm">
-                    {tab.title}
-                  </span>
-                </TabsTrigger>
-                <button
-                  className={cn(
-                    "-translate-y-1/2 absolute top-1/2 right-2 z-10 inline-flex size-4 items-center justify-center rounded p-0 opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-70",
-                    currentActiveTab === tab.id && "opacity-70"
+                  <span className="max-w-[150px] truncate">{tab.title}</span>
+                  {onTabClose && (
+                    <button
+                      className={cn(
+                        "ml-1 inline-flex size-4 shrink-0 items-center justify-center rounded-sm transition-all duration-200",
+                        "hover:bg-muted-foreground/20 hover:text-foreground",
+                        "opacity-0 group-hover:opacity-100",
+                        currentActiveTab === tab.id && "opacity-100"
+                      )}
+                      onClick={(e) => handleTabClose(e, tab.id)}
+                      type="button"
+                    >
+                      <XIcon className="size-3" />
+                      <span className="sr-only">Close {tab.title}</span>
+                    </button>
                   )}
-                  onClick={(e) => handleTabClose(e, tab.id)}
-                  type="button"
-                >
-                  <XIcon className="size-3" />
-                  <span className="sr-only">Close tab</span>
-                </button>
+                </TabsTrigger>
               </div>
             ))}
           </div>
         </TabsList>
 
-        <div className="flex shrink-0 items-center gap-1 px-2">
-          {showAddButton && tabs.length < maxTabs && (
+        {showAddButton && tabs.length < maxTabs && (
+          <div className="flex shrink-0 items-center border-l px-2 py-1.5">
             <Button
-              className="size-8 p-0"
+              className="size-8 p-0 transition-all hover:bg-primary/10 hover:text-primary"
               onClick={handleAddTab}
               size="sm"
               type="button"
@@ -143,25 +146,17 @@ export function ArtifactTabs({
               <PlusIcon className="size-4" />
               <span className="sr-only">Add new artifact</span>
             </Button>
-          )}
-          {onPanelClose && (
-            <Button
-              className="size-8 p-0"
-              onClick={onPanelClose}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <XIcon className="size-4" />
-              <span className="sr-only">Close artifacts panel</span>
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden bg-background">
         {tabs.map((tab) => (
-          <TabsContent className="size-full" key={tab.id} value={tab.id}>
+          <TabsContent
+            className="m-0 size-full p-0 focus-visible:outline-none focus-visible:ring-0"
+            key={tab.id}
+            value={tab.id}
+          >
             {tab.content}
           </TabsContent>
         ))}
