@@ -137,12 +137,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
         ) : (
           <div className="flex flex-col gap-4 p-4">
             {artifacts.map((artifact) => (
-              <div className="rounded-lg border bg-card p-4" key={artifact.id}>
-                <h3 className="mb-2 font-semibold text-sm">{artifact.title}</h3>
-                <div className="rounded-md border bg-background">
-                  {artifact.content}
-                </div>
-              </div>
+              <>{artifact.content}</>
             ))}
           </div>
         )}

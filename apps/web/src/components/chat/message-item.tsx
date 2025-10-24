@@ -2,6 +2,7 @@
 
 import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import {
+  AlertCircleIcon,
   CopyIcon,
   FileAudioIcon,
   FileIcon,
@@ -42,7 +43,7 @@ export function MessageItem({
   const parts =
     message.parts && message.parts.length > 0
       ? message.parts
-      : [{ type: "text" as const, text: message.text || "..." }];
+      : [{ type: "text" as const, text: message.text || "" }];
 
   // Check if message has sources
   const sources =
@@ -65,7 +66,7 @@ export function MessageItem({
       )}
 
       <Message from={message.role}>
-        <MessageContent>
+        <MessageContent className={isUser ? undefined : "rounded-none p-0"}>
           {parts.map((part, i) => {
             const isStreamingThisPart =
               message.status === "streaming" && i === parts.length - 1;
@@ -141,7 +142,7 @@ export function MessageItem({
       </Message>
 
       {message.role === "assistant" && isLastMessage && !isStreaming && (
-        <Actions className="mt-3">
+        <Actions className="-ml-2.5">
           <Action
             label="Copy"
             onClick={() => {
@@ -171,12 +172,23 @@ function TextPart({
     startStreaming: isStreaming,
   });
 
+  // Show error state with meaningful message
+  if (status === "failed") {
+    return (
+      <div className="flex items-start gap-2 text-destructive">
+        <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
+        <span className="text-sm">
+          {visibleText || "Message failed to send"}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <Response
       className={cn(
         isUser && "text-foreground",
-        isStreaming && "animate-pulse",
-        status === "failed" && "text-destructive"
+        isStreaming && "animate-pulse"
       )}
     >
       {visibleText || ""}
@@ -197,7 +209,7 @@ function ReasoningPart({
 
   return (
     <ReasoningContent className={cn(isStreaming && "animate-pulse")}>
-      {visibleText || "..."}
+      {visibleText || ""}
     </ReasoningContent>
   );
 }

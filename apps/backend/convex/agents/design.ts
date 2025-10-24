@@ -14,6 +14,7 @@
  * biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase
  */
 "use node";
+import { anthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
@@ -41,11 +42,9 @@ export const designAgent = new Agent(components.agent, {
   name: "Interior Design Consultant",
   languageModel: claude,
   tools: {
-    web_search: {
-      type: "web_search_20250305",
-      name: "web_search",
-      max_uses: 5,
-    },
+    web_search: anthropic.tools.webSearch_20250305({
+      maxUses: 10,
+    }),
     create_design,
     modify_design,
   },

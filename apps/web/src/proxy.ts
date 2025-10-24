@@ -10,7 +10,7 @@ const PROTECTED_ROUTES = [
   "/saved",
 ];
 
-export default function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Check for Better Auth session cookie
