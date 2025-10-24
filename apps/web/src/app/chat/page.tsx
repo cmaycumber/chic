@@ -218,7 +218,7 @@ export default function ChatHomePage() {
               </PromptInputToolbar>
             </PromptInput>
             <div className="mt-2 text-center text-muted-foreground/80 text-xs">
-              Furnish can make mistakes. Check important info.
+              Chic can make mistakes. Check important info.
             </div>
           </div>
         </div>

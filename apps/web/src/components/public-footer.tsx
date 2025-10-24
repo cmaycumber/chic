@@ -7,7 +7,7 @@ export function PublicFooter() {
       <div className="container mx-auto px-6">
         <div className="mb-12 flex items-center gap-2.5">
           <Sparkles className="size-5 text-foreground" />
-          <span className="font-medium text-base">furnish</span>
+          <span className="font-medium text-base">chic</span>
         </div>
 
         <div className="mb-12 grid gap-12 md:grid-cols-3">
@@ -68,7 +68,7 @@ export function PublicFooter() {
 
         <div className="border-t pt-8">
           <p className="text-muted-foreground text-sm">
-            © 2025 furnish. All rights reserved.
+            © 2025 chic. All rights reserved.
           </p>
         </div>
       </div>

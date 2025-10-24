@@ -31,7 +31,7 @@ export async function generateMetadata({
     }
 
     return {
-      title: `${design.title} | furnish`,
+      title: `${design.title} | chic`,
       description: design.description,
       openGraph: {
         title: design.title,

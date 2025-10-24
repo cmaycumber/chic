@@ -8,7 +8,7 @@ export default function Header() {
       <div className="flex flex-row items-center justify-between px-2 py-1">
         <nav className="flex gap-4 text-lg">
           <Link href="/">
-            <span className="font-bold">Furnish AI</span>
+            <span className="font-bold">Chic AI</span>
           </Link>
         </nav>
         <div className="flex items-center gap-2">

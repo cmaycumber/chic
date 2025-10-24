@@ -10,7 +10,7 @@ export default function TermsPage() {
         <div className="flex h-16 items-center justify-between px-6">
           <Link className="flex items-center gap-2" href="/">
             <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">furnish</span>
+            <span className="font-semibold text-lg">chic</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/login">
@@ -41,10 +41,10 @@ export default function TermsPage() {
             <section className="space-y-4">
               <h2 className="font-semibold text-2xl">Agreement to Terms</h2>
               <p className="text-muted-foreground">
-                By accessing or using furnish, you agree to be bound by these
-                Terms of Service and all applicable laws and regulations. If you
-                do not agree with any of these terms, you are prohibited from
-                using or accessing this service.
+                By accessing or using chic, you agree to be bound by these Terms
+                of Service and all applicable laws and regulations. If you do
+                not agree with any of these terms, you are prohibited from using
+                or accessing this service.
               </p>
             </section>
 
@@ -52,8 +52,8 @@ export default function TermsPage() {
               <h2 className="font-semibold text-2xl">Use License</h2>
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  Permission is granted to temporarily access and use furnish
-                  for personal, non-commercial purposes. This license does not
+                  Permission is granted to temporarily access and use chic for
+                  personal, non-commercial purposes. This license does not
                   include the right to:
                 </p>
                 <ul className="list-inside list-disc space-y-2 text-muted-foreground">
@@ -95,7 +95,7 @@ export default function TermsPage() {
             <section className="space-y-4">
               <h2 className="font-semibold text-2xl">AI-Generated Content</h2>
               <p className="text-muted-foreground">
-                furnish uses artificial intelligence to generate interior design
+                chic uses artificial intelligence to generate interior design
                 recommendations. While we strive for accuracy, the suggestions
                 provided are for informational purposes only and should not be
                 considered professional design advice. You should use your own
@@ -108,7 +108,7 @@ export default function TermsPage() {
               <h2 className="font-semibold text-2xl">Intellectual Property</h2>
               <p className="text-muted-foreground">
                 The service and its original content, features, and
-                functionality are owned by furnish and are protected by
+                functionality are owned by chic and are protected by
                 international copyright, trademark, patent, trade secret, and
                 other intellectual property laws.
               </p>
@@ -118,7 +118,7 @@ export default function TermsPage() {
               <h2 className="font-semibold text-2xl">User-Generated Content</h2>
               <div className="space-y-4">
                 <p className="text-muted-foreground">
-                  By submitting content to furnish, you grant us a worldwide,
+                  By submitting content to chic, you grant us a worldwide,
                   non-exclusive, royalty-free license to use, reproduce, modify,
                   and display that content for the purpose of providing and
                   improving our service.
@@ -151,7 +151,7 @@ export default function TermsPage() {
                 Limitation of Liability
               </h2>
               <p className="text-muted-foreground">
-                In no event shall furnish or its suppliers be liable for any
+                In no event shall chic or its suppliers be liable for any
                 damages arising out of the use or inability to use the service,
                 even if we have been notified of the possibility of such
                 damages.
@@ -189,7 +189,7 @@ export default function TermsPage() {
               <h2 className="font-semibold text-2xl">Contact Us</h2>
               <p className="text-muted-foreground">
                 If you have any questions about these Terms of Service, please
-                contact us at legal@furnish.ai
+                contact us at legal@chic.ai
               </p>
             </section>
           </div>
@@ -203,7 +203,7 @@ export default function TermsPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="size-6 text-primary" />
-                <span className="font-semibold text-lg">furnish</span>
+                <span className="font-semibold text-lg">chic</span>
               </div>
               <p className="text-muted-foreground text-sm">
                 Your AI interior design assistant
@@ -240,7 +240,7 @@ export default function TermsPage() {
             <div className="space-y-4">
               <h4 className="font-semibold">Connect</h4>
               <p className="text-muted-foreground text-sm">
-                © 2025 furnish. All rights reserved.
+                © 2025 chic. All rights reserved.
               </p>
             </div>
           </div>

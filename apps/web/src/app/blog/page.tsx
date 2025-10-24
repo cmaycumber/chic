@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Blog | Furnish",
+  title: "Blog | Chic",
   description:
     "Interior design tips, sustainable furniture guides, and home decor inspiration.",
 };

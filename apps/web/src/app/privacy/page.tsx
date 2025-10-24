@@ -10,7 +10,7 @@ export default function PrivacyPage() {
         <div className="flex h-16 items-center justify-between px-6">
           <Link className="flex items-center gap-2" href="/">
             <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">furnish</span>
+            <span className="font-semibold text-lg">chic</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/login">
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
             <section className="space-y-4">
               <h2 className="font-semibold text-2xl">Introduction</h2>
               <p className="text-muted-foreground">
-                At furnish, we take your privacy seriously. This Privacy Policy
+                At chic, we take your privacy seriously. This Privacy Policy
                 explains how we collect, use, disclose, and safeguard your
                 information when you use our AI-powered interior design
                 platform.
@@ -172,7 +172,7 @@ export default function PrivacyPage() {
               <h2 className="font-semibold text-2xl">Contact Us</h2>
               <p className="text-muted-foreground">
                 If you have questions about this Privacy Policy or our privacy
-                practices, please contact us at privacy@furnish.ai
+                practices, please contact us at privacy@chic.ai
               </p>
             </section>
           </div>
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="size-6 text-primary" />
-                <span className="font-semibold text-lg">furnish</span>
+                <span className="font-semibold text-lg">chic</span>
               </div>
               <p className="text-muted-foreground text-sm">
                 Your AI interior design assistant
@@ -223,7 +223,7 @@ export default function PrivacyPage() {
             <div className="space-y-4">
               <h4 className="font-semibold">Connect</h4>
               <p className="text-muted-foreground text-sm">
-                © 2025 furnish. All rights reserved.
+                © 2025 chic. All rights reserved.
               </p>
             </div>
           </div>

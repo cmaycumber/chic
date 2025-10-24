@@ -11,7 +11,7 @@ export default function AboutPage() {
         <div className="flex h-16 items-center justify-between px-6">
           <Link className="flex items-center gap-2" href="/">
             <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">furnish</span>
+            <span className="font-semibold text-lg">chic</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/login">
@@ -31,7 +31,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-6">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="font-bold text-4xl tracking-tight md:text-5xl">
-              About furnish
+              About chic
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
               We're making professional interior design accessible to everyone
@@ -84,20 +84,20 @@ export default function AboutPage() {
               <h2 className="font-bold text-3xl">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  furnish was born from a simple observation: professional
-                  interior design services are expensive and often out of reach
-                  for most people. Yet everyone deserves to live in a space that
-                  feels like home.
+                  chic was born from a simple observation: professional interior
+                  design services are expensive and often out of reach for most
+                  people. Yet everyone deserves to live in a space that feels
+                  like home.
                 </p>
                 <p>
-                  We built furnish to bridge that gap. By combining advanced AI
+                  We built chic to bridge that gap. By combining advanced AI
                   with proven design principles, we've created a tool that
                   provides professional-quality guidance at a fraction of the
                   cost.
                 </p>
                 <p>
                   Whether you're redecorating a single room or planning a
-                  complete home renovation, furnish is here to help you make
+                  complete home renovation, chic is here to help you make
                   confident decisions about colors, furniture, layouts, and
                   budgets.
                 </p>
@@ -128,7 +128,7 @@ export default function AboutPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="size-6 text-primary" />
-                <span className="font-semibold text-lg">furnish</span>
+                <span className="font-semibold text-lg">chic</span>
               </div>
               <p className="text-muted-foreground text-sm">
                 Your AI interior design assistant
@@ -165,7 +165,7 @@ export default function AboutPage() {
             <div className="space-y-4">
               <h4 className="font-semibold">Connect</h4>
               <p className="text-muted-foreground text-sm">
-                © 2025 furnish. All rights reserved.
+                © 2025 chic. All rights reserved.
               </p>
             </div>
           </div>
