@@ -36,7 +36,7 @@ export default function BlogPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {sortedPosts.map((post) => (
             <Link className="group" href={`/blog/${post.slug}`} key={post.slug}>
-              <Card className="hover:-translate-y-1 h-full transition-all hover:shadow-lg">
+              <Card className="hover:-translate-y-1 h-full pt-0 transition-all hover:shadow-lg">
                 {post.image ? (
                   <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
                     <div
