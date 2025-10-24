@@ -137,7 +137,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
         ) : (
           <div className="flex flex-col gap-4 p-4">
             {artifacts.map((artifact) => (
-              <>{artifact.content}</>
+              <div key={artifact.id}>{artifact.content}</div>
             ))}
           </div>
         )}

@@ -11,9 +11,11 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { z } from "zod/v3";
 import { components, internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import {
   type ActionCtx,
   action,
+  internalQuery,
   type MutationCtx,
   mutation,
   type QueryCtx,
@@ -180,3 +182,29 @@ export async function authorizeThreadAccess(
     throw new Error("Unauthorized: user does not match thread user");
   }
 }
+
+/**
+ * Query to fetch designs for a thread with their image storage IDs
+ */
+export const getThreadDesigns = internalQuery({
+  args: { threadId: v.string() },
+  handler: async (ctx, args) => {
+    const artifacts = await ctx.db
+      .query("artifacts")
+      .withIndex("by_threadId", (q) => q.eq("threadId", args.threadId))
+      .collect();
+
+    const designs: Doc<"designs">[] = [];
+
+    for (const artifact of artifacts) {
+      if (artifact.artifact.type === "design") {
+        const design = await ctx.db.get(artifact.artifact.designId);
+        if (design) {
+          designs.push(design);
+        }
+      }
+    }
+
+    return designs;
+  },
+});

@@ -172,4 +172,37 @@ body {
   hr {
     @apply border-border/60;
   }
+
+  /* ChicTypingIndicator animations */
+  @keyframes chic-twinkle {
+    0%,
+    100% {
+      transform: rotate(45deg) scale(1);
+      opacity: 0.65;
+    }
+    50% {
+      transform: rotate(45deg) scale(1.28);
+      opacity: 1;
+    }
+  }
+  @keyframes chic-blink {
+    0%,
+    45% {
+      opacity: 1;
+    }
+    46%,
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+/* Chic typing indicator brand tokens - using your brand colors */
+:root {
+  --chic-ink: oklch(0.201 0.002 286.029); /* Brand Ink */
+  --chic-veil: oklch(0.959 0.01 87.511); /* Brand Bone */
+}
+.dark {
+  --chic-ink: oklch(0.98 0 0); /* matches --foreground in dark mode */
+  --chic-veil-dark: oklch(0.2 0 0); /* matches --muted in dark mode */
 }

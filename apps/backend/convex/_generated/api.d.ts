@@ -9,8 +9,12 @@
  */
 
 import type * as agents_design from "../agents/design.js";
+import type * as agents_tools_addProductsToDesign from "../agents/tools/addProductsToDesign.js";
 import type * as agents_tools_createDesign from "../agents/tools/createDesign.js";
-import type * as agents_tools_modifyDesign from "../agents/tools/modifyDesign.js";
+import type * as agents_tools_generateDesignImage from "../agents/tools/generateDesignImage.js";
+import type * as agents_tools_getDesign from "../agents/tools/getDesign.js";
+import type * as agents_tools_searchProducts from "../agents/tools/searchProducts.js";
+import type * as agents_tools_updateDesign from "../agents/tools/updateDesign.js";
 import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
 import type * as designs from "../designs.js";
@@ -39,8 +43,12 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   "agents/design": typeof agents_design;
+  "agents/tools/addProductsToDesign": typeof agents_tools_addProductsToDesign;
   "agents/tools/createDesign": typeof agents_tools_createDesign;
-  "agents/tools/modifyDesign": typeof agents_tools_modifyDesign;
+  "agents/tools/generateDesignImage": typeof agents_tools_generateDesignImage;
+  "agents/tools/getDesign": typeof agents_tools_getDesign;
+  "agents/tools/searchProducts": typeof agents_tools_searchProducts;
+  "agents/tools/updateDesign": typeof agents_tools_updateDesign;
   artifacts: typeof artifacts;
   auth: typeof auth;
   designs: typeof designs;

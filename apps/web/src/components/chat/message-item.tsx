@@ -25,6 +25,7 @@ import {
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
 import { cn } from "@/lib/utils";
+import { ChicTypingIndicator } from "./chic-typing-indicator";
 
 type MessageItemProps = {
   message: UIMessage;
@@ -184,6 +185,15 @@ function TextPart({
     );
   }
 
+  // Show typing indicator when streaming but no text yet (for assistant only)
+  if (isStreaming && !visibleText && !isUser) {
+    return (
+      <div className="text-foreground">
+        <ChicTypingIndicator className="my-1" size={18} />
+      </div>
+    );
+  }
+
   return (
     <Response
       className={cn(
@@ -206,6 +216,15 @@ function ReasoningPart({
   const [visibleText] = useSmoothText(text, {
     startStreaming: isStreaming,
   });
+
+  // Show typing indicator when streaming but no text yet
+  if (isStreaming && !visibleText) {
+    return (
+      <div className="mt-4 text-muted-foreground text-sm">
+        <ChicTypingIndicator className="my-1" size={18} />
+      </div>
+    );
+  }
 
   return (
     <ReasoningContent className={cn(isStreaming && "animate-pulse")}>
