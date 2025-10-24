@@ -76,7 +76,7 @@ export function ArtifactTabs({
           className
         )}
       >
-        <p className="text-muted-foreground text-sm">No artifacts yet</p>
+        <p className="text-muted-foreground text-sm">No designs yet</p>
         {showAddButton && (
           <Button
             onClick={handleAddTab}

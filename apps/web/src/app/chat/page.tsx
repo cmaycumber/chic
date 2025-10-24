@@ -20,6 +20,7 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { RecommendationCards } from "@/components/recommendation-cards";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
@@ -91,6 +92,10 @@ export default function ChatHomePage() {
 
   const userName = session?.user?.name || "there";
 
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Main Content Area */}
@@ -146,6 +151,26 @@ export default function ChatHomePage() {
                 </p>
               </div>
             </div>
+
+            {/* Design Suggestions */}
+            <Suggestions className="justify-center">
+              <Suggestion
+                onClick={handleSuggestionClick}
+                suggestion="Design a modern minimalist living room"
+              />
+              <Suggestion
+                onClick={handleSuggestionClick}
+                suggestion="Create a cozy bedroom with warm tones"
+              />
+              <Suggestion
+                onClick={handleSuggestionClick}
+                suggestion="Plan a Scandinavian-style kitchen"
+              />
+              <Suggestion
+                onClick={handleSuggestionClick}
+                suggestion="Help me redesign my home office"
+              />
+            </Suggestions>
           </div>
         </div>
 

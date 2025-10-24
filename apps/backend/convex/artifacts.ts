@@ -55,6 +55,7 @@ export const listByThreadIdWithDetails = query({
         ),
         budget: v.optional(v.number()),
         designPlan: v.optional(v.string()),
+        isPublic: v.boolean(),
       }),
     })
   ),
@@ -83,6 +84,7 @@ export const listByThreadIdWithDetails = query({
         }>;
         budget?: number;
         designPlan?: string;
+        isPublic: boolean;
       };
     }> = [];
 
@@ -108,6 +110,7 @@ export const listByThreadIdWithDetails = query({
               products: design.products,
               budget: design.budget,
               designPlan: design.designPlan,
+              isPublic: design.isPublic ?? false,
             },
           };
         }

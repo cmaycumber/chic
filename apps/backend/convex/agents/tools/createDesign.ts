@@ -177,6 +177,7 @@ export const create_design = createTool({
         products: products.length > 0 ? products : undefined,
         budget: args.budget,
         designPlan: args.designPlan,
+        isPublic: false,
       }
     );
 

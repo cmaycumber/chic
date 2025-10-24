@@ -50,12 +50,12 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
 
   const getArtifactCountLabel = () => {
     if (artifacts.length === 0) {
-      return "No artifacts";
+      return "No designs";
     }
     if (artifacts.length === 1) {
-      return "1 artifact";
+      return "1 design";
     }
-    return `${artifacts.length} artifacts`;
+    return `${artifacts.length} designs`;
   };
 
   // Add/remove mouse event listeners for resizing
@@ -77,7 +77,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
     >
       {/* Resize handle */}
       <button
-        aria-label="Resize artifacts panel"
+        aria-label="Resize designs panel"
         className={cn(
           "absolute top-0 left-0 z-50 h-full w-1 cursor-col-resize hover:bg-primary/20",
           isResizing && "bg-primary/20"
@@ -86,10 +86,10 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
         type="button"
       />
 
-      {/* Artifacts Header */}
+      {/* Designs Header */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center gap-3">
-          <h2 className="font-semibold text-sm">Artifacts</h2>
+          <h2 className="font-semibold text-sm">Designs</h2>
           <span className="text-muted-foreground text-xs">
             {getArtifactCountLabel()}
           </span>
@@ -120,18 +120,18 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
             variant="ghost"
           >
             <XIcon className="size-4" />
-            <span className="sr-only">Close artifacts panel</span>
+            <span className="sr-only">Close designs panel</span>
           </Button>
         </div>
       </header>
 
-      {/* Artifacts Content */}
+      {/* Designs Content */}
       <div className="flex-1 overflow-auto">
         {artifacts.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-            <p className="text-muted-foreground text-sm">No artifacts yet</p>
+            <p className="text-muted-foreground text-sm">No designs yet</p>
             <p className="text-muted-foreground/60 text-xs">
-              Artifacts will appear here as you create them
+              Designs will appear here as you create them
             </p>
           </div>
         ) : (

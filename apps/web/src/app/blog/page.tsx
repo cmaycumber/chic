@@ -41,7 +41,7 @@ export default function BlogPage() {
                   <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
                     <div
                       aria-label={post.title}
-                      className="h-full w-full bg-center bg-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full rounded-t-lg bg-center bg-cover transition-transform duration-300 group-hover:scale-105"
                       role="img"
                       style={{ backgroundImage: `url(${post.image})` }}
                     />

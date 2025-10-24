@@ -1,9 +1,7 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { PublicHeader } from "@/components/public-header";
 import { TravertineBackground } from "@/components/travertine-background";
 
 type AuthLayoutProps = {
@@ -18,18 +16,10 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       <TravertineBackground />
 
       {/* Header */}
-      <header className="relative z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="flex h-16 items-center justify-between px-6">
-          <Link className="flex items-center gap-2" href="/">
-            <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">furnish</span>
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
+      <PublicHeader />
 
       {/* Main Content */}
-      <main className="relative z-10 flex flex-1 items-center justify-center p-6">
+      <main className="relative z-10 flex flex-1 items-center justify-center p-6 pt-24">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <h1 className="font-bold text-3xl tracking-tight">{title}</h1>
@@ -46,7 +36,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
       {/* Footer */}
       <footer className="relative z-10 border-t bg-background/80 py-4 backdrop-blur-sm">
-        <div className="container mx-auto px-6 text-center text-muted-foreground text-sm">
+        <div className="px-6 text-center text-muted-foreground text-sm">
           <p>Your AI Interior Design Assistant</p>
         </div>
       </footer>

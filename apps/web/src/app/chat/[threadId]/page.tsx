@@ -101,13 +101,6 @@ export default function ChatPage({
                 // Error handled silently
               });
             }}
-            onShare={() => {
-              // Copy share link to clipboard
-              const shareUrl = `${window.location.origin}/chat/${threadId}?artifact=${artifact._id}`;
-              navigator.clipboard.writeText(shareUrl).catch(() => {
-                // Handle error silently
-              });
-            }}
           />
         ),
       })
@@ -189,7 +182,7 @@ export default function ChatPage({
           >
             <PanelRight className="size-4" />
             <span className="text-sm">
-              {isArtifactsPanelOpen ? "Hide Artifacts" : "Show Artifacts"}
+              {isArtifactsPanelOpen ? "Hide Designs" : "Show Designs"}
             </span>
           </Button>
         </header>
@@ -246,7 +239,7 @@ export default function ChatPage({
         />
       </div>
 
-      {/* Artifacts Panel */}
+      {/* Designs Panel */}
       {isArtifactsPanelOpen && (
         <ArtifactsPanel
           artifacts={artifacts}

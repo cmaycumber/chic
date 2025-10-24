@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 export function PublicHeader() {
   return (
     <header className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-xl">
-      <div className="container mx-auto flex h-16 items-center justify-between px-6">
+      <div className="flex h-16 items-center justify-between px-6">
         <Link className="flex items-center" href="/">
           <Logo className="text-foreground" height={20} width={49} />
         </Link>

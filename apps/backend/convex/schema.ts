@@ -25,6 +25,7 @@ export default defineSchema({
     ),
     budget: v.optional(v.number()),
     designPlan: v.optional(v.string()),
+    isPublic: v.optional(v.boolean()),
   }),
 
   artifacts: defineTable({
