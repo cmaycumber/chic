@@ -66,7 +66,7 @@ export function NavUser() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
-                className="p-0 data-[state=open]:bg-muted/40"
+                className={`p-0 data-[state=open]:bg-muted/40 ${collapsed ? "-ml-1" : ""}`}
                 size="lg"
                 tooltip={collapsed ? user.name : undefined}
               >

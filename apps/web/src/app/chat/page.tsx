@@ -21,8 +21,6 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
-import { RecommendationCards } from "@/components/recommendation-cards";
-import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 
 // Helper function to convert data URL to ArrayBuffer
@@ -103,34 +101,6 @@ export default function ChatHomePage() {
         {/* Header */}
         <div className="flex h-14 items-center justify-between border-b px-6">
           <h1 className="font-semibold text-lg">New chat</h1>
-          <div className="flex items-center gap-4">
-            <button
-              className="text-muted-foreground text-sm hover:text-foreground"
-              type="button"
-            >
-              Room Type
-            </button>
-            <button
-              className="text-muted-foreground text-sm hover:text-foreground"
-              type="button"
-            >
-              Style
-            </button>
-            <button
-              className="text-muted-foreground text-sm hover:text-foreground"
-              type="button"
-            >
-              Budget
-            </button>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button size="sm" variant="ghost">
-              Invite
-            </Button>
-            <Button size="sm" variant="default">
-              Create a board
-            </Button>
-          </div>
         </div>
 
         {/* Chat Area */}
@@ -222,11 +192,6 @@ export default function ChatHomePage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Right Sidebar */}
-      <div className="w-[400px] shrink-0 border-l bg-muted/30">
-        <RecommendationCards />
       </div>
     </div>
   );
