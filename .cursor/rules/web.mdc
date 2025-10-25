@@ -1,0 +1,95 @@
+---
+globs: apps/web/**/*
+---
+
+# Next.js + ShadCN Guidelines
+
+## General Best Practices
+
+- Only use [Next.js-recommended APIs](https://nextjs.org/docs) and ShadCN-approved patterns.
+- Prefer [App Router](https://nextjs.org/docs/app) conventions (app directory, layouts, loading, etc.).
+- Keep pages and components as small and modular as possible.
+- Place page-level components in `/app`; place UI and utility components in `/components`.
+
+## Routing & Navigation
+
+- Use `<Link>` from `next/link` for client-side navigation. Do **not** use `<a>` directly for internal links.
+- Use `href` with absolute or root-relative URLs.
+
+## Data Fetching
+
+- Use [server components](https://nextjs.org/docs/app/building-your-application/rendering/server-components) for data fetching when possible.
+- Use [Next.js caching and revalidation](https://nextjs.org/docs/app/building-your-application/data-fetching/caching) (e.g. `fetch`, `revalidate`).
+
+## Styling
+
+- Always use [ShadCN UI primitives](https://ui.shadcn.com/docs/components) where a suitable component exists.
+- Use Tailwind CSS for custom styling.
+- Never override ShadCN or Tailwind base classNames without good reason.
+
+## Accessibility (a11y)
+
+- ShadCN UI components are accessible out of the box. Keep overrides minimal and test accessibility if you customize.
+- Always provide meaningful `alt` prop for images, and don’t use "image" or "photo" in the alt text.
+- Use appropriate semantic elements and heading structures.
+
+## Component Usage
+
+- Only use UI elements from ShadCN (or Next's built-ins) for buttons, forms, cards, alerts, dialogs, etc.
+- Never copy raw HTML from the ShadCN docs—import components from your `/components/ui/` directory instead.
+- Compose new components by reusing ShadCN UI where possible.
+
+## State & Behavior
+
+- Use React server components by default.
+- Use client components (with `'use client'`) only for interactive UI (input, dialogs, drag, etc.).
+- Store transient UI state (modals, toggles) in local component state, not global state (except as required).
+
+## Imports & Exports
+
+- Always use named exports for components and utility functions.
+- Use absolute imports based on your project’s tsconfig or jsconfig paths.
+
+## Image Usage
+
+- Always use `<Image>` from `next/image` for rendering images. Never use `<img>`.
+- Use the `alt` prop and specify `sizes` and `priority` where appropriate.
+
+## External Links
+
+- Use `target="_blank"` together with `rel="noopener noreferrer"` for external links.
+- Only use `<a>` for true external URLs.
+
+## Miscellaneous
+
+- Do **not** use Next.js `<head>` or import `next/head` outside of allowed locations (`_document.tsx`, root `layout.tsx`).
+- Do **not** use `any` or `unknown` types.
+- Validate all props using TypeScript and prefer explicit typing.
+
+## File Organization
+
+- Place each UI component or utility in its own file within the `/components/ui/` or `/components/` directory.
+- Do **not** place logic or UI inside API route files.
+
+# ShadCN-specific rules
+
+- Do **not** modify core ShadCN component source—extend via composition or props.
+- Update ShadCN components via the CLI, not by editing generated code directly.
+- Follow ShadCN’s accessibility and keyboard navigation guidelines for customizations.
+
+# Next.js-specific rules
+
+- Do **not** use `<img>` or `<head>` HTML elements. Use Next.js’ `<Image>` and layout/head conventions.
+- Always prefer static rendering (SSG/ISR) unless SSR is required.
+- Do **not** use global CSS except for built-in Tailwind/base styles.
+
+# Errors & Edge Cases
+
+- Always handle async errors using try/catch in server functions and edge logic.
+- Use user-friendly default/fallback content for missing props, missing images, etc.
+
+# Resources
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [ShadCN UI Docs](https://ui.shadcn.com/docs/components)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs/installation)

@@ -8,9 +8,6 @@
 import { createTool, type ToolCtx } from "@convex-dev/agent";
 import { gateway, generateText } from "ai";
 import z from "zod";
-import type { Id } from "../../_generated/dataModel";
-
-const URL_PATTERN = /https?:\/\/[^\s]+/;
 
 const productSchema = z.object({
   name: z.string().describe("Product name"),
@@ -71,39 +68,60 @@ Make it look realistic, well-lit, and professionally styled. The composition sho
     // Use Google Gemini Flash for image generation
     const imageResult = await generateText({
       model: gateway.languageModel("google/gemini-2.5-flash-image"),
+      providerOptions: {
+        google: { responseModalities: ["TEXT", "IMAGE"] },
+      },
       prompt: imagePrompt,
     });
 
-    // Extract and store the generated image
-    const imageUrl = imageResult.text.match(URL_PATTERN)?.[0];
-    if (!imageUrl) {
+    // Extract all generated images from the steps content
+    // Images are in steps[0].content as content items with type: 'file'
+    const firstStep = imageResult.steps?.[0];
+    if (!firstStep) {
+      throw new Error("Failed to generate image: No steps in response");
+    }
+
+    // Find all file content items that are images
+    const imageFiles = firstStep.content
+      .filter((item) => item.type === "file")
+      .map((item) => (item.type === "file" ? item.file : null))
+      .filter((file) => file?.mediaType?.startsWith("image/"));
+
+    if (imageFiles.length === 0) {
       throw new Error(
-        "Failed to generate image: No image URL found in response"
+        "Failed to generate image: No image files found in response"
       );
     }
 
-    let imageStorageId: Id<"_storage"> | null = null;
+    // Store all generated images
+    const storageIds: string[] = [];
 
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
+    for (const generatedImage of imageFiles) {
+      if (!generatedImage) {
+        continue;
       }
-      const blob = await response.blob();
-      imageStorageId = await ctx.storage.store(blob);
-    } catch (error) {
-      throw new Error(
-        `Failed to store generated image: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
 
-    if (!imageStorageId) {
-      throw new Error("Failed to store generated image: Storage returned null");
+      // Convert Uint8Array to Blob for storage
+      // Create a new Uint8Array to ensure proper typing
+      const imageData = new Uint8Array(generatedImage.uint8Array);
+      const blob = new Blob([imageData], {
+        type: generatedImage.mediaType,
+      });
+
+      const imageStorageId = await ctx.storage.store(blob);
+
+      if (!imageStorageId) {
+        throw new Error(
+          "Failed to store generated image: Storage returned null"
+        );
+      }
+
+      storageIds.push(imageStorageId);
     }
 
     return {
-      storageId: imageStorageId,
-      message: "Design image generated successfully",
+      storageIds,
+      message: `Successfully generated ${storageIds.length} design image${storageIds.length > 1 ? "s" : ""}`,
     };
   },
 });

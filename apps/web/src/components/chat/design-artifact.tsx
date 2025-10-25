@@ -23,6 +23,7 @@ import {
   ArtifactHeader,
   ArtifactTitle,
 } from "@/components/ai-elements/artifact";
+import { Response } from "@/components/ai-elements/response";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -116,9 +117,9 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
               {product.name}
             </h4>
             {product.description && (
-              <p className="text-muted-foreground text-xs leading-relaxed">
+              <Response className="text-muted-foreground text-xs leading-relaxed">
                 {product.description}
-              </p>
+              </Response>
             )}
             <div className="mt-auto flex items-center justify-between gap-2">
               <span className="font-semibold text-sm">
@@ -174,9 +175,9 @@ function RoomView({
       {design.designPlan && (
         <div className="space-y-2">
           <h3 className="font-semibold text-sm">Design Plan</h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
+          <Response className="text-muted-foreground text-sm leading-relaxed">
             {design.designPlan}
-          </p>
+          </Response>
         </div>
       )}
 

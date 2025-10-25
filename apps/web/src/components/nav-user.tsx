@@ -33,11 +33,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 
 export function NavUser() {
-  const { isMobile } = useSidebar();
+  const { isMobile, state } = useSidebar();
   const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState("general");
+  const collapsed = state === "collapsed";
 
   function openSettings(tab = "general") {
     setSettingsTab(tab);
@@ -64,7 +65,11 @@ export function NavUser() {
         <SidebarMenuItem>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="p-0 data-[state=open]:bg-muted/40">
+              <SidebarMenuButton
+                className="p-0 data-[state=open]:bg-muted/40"
+                size="lg"
+                tooltip={collapsed ? user.name : undefined}
+              >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage alt={user.name} src={user.name} />
                   <AvatarFallback className="rounded-lg">

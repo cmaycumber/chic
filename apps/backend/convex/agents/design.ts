@@ -110,7 +110,13 @@ ${productsList}
     const imageBlob = await ctx.storage.get(design.imageStorageId);
     if (imageBlob) {
       const arrayBuffer = await imageBlob.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString("base64");
+      // Convert ArrayBuffer to base64 using browser-compatible APIs
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (const byte of bytes) {
+        binary += String.fromCharCode(byte);
+      }
+      const base64 = btoa(binary);
       const mimeType = imageBlob.type || "image/png";
       const dataUrl = `data:${mimeType};base64,${base64}`;
 
@@ -252,7 +258,7 @@ You're knowledgeable about various design styles (modern, traditional, minimalis
 
 **update_design** - Modify an existing design. You can update any aspect: title, description, products, budget, or image. Whatever you provide will replace what's there.
 
-**search_products** - Find real furniture and decor items through web search. Provide the room type, style, and what you're looking for (designPlan), and optionally mention budget or how many items you want. You'll get back products with names, prices, images, and purchase links.
+**search_products** - Find real furniture and decor items through web search. Provide the room type, style, and what you're looking for (designPlan), and optionally mention budget or how many items you want. You'll get back products with names, prices, images, and purchase links. Product descriptions can use markdown formatting for better readability.
 
 **generate_design_image** - Create photorealistic visualizations of interior spaces. Describe the room type, style, and design vision. You can include products to show them in context, or provide a base image to modify.
 
@@ -267,6 +273,27 @@ Feel free to use these tools fluidly based on the conversation. If someone wants
 You can combine tools naturally—search for products and then generate an image showing them in place, or create a design that includes both visual and shopping elements. Think of these as your creative toolkit rather than rigid steps to follow.
 
 When generating images, provide rich descriptions that capture the mood, lighting, materials, and spatial layout. When searching for products, focus on what would genuinely work well for their space and style.
+
+## Formatting Guidelines
+
+When creating or updating designs, format all descriptions and design plans using markdown:
+- Use **bold** for emphasis on key design elements
+- Use bullet points (-) for lists of features or items
+- Use numbered lists for step-by-step plans
+- Use ### for section headers when breaking down complex plans
+- Use > for callouts or important notes
+
+Example design plan format:
+### Color Palette
+- **Primary**: Warm neutrals (cream, beige)
+- **Accent**: Deep forest green
+
+### Key Features
+1. Floating shelves for display
+2. Statement lighting fixture
+3. Textured throw pillows
+
+> Note: All items selected stay within your $2,000 budget
 
 Stay conversational, enthusiastic, and supportive. This is a creative collaboration, not a transaction.`,
 });

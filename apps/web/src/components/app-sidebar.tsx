@@ -4,6 +4,8 @@ import { api } from "@furnish/backend/convex/_generated/api";
 import { useAction, useMutation, usePaginatedQuery } from "convex/react";
 import {
   Check,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -61,11 +63,9 @@ const INITIAL_THREADS_LOAD = 20;
 const LOAD_MORE_THREADS_COUNT = 20;
 const LOGO_HEIGHT_EXPANDED = 20;
 const LOGO_WIDTH_EXPANDED = 49;
-const LOGO_HEIGHT_COLLAPSED = 16;
-const LOGO_WIDTH_COLLAPSED = 39;
 
 export function AppSidebar({ className, ...props }: AppSidebarProps) {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const collapsed = state === "collapsed";
@@ -115,28 +115,51 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
   };
 
   return (
-    <Sidebar className={className} {...props}>
+    <Sidebar className={className} collapsible="icon" {...props}>
       <SidebarContent>
         <div className={cn("space-y-3", collapsed ? "px-2 py-3" : "px-3 py-4")}>
-          {/* Header with Logo */}
+          {/* Header with Logo and Toggle */}
           <div
             className={cn(
               "flex items-center",
-              collapsed ? "justify-center" : "px-3"
+              collapsed ? "justify-center" : "justify-between px-3"
             )}
           >
-            <Link
-              className="flex items-center transition-opacity hover:opacity-80"
-              href="/chat"
-            >
-              <Logo
-                className="text-foreground"
-                height={
-                  collapsed ? LOGO_HEIGHT_COLLAPSED : LOGO_HEIGHT_EXPANDED
-                }
-                width={collapsed ? LOGO_WIDTH_COLLAPSED : LOGO_WIDTH_EXPANDED}
-              />
-            </Link>
+            {collapsed ? (
+              <Button
+                className="size-8 p-0"
+                onClick={toggleSidebar}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <ChevronRight className="size-4" />
+                <span className="sr-only">Expand sidebar</span>
+              </Button>
+            ) : (
+              <>
+                <Link
+                  className="flex items-center transition-opacity hover:opacity-80"
+                  href="/chat"
+                >
+                  <Logo
+                    className="text-foreground"
+                    height={LOGO_HEIGHT_EXPANDED}
+                    width={LOGO_WIDTH_EXPANDED}
+                  />
+                </Link>
+                <Button
+                  className="size-8 p-0"
+                  onClick={toggleSidebar}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <ChevronLeft className="size-4" />
+                  <span className="sr-only">Collapse sidebar</span>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* New Chat Button */}
@@ -181,54 +204,7 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
         </div>
 
         {collapsed ? (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <ScrollArea className="flex-1">
-              <div className="flex flex-col gap-1 px-3 pb-4">
-                {threads === undefined && (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-                {threads && threads.length > 0 && (
-                  <TooltipProvider>
-                    {threads.slice(0, 10).map((thread) => {
-                      const threadId = thread._id;
-                      const isActive = pathname === `/chat/${threadId}`;
-                      const displayTitle =
-                        thread.title || "Untitled conversation";
-
-                      return (
-                        <Tooltip key={threadId}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              asChild
-                              className={cn(
-                                "w-full",
-                                isActive ? "bg-secondary/50" : "bg-transparent"
-                              )}
-                              size="icon"
-                              type="button"
-                              variant="ghost"
-                            >
-                              <Link href={`/chat/${threadId}`}>
-                                <SquareTerminal className="size-4 opacity-60" />
-                                <span className="sr-only">{displayTitle}</span>
-                              </Link>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            <p className="max-w-[200px] truncate">
-                              {displayTitle}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </TooltipProvider>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+          <div className="flex-1" />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="shrink-0 px-6 py-2 font-medium text-muted-foreground/70 text-xs uppercase tracking-wider">

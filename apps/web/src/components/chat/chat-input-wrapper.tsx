@@ -20,6 +20,7 @@ async function dataUrlToArrayBuffer(dataUrl: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
+// TODO: Move this back w/ the chat-messages to share some logic...
 export function ChatInputWrapper({ threadId }: ChatInputWrapperProps) {
   const sendMessage = useMutation(
     api.messages.initiateAsyncStreaming
@@ -37,7 +38,7 @@ export function ChatInputWrapper({ threadId }: ChatInputWrapperProps) {
   const { results: messages, status } = useUIMessages(
     api.messages.listThreadMessages,
     { threadId },
-    { initialNumItems: 1, stream: true }
+    { initialNumItems: 10, stream: true }
   );
 
   const streamingMessage = messages?.find((m) => m.status === "streaming");
