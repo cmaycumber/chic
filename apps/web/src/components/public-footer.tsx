@@ -5,9 +5,14 @@ export function PublicFooter() {
   return (
     <footer className="bg-muted/30 py-16">
       <div className="container mx-auto px-6">
-        <div className="mb-12 flex items-center gap-2.5">
-          <Sparkles className="size-5 text-foreground" />
-          <span className="font-medium text-base">chic</span>
+        <div className="mb-12 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="size-5 text-foreground" />
+            <span className="font-medium text-base">chic</span>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Your free AI interior designer
+          </p>
         </div>
 
         <div className="mb-12 grid gap-12 md:grid-cols-3">

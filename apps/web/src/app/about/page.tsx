@@ -7,7 +7,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="flex h-16 items-center justify-between px-6">
           <Link className="flex items-center gap-2" href="/">
             <Sparkles className="size-6 text-primary" />
@@ -31,11 +31,12 @@ export default function AboutPage() {
         <div className="container mx-auto px-6">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="font-bold text-4xl tracking-tight md:text-5xl">
-              About chic
+              About Chic - Your AI Interior Designer
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              We're making professional interior design accessible to everyone
-              through the power of AI.
+              We're democratizing professional interior design through
+              artificial intelligence. Get expert design guidance, instant room
+              visualizations, and personalized recommendations—all for free.
             </p>
           </div>
         </div>
@@ -52,8 +53,10 @@ export default function AboutPage() {
                 </div>
                 <h3 className="mt-6 font-semibold text-xl">Our Mission</h3>
                 <p className="mt-4 text-muted-foreground">
-                  Democratize interior design by providing AI-powered expert
-                  guidance to everyone, regardless of budget or experience.
+                  Make professional interior design accessible to everyone
+                  through our AI interior designer. Whether you're a first-time
+                  decorator or experienced designer, our AI provides expert
+                  guidance at no cost.
                 </p>
               </Card>
 
@@ -61,10 +64,14 @@ export default function AboutPage() {
                 <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
                   <Zap className="size-8 text-primary" />
                 </div>
-                <h3 className="mt-6 font-semibold text-xl">Our Technology</h3>
+                <h3 className="mt-6 font-semibold text-xl">
+                  Our AI Technology
+                </h3>
                 <p className="mt-4 text-muted-foreground">
-                  Cutting-edge AI models trained on professional design
-                  principles to deliver personalized recommendations.
+                  Our AI interior designer uses advanced machine learning models
+                  trained on thousands of professional designs. Get instant room
+                  layouts, color recommendations, and style suggestions tailored
+                  to your unique space.
                 </p>
               </Card>
 
@@ -84,22 +91,25 @@ export default function AboutPage() {
               <h2 className="font-bold text-3xl">Our Story</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  chic was born from a simple observation: professional interior
-                  design services are expensive and often out of reach for most
-                  people. Yet everyone deserves to live in a space that feels
-                  like home.
+                  Chic was born from a simple observation: professional interior
+                  designers charge thousands of dollars, putting expert design
+                  guidance out of reach for most people. Yet everyone deserves a
+                  beautiful, functional space.
                 </p>
                 <p>
-                  We built chic to bridge that gap. By combining advanced AI
-                  with proven design principles, we've created a tool that
-                  provides professional-quality guidance at a fraction of the
-                  cost.
+                  We built Chic as your personal AI interior designer. By
+                  combining cutting-edge artificial intelligence with proven
+                  design principles, we deliver professional-quality interior
+                  design guidance—completely free. Our AI analyzes your space,
+                  understands your style, and provides instant, personalized
+                  recommendations.
                 </p>
                 <p>
                   Whether you're redecorating a single room or planning a
-                  complete home renovation, chic is here to help you make
-                  confident decisions about colors, furniture, layouts, and
-                  budgets.
+                  complete home renovation, our AI interior designer helps you
+                  make confident decisions about colors, furniture, layouts, and
+                  budgets. Chat with your AI designer anytime, upload room
+                  photos, and watch your vision come to life.
                 </p>
               </div>
             </div>
@@ -131,7 +141,7 @@ export default function AboutPage() {
                 <span className="font-semibold text-lg">chic</span>
               </div>
               <p className="text-muted-foreground text-sm">
-                Your AI interior design assistant
+                Your free AI interior designer
               </p>
             </div>
 

@@ -12,9 +12,22 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Blog | Chic",
+  title: "Interior Design Blog | AI Interior Designer Tips & Guides - Chic",
   description:
-    "Interior design tips, sustainable furniture guides, and home decor inspiration.",
+    "Expert interior design tips, AI design guides, room transformation ideas, and home decor inspiration. Learn how to use AI for interior design from our free AI interior designer.",
+  keywords: [
+    "interior design blog",
+    "ai interior design tips",
+    "room design ideas",
+    "interior design guide",
+    "ai designer tips",
+  ],
+  openGraph: {
+    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
+    description:
+      "Expert interior design tips and AI design guides to help you transform your space.",
+    type: "website",
+  },
 };
 
 export default function BlogPage() {
@@ -26,10 +39,11 @@ export default function BlogPage() {
     <PublicLayout>
       <div className="container mx-auto max-w-6xl px-4 py-12">
         <div className="mb-12 text-center">
-          <h1 className="mb-4 font-bold text-4xl">Our Blog</h1>
+          <h1 className="mb-4 font-bold text-4xl">AI Interior Designer Blog</h1>
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Discover interior design inspiration, sustainable living tips, and
-            expert advice to transform your space.
+            Interior design inspiration, AI design tips, and expert guidance to
+            help you transform your space. Learn how to use AI for interior
+            design effectively.
           </p>
         </div>
 

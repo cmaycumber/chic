@@ -25,6 +25,7 @@ import type * as messages from "../messages.js";
 import type * as playground from "../playground.js";
 import type * as streamAbort from "../streamAbort.js";
 import type * as threads from "../threads.js";
+import type * as tools from "../tools.js";
 import type * as utils from "../utils.js";
 
 import type {
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   playground: typeof playground;
   streamAbort: typeof streamAbort;
   threads: typeof threads;
+  tools: typeof tools;
   utils: typeof utils;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

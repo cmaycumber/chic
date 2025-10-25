@@ -109,15 +109,19 @@ export default function ChatHomePage() {
             {/* Greeting */}
             <div className="space-y-4">
               <h2 className="font-bold text-3xl tracking-tight">
-                How can I help design your space today, {userName}?
+                Hi {userName}, I'm your AI interior designer. How can I help
+                transform your space?
               </h2>
               <div className="flex items-start gap-3">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
                   <span className="font-semibold text-sm">F</span>
                 </div>
                 <p className="text-muted-foreground">
-                  Hey there, I'm here to assist you in creating beautiful
-                  spaces. Ask me anything design related.
+                  As your AI interior designer, I can help you with room
+                  layouts, color schemes, furniture recommendations, style
+                  guidance, and complete room transformations. Upload photos or
+                  describe your vision—let's create something beautiful
+                  together.
                 </p>
               </div>
             </div>
@@ -126,19 +130,19 @@ export default function ChatHomePage() {
             <Suggestions className="justify-center">
               <Suggestion
                 onClick={handleSuggestionClick}
-                suggestion="Design a modern minimalist living room"
+                suggestion="Help me design a modern minimalist living room"
               />
               <Suggestion
                 onClick={handleSuggestionClick}
-                suggestion="Create a cozy bedroom with warm tones"
+                suggestion="I need ideas for a cozy bedroom with warm tones"
               />
               <Suggestion
                 onClick={handleSuggestionClick}
-                suggestion="Plan a Scandinavian-style kitchen"
+                suggestion="Can you create a Scandinavian-style kitchen design?"
               />
               <Suggestion
                 onClick={handleSuggestionClick}
-                suggestion="Help me redesign my home office"
+                suggestion="I want to redesign my home office - where do I start?"
               />
             </Suggestions>
           </div>
@@ -188,7 +192,8 @@ export default function ChatHomePage() {
               </PromptInputToolbar>
             </PromptInput>
             <div className="mt-2 text-center text-muted-foreground/80 text-xs">
-              Chic can make mistakes. Check important info.
+              Your AI interior designer provides suggestions based on design
+              principles. Always verify measurements and check product details.
             </div>
           </div>
         </div>

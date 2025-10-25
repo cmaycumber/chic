@@ -22,21 +22,21 @@ import { useSession } from "@/lib/auth-client";
 const useCases = [
   {
     icon: Palette,
-    title: "Color & Style",
+    title: "AI Color & Style Recommendations",
     description:
-      "Get expert recommendations on color palettes, design styles, and aesthetic choices for any room.",
+      "Our AI interior designer analyzes your preferences to suggest perfect color palettes, design styles, and aesthetic choices for any room.",
   },
   {
     icon: Lightbulb,
-    title: "Space Planning",
+    title: "Smart Space Planning",
     description:
-      "Optimize furniture layout and maximize your space with AI-powered spatial intelligence.",
+      "AI-powered spatial intelligence optimizes furniture layouts and maximizes every inch of your space with professional interior design principles.",
   },
   {
     icon: Zap,
-    title: "Budget Guidance",
+    title: "Intelligent Budget Guidance",
     description:
-      "Plan your renovation budget with accurate cost estimates and smart material suggestions.",
+      "Get AI-generated budget estimates and smart material suggestions to plan your renovation with confidence.",
   },
 ];
 
@@ -89,12 +89,14 @@ export default function HomePage() {
           <div className="space-y-12 text-center">
             <div className="space-y-6">
               <h1 className="font-semibold text-6xl tracking-tight md:text-7xl">
-                Design your
+                Your AI Interior
                 <br />
-                dream space
+                Designer
               </h1>
               <p className="mx-auto max-w-xl text-lg text-muted-foreground md:text-xl">
-                AI-powered interior design guidance. Simple, fast, beautiful.
+                Professional interior design powered by AI. Get instant room
+                designs, personalized recommendations, and expert guidance—all
+                for free.
               </p>
             </div>
 
@@ -105,7 +107,7 @@ export default function HomePage() {
                     className="min-h-[100px] text-base"
                     disabled={isSubmitting}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Describe your space..."
+                    placeholder="Ask your AI interior designer anything... (e.g., 'Help me design a modern living room')"
                     value={input}
                   />
                 </PromptInputBody>
@@ -127,10 +129,11 @@ export default function HomePage() {
           <div className="mx-auto max-w-5xl">
             <div className="mb-16 text-center">
               <h2 className="mb-4 font-semibold text-4xl tracking-tight">
-                Everything you need
+                Your Complete AI Interior Designer
               </h2>
               <p className="text-lg text-muted-foreground">
-                Professional design guidance at your fingertips
+                Professional interior design expertise powered by artificial
+                intelligence
               </p>
             </div>
 
@@ -156,12 +159,15 @@ export default function HomePage() {
             <div className="mt-20 text-center">
               <div className="space-y-6">
                 <h3 className="font-semibold text-3xl tracking-tight">
-                  Ready to get started?
+                  Ready to Transform Your Space?
                 </h3>
+                <p className="text-muted-foreground">
+                  Start chatting with your free AI interior designer today
+                </p>
                 <div className="flex flex-col justify-center gap-3 sm:flex-row">
                   <Link href="/signup">
                     <Button className="w-full sm:w-auto" size="lg">
-                      Get Started
+                      Start Free with AI Designer
                     </Button>
                   </Link>
                 </div>
