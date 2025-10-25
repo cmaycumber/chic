@@ -1,7 +1,7 @@
 import { getFile, storeFile } from "@convex-dev/agent";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
-import { action } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 
 /**
  * Upload a file to Convex storage and save a reference in the agent component.
@@ -55,4 +55,24 @@ export const getFileMetadata = action({
       filename: file.filename,
     };
   },
+});
+
+/**
+ * Generate an upload URL for direct file uploads from the client.
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => await ctx.storage.generateUploadUrl(),
+});
+
+/**
+ * Get a temporary URL for a storage ID.
+ */
+export const getStorageUrl = query({
+  args: {
+    storageId: v.string(),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => await ctx.storage.getUrl(args.storageId),
 });

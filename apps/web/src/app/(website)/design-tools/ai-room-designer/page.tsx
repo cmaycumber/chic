@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Accordion,
@@ -14,16 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { RoomDesignerTool } from "./room-designer-tool";
 
 export const metadata: Metadata = {
   title:
@@ -51,119 +43,42 @@ export default function AiRoomDesignerPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-12 md:py-20">
-        <div className="mx-auto max-w-4xl text-center">
-          <h1 className="mb-6 font-bold text-4xl tracking-tight md:text-5xl lg:text-6xl">
-            AI Room Designer Free Tool for Instant Interior Design Ideas
-          </h1>
-          <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-            <strong>Want instant professional interior design ideas?</strong>{" "}
-            Our free AI room designer lets you transform any space in seconds.
-            Upload a photo, describe your vision, and watch AI create stunning
-            design variations. It's 100% free to use—no credit card required.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button asChild size="lg">
-              <Link href="/signup">Start Designing for Free</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/inspiration">View Examples</Link>
-            </Button>
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 text-center">
+            <h1 className="mb-6 font-bold text-4xl tracking-tight md:text-5xl lg:text-6xl">
+              AI Room Designer Free Tool for Instant Interior Design Ideas
+            </h1>
+            <p className="mb-8 text-lg text-muted-foreground md:text-xl">
+              <strong>Want instant professional interior design ideas?</strong>{" "}
+              Our free AI room designer lets you transform any space in seconds.
+              Upload a photo, describe your vision, and watch AI create stunning
+              design variations. It's 100% free to use—no credit card required.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button asChild size="lg">
+                <Link href="/signup">Start Designing for Free</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/inspiration">View Examples</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative mx-auto aspect-square max-w-2xl overflow-hidden rounded-3xl">
+            <Image
+              alt="Minimalist abstract interior design illustration showing modern living room"
+              className="object-cover"
+              fill
+              priority
+              src="/images/ai-room-designer-hero.png"
+            />
           </div>
         </div>
       </section>
 
       {/* Tool Interface Section */}
       <section className="container mx-auto px-4 py-12">
-        <Card className="mx-auto max-w-4xl">
-          <CardHeader>
-            <CardTitle>Transform Your Room with AI</CardTitle>
-            <CardDescription>
-              Upload a photo of your room and describe how you'd like to
-              redesign it
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="room-photo">Upload Room Photo</Label>
-              <Input
-                accept="image/*"
-                className="cursor-pointer"
-                id="room-photo"
-                type="file"
-              />
-              <p className="text-muted-foreground text-sm">
-                Upload a clear photo of your room. JPG, PNG, or WebP format.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="room-type">Room Type</Label>
-              <Select>
-                <SelectTrigger id="room-type">
-                  <SelectValue placeholder="Select room type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="living-room">Living Room</SelectItem>
-                  <SelectItem value="bedroom">Bedroom</SelectItem>
-                  <SelectItem value="kitchen">Kitchen</SelectItem>
-                  <SelectItem value="bathroom">Bathroom</SelectItem>
-                  <SelectItem value="dining-room">Dining Room</SelectItem>
-                  <SelectItem value="home-office">Home Office</SelectItem>
-                  <SelectItem value="nursery">Nursery</SelectItem>
-                  <SelectItem value="outdoor">Outdoor Space</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="design-style">Design Style</Label>
-              <Select>
-                <SelectTrigger id="design-style">
-                  <SelectValue placeholder="Select design style" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="modern">Modern</SelectItem>
-                  <SelectItem value="minimalist">Minimalist</SelectItem>
-                  <SelectItem value="scandinavian">Scandinavian</SelectItem>
-                  <SelectItem value="industrial">Industrial</SelectItem>
-                  <SelectItem value="bohemian">Bohemian</SelectItem>
-                  <SelectItem value="traditional">Traditional</SelectItem>
-                  <SelectItem value="coastal">Coastal</SelectItem>
-                  <SelectItem value="farmhouse">Farmhouse</SelectItem>
-                  <SelectItem value="mid-century">
-                    Mid-Century Modern
-                  </SelectItem>
-                  <SelectItem value="contemporary">Contemporary</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="design-description">
-                Design Vision (Optional)
-              </Label>
-              <Textarea
-                className="resize-none"
-                id="design-description"
-                placeholder="Describe your ideal room design... (e.g., 'I want a cozy reading nook by the window with warm lighting and neutral tones')"
-                rows={4}
-              />
-              <p className="text-muted-foreground text-sm">
-                Add specific details about colors, furniture, or features you'd
-                like to include.
-              </p>
-            </div>
-
-            <Button asChild className="w-full" size="lg">
-              <Link href="/signup">Generate AI Design (Free)</Link>
-            </Button>
-
-            <p className="text-center text-muted-foreground text-sm">
-              ✓ 100% Free Forever &nbsp;•&nbsp; ✓ No Credit Card Required
-              &nbsp;•&nbsp; ✓ Instant Results
-            </p>
-          </CardContent>
-        </Card>
+        <RoomDesignerTool />
       </section>
 
       {/* Main Content Section */}
@@ -259,6 +174,17 @@ export default function AiRoomDesignerPage() {
             you like—it's completely free.
           </p>
 
+          <div className="not-prose my-12">
+            <div className="relative mx-auto aspect-square max-w-2xl overflow-hidden rounded-3xl">
+              <Image
+                alt="Minimalist abstract bedroom interior design illustration"
+                className="object-cover"
+                fill
+                src="/images/ai-room-designer-bedroom.png"
+              />
+            </div>
+          </div>
+
           <h2>Why Use an AI Room Designer?</h2>
           <p>
             There are countless benefits to using an AI-powered interior design
@@ -312,6 +238,17 @@ export default function AiRoomDesignerPage() {
             to some of the most popular interior design styles available in our
             AI room designer:
           </p>
+
+          <div className="not-prose my-12">
+            <div className="relative mx-auto aspect-square max-w-2xl overflow-hidden rounded-3xl">
+              <Image
+                alt="Minimalist abstract design style variations showing modern, bohemian, and scandinavian aesthetics"
+                className="object-cover"
+                fill
+                src="/images/ai-room-designer-styles.png"
+              />
+            </div>
+          </div>
 
           <h3>Modern Interior Design</h3>
           <p>

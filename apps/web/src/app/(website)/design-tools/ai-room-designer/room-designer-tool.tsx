@@ -1,0 +1,255 @@
+"use client";
+
+import { api } from "@furnish/backend/convex/_generated/api";
+import { useAction, useConvexAuth, useMutation, useQuery } from "convex/react";
+import Image from "next/image";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+export function RoomDesignerTool() {
+  const { isLoading: isAuthLoading } = useConvexAuth();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [description, setDescription] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedStorageIds, setGeneratedStorageIds] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const generateDesign = useAction(api.tools.generateDesignImage);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      setError(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedFile) {
+      setError("Please upload a room photo");
+      return;
+    }
+
+    if (!description.trim()) {
+      setError("Please describe your design vision");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    setGeneratedStorageIds([]);
+
+    try {
+      // Step 1: Get upload URL from Convex
+      const uploadUrl = await generateUploadUrl();
+
+      // Step 2: Upload the file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": selectedFile.type },
+        body: selectedFile,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const { storageId } = await uploadResult.json();
+
+      // Step 3: Generate the design using AI
+      const result = await generateDesign({
+        imageStorageId: storageId,
+        description: description.trim(),
+      });
+
+      // Step 4: Store the generated image storage IDs
+      setGeneratedStorageIds(result.storageIds);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to generate design. Please try again."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setDescription("");
+    setGeneratedStorageIds([]);
+    setError(null);
+  };
+
+  if (isAuthLoading) {
+    return (
+      <Card className="mx-auto max-w-4xl">
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <Card className="mx-auto max-w-4xl">
+        <CardHeader>
+          <CardTitle>Transform Your Room with AI</CardTitle>
+          <CardDescription>
+            Upload a photo of your room and describe how you'd like to redesign
+            it
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="room-photo">Upload Room Photo</Label>
+              <input
+                accept="image/*"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:font-medium file:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isGenerating}
+                id="room-photo"
+                onChange={handleFileChange}
+                type="file"
+              />
+              <p className="text-muted-foreground text-sm">
+                Upload a clear photo of your room. JPG, PNG, or WebP format.
+              </p>
+            </div>
+
+            {previewUrl && (
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                <Image
+                  alt="Room preview"
+                  className="object-cover"
+                  fill
+                  src={previewUrl}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="design-description">
+                Describe Your Design Vision
+              </Label>
+              <Textarea
+                className="resize-none"
+                disabled={isGenerating}
+                id="design-description"
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe how you want to transform this room... (e.g., 'Transform this living room into a modern minimalist space with neutral tones, clean lines, and plenty of natural light')"
+                rows={4}
+                value={description}
+              />
+              <p className="text-muted-foreground text-sm">
+                Be specific about colors, style, furniture, lighting, and
+                atmosphere you want.
+              </p>
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-destructive/10 p-4 text-destructive text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                className="flex-1"
+                disabled={isGenerating || !selectedFile || !description.trim()}
+                size="lg"
+                type="submit"
+              >
+                {isGenerating ? "Generating Design..." : "Generate AI Design"}
+              </Button>
+              {(selectedFile || description) && !isGenerating && (
+                <Button
+                  onClick={handleReset}
+                  size="lg"
+                  type="button"
+                  variant="outline"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+
+            <p className="text-center text-muted-foreground text-sm">
+              ✓ 100% Free Forever &nbsp;•&nbsp; ✓ No Account Required
+              &nbsp;•&nbsp; ✓ Instant Results
+            </p>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Generated Results */}
+      {generatedStorageIds.length > 0 && (
+        <Card className="mx-auto max-w-4xl">
+          <CardHeader>
+            <CardTitle>Your AI-Generated Designs</CardTitle>
+            <CardDescription>
+              Here are your transformed room designs. Try generating again with
+              a different description for more variations!
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {generatedStorageIds.map((storageId, index) => (
+              <GeneratedImage
+                index={index + 1}
+                key={storageId}
+                storageId={storageId}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function GeneratedImage({
+  storageId,
+  index,
+}: {
+  storageId: string;
+  index: number;
+}) {
+  const url = useQuery(api.files.getStorageUrl, { storageId });
+
+  if (!url) {
+    return (
+      <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-muted">
+        <p className="text-muted-foreground text-sm">Loading design...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+      <Image
+        alt={`Generated design variation ${index}`}
+        className="object-cover"
+        fill
+        src={url}
+      />
+    </div>
+  );
+}
