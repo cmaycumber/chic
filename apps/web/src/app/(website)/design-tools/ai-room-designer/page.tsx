@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AIRoomDesignerPage() {
+export default function AiRoomDesignerPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
