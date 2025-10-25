@@ -2,7 +2,7 @@ import { allPosts } from "content-collections";
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://chic.com";
+  const baseUrl = "https://usechic.com";
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [
