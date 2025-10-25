@@ -41,44 +41,23 @@ export const metadata: Metadata = {
 export default function AiRoomDesignerPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-12 md:py-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-12 text-center">
-            <h1 className="mb-6 font-bold text-4xl tracking-tight md:text-5xl lg:text-6xl">
+      {/* Hero Section with Tool */}
+      <section className="container mx-auto px-4 py-8 md:py-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 text-center">
+            <h1 className="mb-4 font-bold text-4xl tracking-tight md:text-5xl">
               AI Room Designer Free Tool for Instant Interior Design Ideas
             </h1>
-            <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-              <strong>Want instant professional interior design ideas?</strong>{" "}
-              Our free AI room designer lets you transform any space in seconds.
-              Upload a photo, describe your vision, and watch AI create stunning
-              design variations. It's 100% free to use—no credit card required.
+            <p className="text-muted-foreground md:text-lg">
+              Transform any room with our free AI room designer. Upload a photo,
+              customize your style, and watch AI create stunning design
+              variations. 100% free—no credit card required.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
-              <Button asChild size="lg">
-                <Link href="/signup">Start Designing for Free</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/inspiration">View Examples</Link>
-              </Button>
-            </div>
           </div>
 
-          <div className="relative mx-auto aspect-square max-w-2xl overflow-hidden rounded-3xl">
-            <Image
-              alt="Minimalist abstract interior design illustration showing modern living room"
-              className="object-cover"
-              fill
-              priority
-              src="/images/ai-room-designer-hero.png"
-            />
-          </div>
+          {/* Tool Interface - Prominently Placed */}
+          <RoomDesignerTool />
         </div>
-      </section>
-
-      {/* Tool Interface Section */}
-      <section className="container mx-auto px-4 py-12">
-        <RoomDesignerTool />
       </section>
 
       {/* Main Content Section */}
