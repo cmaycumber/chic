@@ -18,8 +18,7 @@ import {
 import { RoomDesignerTool } from "./room-designer-tool";
 
 export const metadata: Metadata = {
-  title:
-    "Free AI Room Designer Tool - Transform Your Space in Seconds | Furnish",
+  title: "Free AI Room Designer Tool - Transform Your Space in Seconds | Chic",
   description:
     "Transform any room with our free AI room designer. Upload a photo, describe your vision, and get professional interior design ideas instantly. Free forever, no credit card required.",
   keywords: [
@@ -360,7 +359,7 @@ export default function AiRoomDesignerPage() {
           <h3>Integrated with Full Design Platform</h3>
           <p>
             Our AI room designer isn't just a standalone tool. It's part of the
-            complete Furnish platform, which includes a shopping assistant,
+            complete Chic platform, which includes a shopping assistant,
             inspiration galleries, project management tools, and more. Design
             your space, find the perfect furniture, and manage your entire
             redesign project all in one place.

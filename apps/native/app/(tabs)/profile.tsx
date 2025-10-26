@@ -141,10 +141,10 @@ export default function ProfileScreen() {
 
         <View className="items-center gap-2 py-4">
           <Text className="text-muted-foreground text-sm">
-            Furnish App v1.0.0
+            Chic App v1.0.0
           </Text>
           <Text className="text-muted-foreground text-xs">
-            © 2025 Furnish. All rights reserved.
+            © 2025 Chic. All rights reserved.
           </Text>
         </View>
       </ScrollView>

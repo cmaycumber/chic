@@ -24,7 +24,7 @@ export default function HomeScreen() {
             Design with a co-pilot built in
           </Text>
           <Text className="text-muted-foreground">
-            Jump back into your saved inspiration or start ideating with Furnish
+            Jump back into your saved inspiration or start ideating with Chic
             AI.
           </Text>
         </View>
@@ -38,7 +38,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="flex-1">
                   <Text className="font-semibold text-card-foreground text-lg">
-                    Chat with Furnish AI
+                    Chat with Chic AI
                   </Text>
                   <Text className="text-muted-foreground">
                     Brainstorm layouts, palettes, and furniture pairings.

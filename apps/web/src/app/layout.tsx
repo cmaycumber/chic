@@ -72,8 +72,9 @@ export default function RootLayout({
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          disableTransitionOnChange={false}
           enableSystem
+          // Just going to force light mode for now
+          forcedTheme="light"
           storageKey="theme"
         >
           <Providers>
