@@ -15,7 +15,8 @@
       },
       "style": {
         "noMagicNumbers": "warn",
-        "useNamingConvention": "warn"
+        "useNamingConvention": "warn",
+        "noNonNullAssertion": "warn"
       }
     }
   },
