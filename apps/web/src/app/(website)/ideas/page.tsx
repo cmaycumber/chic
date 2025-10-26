@@ -1,5 +1,5 @@
 import { api } from "@furnish/backend/convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ExploreIdeasGallery } from "@/components/explore-ideas-gallery";
@@ -42,8 +42,8 @@ const ROOM_TYPES = [
 ] as const;
 
 export default async function IdeasExplorePage() {
-  // Preload trending designs
-  const preloadedTrending = await preloadQuery(api.ideas.getTrendingDesigns, {
+  // Fetch trending designs for SSR
+  const trendingDesigns = await fetchQuery(api.ideas.getTrendingDesigns, {
     limit: 12,
   });
 
@@ -92,7 +92,7 @@ export default async function IdeasExplorePage() {
       </section>
 
       {/* Main Gallery with Filters */}
-      <ExploreIdeasGallery preloadedTrending={preloadedTrending} />
+      <ExploreIdeasGallery initialTrending={trendingDesigns} />
 
       {/* SEO Content Section */}
       <section className="container mx-auto px-4 py-12">

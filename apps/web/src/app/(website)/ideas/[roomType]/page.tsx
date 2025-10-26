@@ -1,5 +1,5 @@
 import { api } from "@furnish/backend/convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RoomDesignerCta } from "@/components/room-designer-cta";
@@ -112,17 +112,14 @@ export default async function RoomIdeasPage({ params }: { params: Params }) {
 
   const roomLabel = ROOM_LABELS[roomType];
 
-  // Preload featured designs for SSR
-  const preloadedFeatured = await preloadQuery(
-    api.ideas.getFeaturedRoomDesigns,
-    {
-      roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
-      limit: 6,
-    }
-  );
+  // Fetch featured designs for SSR
+  const featuredDesigns = await fetchQuery(api.ideas.getFeaturedRoomDesigns, {
+    roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
+    limit: 6,
+  });
 
-  // Preload filter options
-  const preloadedFilters = await preloadQuery(api.ideas.getRoomFilterOptions, {
+  // Fetch filter options
+  const filterOptions = await fetchQuery(api.ideas.getRoomFilterOptions, {
     roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
   });
 
@@ -136,8 +133,8 @@ export default async function RoomIdeasPage({ params }: { params: Params }) {
 
       {/* Main Gallery with Filters */}
       <RoomIdeasGallery
-        preloadedFeatured={preloadedFeatured}
-        preloadedFilters={preloadedFilters}
+        initialFeatured={featuredDesigns}
+        initialFilters={filterOptions}
         roomLabel={roomLabel}
         roomType={roomType as (typeof VALID_ROOM_TYPES)[number]}
       />

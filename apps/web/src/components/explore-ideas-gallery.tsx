@@ -1,21 +1,12 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import type { Preloaded } from "convex/react";
-import { usePreloadedQuery, useQuery } from "convex/react";
-import { Heart, Sparkles } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { useQuery } from "convex/react";
+import { Sparkles } from "lucide-react";
 import { useState } from "react";
+import { DesignCard } from "@/components/design-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -24,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const maxDisplayedTags = 3;
 const maxFilterTags = 15;
 
 type RoomType =
@@ -48,8 +38,22 @@ type DesignStyle =
   | "traditional"
   | "contemporary";
 
+type Design = {
+  _id: string;
+  _creationTime: number;
+  title: string;
+  description: string;
+  imageUrl: string | null;
+  roomType?: string;
+  designStyle?: string;
+  likes?: number;
+  budget?: number;
+  tags?: string[];
+  featured?: boolean;
+};
+
 type ExploreIdeasGalleryProps = {
-  preloadedTrending: Preloaded<typeof api.ideas.getTrendingDesigns>;
+  initialTrending: Design[];
 };
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
@@ -65,7 +69,7 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
 };
 
 export function ExploreIdeasGallery({
-  preloadedTrending,
+  initialTrending,
 }: ExploreIdeasGalleryProps) {
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType | "all">(
     "all"
@@ -75,7 +79,8 @@ export function ExploreIdeasGallery({
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const trendingDesigns = usePreloadedQuery(preloadedTrending);
+  // Use initial data from SSR
+  const trendingDesigns = initialTrending;
 
   // Fetch filter options
   const filterOptions = useQuery(api.ideas.getExploreFilterOptions);
@@ -115,22 +120,9 @@ export function ExploreIdeasGallery({
               <Sparkles className="size-8 text-primary" />
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {trendingDesigns.map(
-                (design: {
-                  _id: string;
-                  title: string;
-                  description: string;
-                  imageUrl: string | null;
-                  roomType?: string;
-                  designStyle?: string;
-                  likes?: number;
-                  budget?: number;
-                  tags?: string[];
-                  featured?: boolean;
-                }) => (
-                  <DesignCard design={design} key={design._id} />
-                )
-              )}
+              {trendingDesigns.map((design) => (
+                <DesignCard design={design} key={design._id} showRoomType />
+              ))}
             </div>
           </section>
         ) : null}
@@ -245,22 +237,9 @@ export function ExploreIdeasGallery({
 
           {allDesigns && allDesigns.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {allDesigns.map(
-                (design: {
-                  _id: string;
-                  title: string;
-                  description: string;
-                  imageUrl: string | null;
-                  roomType?: string;
-                  designStyle?: string;
-                  likes?: number;
-                  budget?: number;
-                  tags?: string[];
-                  featured?: boolean;
-                }) => (
-                  <DesignCard design={design} key={design._id} />
-                )
-              )}
+              {allDesigns.map((design) => (
+                <DesignCard design={design} key={design._id} showRoomType />
+              ))}
             </div>
           ) : (
             <div className="py-12 text-center">
@@ -273,99 +252,5 @@ export function ExploreIdeasGallery({
         </section>
       </div>
     </div>
-  );
-}
-
-function DesignCard({
-  design,
-}: {
-  design: {
-    _id: string;
-    title: string;
-    description: string;
-    imageUrl: string | null;
-    roomType?: string;
-    designStyle?: string;
-    likes?: number;
-    budget?: number;
-    tags?: string[];
-    featured?: boolean;
-  };
-}) {
-  return (
-    <Link href={`/design/${design._id}`}>
-      <Card className="group hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
-        {design.imageUrl ? (
-          <div className="relative aspect-square w-full overflow-hidden bg-muted">
-            <Image
-              alt={design.title}
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-              src={design.imageUrl}
-            />
-            <div className="absolute top-2 right-2 left-2 flex items-start justify-between gap-2">
-              {design.roomType ? (
-                <Badge className="bg-background/80 backdrop-blur-sm">
-                  {ROOM_TYPE_LABELS[design.roomType] || design.roomType}
-                </Badge>
-              ) : null}
-              {design.featured ? (
-                <Badge
-                  className="bg-background/80 backdrop-blur-sm"
-                  variant="secondary"
-                >
-                  <Sparkles className="mr-1 size-3" />
-                  Featured
-                </Badge>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        <CardHeader className="pt-4">
-          <div className="mb-2 flex items-center justify-between">
-            {design.designStyle ? (
-              <Badge variant="outline">
-                {design.designStyle.charAt(0).toUpperCase() +
-                  design.designStyle.slice(1)}
-              </Badge>
-            ) : null}
-            {design.likes && design.likes > 0 ? (
-              <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                <Heart className="size-4" />
-                <span>{design.likes}</span>
-              </div>
-            ) : null}
-          </div>
-          <CardTitle className="line-clamp-2 transition-colors group-hover:text-primary">
-            {design.title}
-          </CardTitle>
-          <CardDescription className="line-clamp-2">
-            {design.description}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex items-center justify-between">
-            {design.budget ? (
-              <span className="font-medium text-sm">
-                Budget: ${design.budget.toLocaleString()}
-              </span>
-            ) : null}
-          </div>
-
-          {design.tags && design.tags.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {design.tags.slice(0, maxDisplayedTags).map((tag) => (
-                <Badge key={tag} variant="secondary">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
