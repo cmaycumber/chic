@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 export function PublicHeader() {
@@ -13,7 +12,6 @@ export function PublicHeader() {
           <Logo className="text-foreground" height={20} width={49} />
         </Link>
         <div className="flex items-center gap-3">
-          <ThemeToggle />
           <Link href="/login">
             <Button size="sm" variant="ghost">
               Sign in

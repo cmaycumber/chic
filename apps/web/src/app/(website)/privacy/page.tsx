@@ -1,30 +1,9 @@
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-16 items-center justify-between px-6">
-          <Link className="flex items-center gap-2" href="/">
-            <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">chic</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button size="sm" variant="ghost">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">Sign up</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Content */}
       <div className="container mx-auto max-w-4xl px-6 py-16">
         <div className="space-y-8">

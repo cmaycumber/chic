@@ -6,26 +6,6 @@ import { Card } from "@/components/ui/card";
 export default function AboutPage() {
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-        <div className="flex h-16 items-center justify-between px-6">
-          <Link className="flex items-center gap-2" href="/">
-            <Sparkles className="size-6 text-primary" />
-            <span className="font-semibold text-lg">chic</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <Button size="sm" variant="ghost">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">Sign up</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Hero */}
       <section className="border-b bg-muted/30 py-24">
         <div className="container mx-auto px-6">
