@@ -144,7 +144,7 @@ export default async function RoomIdeasPage({ params }: { params: Params }) {
 
       {/* SEO Content Section */}
       <section className="container mx-auto px-4 py-12">
-        <article className="prose prose-lg dark:prose-invert mx-auto max-w-4xl">
+        <article className="prose prose-lg dark:prose-invert mx-auto max-w-7xl">
           <h2>About {roomLabel} Design Ideas</h2>
           <p>{ROOM_DESCRIPTIONS[roomType]}</p>
 

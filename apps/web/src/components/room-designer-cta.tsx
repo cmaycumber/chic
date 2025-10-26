@@ -14,7 +14,7 @@ export function RoomDesignerCta({ roomType }: RoomDesignerCtaProps) {
 
   return (
     <section className="container mx-auto px-4 py-12">
-      <Card className="mx-auto max-w-4xl border-2 border-primary/20 bg-linear-to-br from-primary/5 to-primary/10">
+      <Card className="mx-auto max-w-7xl border-2 border-primary/20 bg-linear-to-br from-primary/5 to-primary/10">
         <CardContent className="flex flex-col items-center gap-6 p-8 text-center md:p-12">
           <h2 className="font-bold text-3xl md:text-4xl">
             Design Your Own {roomLabel}

@@ -323,7 +323,7 @@ function DesignCard({
           </div>
         ) : null}
 
-        <CardHeader>
+        <CardHeader className="pt-4">
           <div className="mb-2 flex items-center justify-between">
             {design.designStyle ? (
               <Badge variant="outline">

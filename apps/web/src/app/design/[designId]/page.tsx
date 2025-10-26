@@ -1,12 +1,12 @@
 import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { fetchQuery } from "convex/nextjs";
-import { ArrowLeftIcon, ExternalLinkIcon, PackageIcon } from "lucide-react";
+import { ExternalLinkIcon, PackageIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Response } from "@/components/ai-elements/response";
+import { BackButton } from "@/components/back-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -72,11 +72,7 @@ export default async function DesignPage({ params }: DesignPageProps) {
       {/* Header with Back Button */}
       <header className="shrink-0 border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-7xl items-center px-4 lg:px-8">
-          <Button asChild size="icon" variant="ghost">
-            <Link href="/chat">
-              <ArrowLeftIcon className="size-4" />
-            </Link>
-          </Button>
+          <BackButton />
         </div>
       </header>
 

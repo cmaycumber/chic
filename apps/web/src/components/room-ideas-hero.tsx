@@ -6,7 +6,7 @@ type RoomIdeasHeroProps = {
 export function RoomIdeasHero({ roomLabel, description }: RoomIdeasHeroProps) {
   return (
     <section className="container mx-auto px-4 py-12 md:py-16">
-      <div className="mx-auto max-w-4xl text-center">
+      <div className="mx-auto max-w-7xl text-center">
         <h1 className="mb-4 font-bold text-5xl tracking-tight md:text-6xl">
           {roomLabel} Ideas
         </h1>
