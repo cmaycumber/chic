@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "@/global.css";
+import { ThemeProvider } from "next-themes";
 import { LayoutContent } from "@/components/layout-content";
 import Providers from "@/components/providers";
 import {
   OrganizationStructuredData,
   WebsiteStructuredData,
 } from "@/components/structured-data";
-import { ThemeScript } from "@/components/theme-script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,9 +56,6 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <ThemeScript />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -71,9 +68,18 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         )}
-        <Providers>
-          <LayoutContent>{children}</LayoutContent>
-        </Providers>
+
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          disableTransitionOnChange={false}
+          enableSystem
+          storageKey="theme"
+        >
+          <Providers>
+            <LayoutContent>{children}</LayoutContent>
+          </Providers>
+        </ThemeProvider>
       </body>
     </html>
   );
