@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Organization, WebSite, WithContext } from "schema-dts";
 
 export function OrganizationStructuredData() {
@@ -17,10 +18,13 @@ export function OrganizationStructuredData() {
   };
 
   return (
-    <script
+    <Script
       // biome-ignore lint/security/noDangerouslySetInnerHtml: Required for JSON-LD structured data for SEO
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(jsonLd),
+      }}
       id="organization-structured-data"
+      strategy="beforeInteractive"
       type="application/ld+json"
     />
   );
@@ -41,10 +45,13 @@ export function WebsiteStructuredData() {
   };
 
   return (
-    <script
+    <Script
       // biome-ignore lint/security/noDangerouslySetInnerHtml: Required for JSON-LD structured data for SEO
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(jsonLd),
+      }}
       id="website-structured-data"
+      strategy="beforeInteractive"
       type="application/ld+json"
     />
   );

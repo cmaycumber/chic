@@ -58,6 +58,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <OrganizationStructuredData />
         <WebsiteStructuredData />
         {isProduction && (
@@ -67,10 +71,6 @@ export default function RootLayout({
             strategy="afterInteractive"
           />
         )}
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
         <Providers>
           <LayoutContent>{children}</LayoutContent>
         </Providers>
