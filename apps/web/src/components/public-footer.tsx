@@ -15,7 +15,7 @@ export function PublicFooter() {
           </p>
         </div>
 
-        <div className="mb-12 grid gap-12 md:grid-cols-4">
+        <div className="mb-12 grid gap-12 md:grid-cols-5">
           <div className="space-y-3">
             <h4 className="font-medium text-sm">Product</h4>
             <div className="flex flex-col gap-2 text-muted-foreground text-sm">
@@ -42,6 +42,48 @@ export function PublicFooter() {
                 href="/design-tools/ai-room-designer"
               >
                 AI Room Designer
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/chat"
+              >
+                AI Chat
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">Ideas</h4>
+            <div className="flex flex-col gap-2 text-muted-foreground text-sm">
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/ideas"
+              >
+                Explore All Ideas
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/ideas/living-room"
+              >
+                Living Room Ideas
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/ideas/bedroom"
+              >
+                Bedroom Ideas
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/ideas/family-room"
+              >
+                Family Room Ideas
+              </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/ideas/kitchen"
+              >
+                Kitchen Ideas
               </Link>
             </div>
           </div>

@@ -26,7 +26,45 @@ export default defineSchema({
     budget: v.optional(v.number()),
     designPlan: v.optional(v.string()),
     isPublic: v.optional(v.boolean()),
-  }),
+    userId: v.optional(v.string()),
+    // Room categorization
+    roomType: v.optional(
+      v.union(
+        v.literal("living-room"),
+        v.literal("bedroom"),
+        v.literal("kitchen"),
+        v.literal("bathroom"),
+        v.literal("dining-room"),
+        v.literal("home-office"),
+        v.literal("family-room"),
+        v.literal("nursery"),
+        v.literal("outdoor")
+      )
+    ),
+    // Style categorization
+    designStyle: v.optional(
+      v.union(
+        v.literal("modern"),
+        v.literal("minimalist"),
+        v.literal("scandinavian"),
+        v.literal("industrial"),
+        v.literal("bohemian"),
+        v.literal("coastal"),
+        v.literal("traditional"),
+        v.literal("contemporary")
+      )
+    ),
+    // Curation & engagement
+    featured: v.optional(v.boolean()),
+    likes: v.optional(v.number()),
+    views: v.optional(v.number()),
+    tags: v.optional(v.array(v.string())),
+  })
+    .index("by_public", ["isPublic"])
+    .index("by_room_type", ["roomType", "isPublic"])
+    .index("by_style", ["designStyle", "isPublic"])
+    .index("by_featured", ["featured", "isPublic"])
+    .index("by_user", ["userId"]),
 
   artifacts: defineTable({
     threadId: v.string(),

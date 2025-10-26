@@ -74,6 +74,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // Room ideas pages (high priority for SEO)
+  const roomIdeasPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/ideas`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 1.0, // Main explore page - highest priority
+    },
+    ...[
+      "living-room",
+      "bedroom",
+      "kitchen",
+      "bathroom",
+      "dining-room",
+      "home-office",
+      "family-room",
+      "nursery",
+      "outdoor",
+    ].map((roomType) => ({
+      url: `${baseUrl}/ideas/${roomType}`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
+    })),
+  ];
+
   // Dynamic blog post pages
   const blogPosts: MetadataRoute.Sitemap = allPosts
     .filter((post) => post.published)
@@ -84,5 +110,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     }));
 
-  return [...staticPages, ...blogPosts];
+  return [...staticPages, ...roomIdeasPages, ...blogPosts];
 }

@@ -52,8 +52,37 @@ export const update_design = createTool({
       .describe(
         "Storage ID of a new design image (from generate_design_image)"
       ),
-    roomType: z.string().optional().describe("Updated room type"),
-    style: z.string().optional().describe("Updated design style"),
+    roomType: z
+      .enum([
+        "living-room",
+        "bedroom",
+        "kitchen",
+        "bathroom",
+        "dining-room",
+        "home-office",
+        "family-room",
+        "nursery",
+        "outdoor",
+      ])
+      .optional()
+      .describe("Updated room type"),
+    designStyle: z
+      .enum([
+        "modern",
+        "minimalist",
+        "scandinavian",
+        "industrial",
+        "bohemian",
+        "coastal",
+        "traditional",
+        "contemporary",
+      ])
+      .optional()
+      .describe("Updated design style"),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe("Updated tags describing the design"),
   }),
   handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     // Get the existing design
@@ -70,15 +99,35 @@ export const update_design = createTool({
       title?: string;
       description?: string;
       imageStorageId?: Id<"_storage">;
-      products?: Array<{
+      products?: {
         name: string;
         price: number;
         imageUrl: string;
         productUrl?: string;
         description?: string;
-      }>;
+      }[];
       budget?: number;
       designPlan?: string;
+      roomType?:
+        | "living-room"
+        | "bedroom"
+        | "kitchen"
+        | "bathroom"
+        | "dining-room"
+        | "home-office"
+        | "family-room"
+        | "nursery"
+        | "outdoor";
+      designStyle?:
+        | "modern"
+        | "minimalist"
+        | "scandinavian"
+        | "industrial"
+        | "bohemian"
+        | "coastal"
+        | "traditional"
+        | "contemporary";
+      tags?: string[];
     } = {};
 
     if (args.title !== undefined) {
@@ -98,6 +147,15 @@ export const update_design = createTool({
     }
     if (args.designPlan !== undefined) {
       patch.designPlan = args.designPlan;
+    }
+    if (args.roomType !== undefined) {
+      patch.roomType = args.roomType;
+    }
+    if (args.designStyle !== undefined) {
+      patch.designStyle = args.designStyle;
+    }
+    if (args.tags !== undefined) {
+      patch.tags = args.tags;
     }
 
     // Update the design

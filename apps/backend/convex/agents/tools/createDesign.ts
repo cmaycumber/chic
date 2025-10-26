@@ -51,13 +51,42 @@ export const create_design = createTool({
         "Storage ID of the design image (from generate_design_image or user upload)"
       ),
     roomType: z
-      .string()
+      .enum([
+        "living-room",
+        "bedroom",
+        "kitchen",
+        "bathroom",
+        "dining-room",
+        "home-office",
+        "family-room",
+        "nursery",
+        "outdoor",
+      ])
       .optional()
-      .describe("Type of room (e.g., living room, bedroom, kitchen)"),
-    style: z
-      .string()
+      .describe(
+        "Type of room - IMPORTANT: Always set this based on the conversation context"
+      ),
+    designStyle: z
+      .enum([
+        "modern",
+        "minimalist",
+        "scandinavian",
+        "industrial",
+        "bohemian",
+        "coastal",
+        "traditional",
+        "contemporary",
+      ])
       .optional()
-      .describe("Design style (e.g., modern, minimalist, bohemian)"),
+      .describe(
+        "Design style - IMPORTANT: Always set this based on the design aesthetic"
+      ),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Tags describing the design (e.g., 'cozy', 'small-space', 'budget-friendly', 'neutral-colors', 'family-friendly')"
+      ),
   }),
   handler: async (ctx: ToolCtx, args) => {
     // Create the design
@@ -73,6 +102,11 @@ export const create_design = createTool({
         budget: args.budget,
         designPlan: args.designPlan,
         isPublic: false,
+        roomType: args.roomType,
+        designStyle: args.designStyle,
+        tags: args.tags,
+        likes: 0,
+        views: 0,
       }
     );
 
