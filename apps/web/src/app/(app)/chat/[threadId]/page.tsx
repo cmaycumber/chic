@@ -63,7 +63,14 @@ export default function ChatPage({
           }
         />
 
-        <ChatMessages threadId={threadId} />
+        <ChatMessages
+          onDesignClick={() => {
+            if (!isArtifactsPanelOpen) {
+              setIsArtifactsPanelOpen(true);
+            }
+          }}
+          threadId={threadId}
+        />
 
         <Authenticated>
           <ChatInputWrapper threadId={threadId} />

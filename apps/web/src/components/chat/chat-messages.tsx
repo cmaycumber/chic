@@ -13,9 +13,16 @@ import { Button } from "@/components/ui/button";
 
 type ChatMessagesProps = {
   threadId: string;
+  onDesignClick?: () => void;
 };
 
-function ChatMessagesContent({ threadId }: { threadId: string }) {
+function ChatMessagesContent({
+  threadId,
+  onDesignClick,
+}: {
+  threadId: string;
+  onDesignClick?: () => void;
+}) {
   // Load messages with streaming support
   const {
     results: messages,
@@ -44,6 +51,7 @@ function ChatMessagesContent({ threadId }: { threadId: string }) {
               isStreaming={m.status === "streaming"}
               key={m.key}
               message={m}
+              onDesignClick={onDesignClick}
             />
           ))}
         </>
@@ -54,12 +62,15 @@ function ChatMessagesContent({ threadId }: { threadId: string }) {
   );
 }
 
-export function ChatMessages({ threadId }: ChatMessagesProps) {
+export function ChatMessages({ threadId, onDesignClick }: ChatMessagesProps) {
   return (
     <Conversation className="mb-[-40px] flex-1" initial="instant">
       <ConversationContent className="px-6 py-6">
         <Authenticated>
-          <ChatMessagesContent threadId={threadId} />
+          <ChatMessagesContent
+            onDesignClick={onDesignClick}
+            threadId={threadId}
+          />
         </Authenticated>
       </ConversationContent>
       <ConversationScrollButton />

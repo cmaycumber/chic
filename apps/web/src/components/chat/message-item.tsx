@@ -3,15 +3,19 @@
 import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import {
   AlertCircleIcon,
+  CheckCircleIcon,
   CopyIcon,
   ExternalLinkIcon,
   FileAudioIcon,
   FileIcon,
   FileVideoIcon,
   ImageIcon,
+  PackageIcon,
+  SparklesIcon,
   StarIcon,
 } from "lucide-react";
 import Image from "next/image";
+import type React from "react";
 import { Action, Actions } from "@/components/ai-elements/actions";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
@@ -49,12 +53,14 @@ type MessageItemProps = {
   message: UIMessage;
   isLastMessage: boolean;
   isStreaming: boolean;
+  onDesignClick?: () => void;
 };
 
 export function MessageItem({
   message,
   isLastMessage,
   isStreaming,
+  onDesignClick,
 }: MessageItemProps) {
   const isUser = message.role === "user";
 
@@ -158,6 +164,7 @@ export function MessageItem({
                   return (
                     <ToolPartRenderer
                       key={`${message.key}-tool-${i}`}
+                      onDesignClick={onDesignClick}
                       part={part}
                     />
                   );
@@ -487,8 +494,109 @@ function formatToolName(type: string): string {
     .join(" ");
 }
 
+type DesignOutput = {
+  _id: string;
+  title: string;
+  description: string;
+  imageStorageId?: string;
+  products?: Product[];
+  budget?: number;
+  designPlan?: string;
+  roomType?: string;
+  designStyle?: string;
+  tags?: string[];
+};
+
+type GenerateImageOutput = {
+  storageIds: string[];
+  message: string;
+};
+
+const MAX_RECENT_PRODUCTS_TO_SHOW = 3;
+
+function getCustomToolRenderer(
+  toolName: string,
+  toolState: string,
+  output: unknown,
+  onDesignClick?: () => void
+):
+  | { type: "products"; products: Product[] }
+  | { type: "custom"; component: React.ReactElement }
+  | null {
+  if (toolName === "search_products" && toolState === "output-available") {
+    const products = parseProductsFromOutput(output);
+    return { type: "products", products };
+  }
+
+  if (toolName === "create_design" && toolState === "output-available") {
+    return {
+      type: "custom",
+      component: (
+        <CreateDesignOutput
+          onDesignClick={onDesignClick}
+          output={output as DesignOutput}
+        />
+      ),
+    };
+  }
+
+  if (
+    toolName === "generate_design_image" &&
+    toolState === "output-available"
+  ) {
+    return {
+      type: "custom",
+      component: (
+        <GenerateDesignImageOutput output={output as GenerateImageOutput} />
+      ),
+    };
+  }
+
+  if (
+    toolName === "add_products_to_design" &&
+    toolState === "output-available"
+  ) {
+    return {
+      type: "custom",
+      component: (
+        <AddProductsOutput
+          onDesignClick={onDesignClick}
+          output={output as DesignOutput}
+        />
+      ),
+    };
+  }
+
+  if (toolName === "update_design" && toolState === "output-available") {
+    return {
+      type: "custom",
+      component: (
+        <UpdateDesignOutput
+          onDesignClick={onDesignClick}
+          output={output as DesignOutput}
+        />
+      ),
+    };
+  }
+
+  if (toolName === "get_design" && toolState === "output-available") {
+    return {
+      type: "custom",
+      component: (
+        <GetDesignOutput
+          onDesignClick={onDesignClick}
+          output={output as DesignOutput}
+        />
+      ),
+    };
+  }
+
+  return null;
+}
+
 function ToolPartRenderer({
   part,
+  onDesignClick,
 }: {
   part: {
     type: string;
@@ -501,17 +609,28 @@ function ToolPartRenderer({
     output?: unknown;
     errorText?: string;
   };
+  onDesignClick?: () => void;
 }) {
   const toolState = part.state ?? "input-streaming";
   const toolType = part.type as `tool-${string}`;
   const toolName = part.type.replace("tool-", "");
 
-  // Special rendering for search_products - no Tool wrapper
-  if (toolName === "search_products" && toolState === "output-available") {
-    const products = parseProductsFromOutput(part.output);
-    return <ProductsCarousel products={products} />;
+  // Check for custom tool rendering
+  const customRenderer = getCustomToolRenderer(
+    toolName,
+    toolState,
+    part.output,
+    onDesignClick
+  );
+
+  if (customRenderer) {
+    if (customRenderer.type === "products") {
+      return <ProductsCarousel products={customRenderer.products} />;
+    }
+    return customRenderer.component;
   }
 
+  // Default tool rendering with Tool wrapper
   return (
     <Tool defaultOpen={toolState === "output-error"}>
       <ToolHeader
@@ -631,5 +750,287 @@ function ProductsCarousel({ products }: { products: Product[] }) {
         )}
       </Stories>
     </div>
+  );
+}
+
+function CreateDesignOutput({
+  output,
+  onDesignClick,
+}: {
+  output: DesignOutput;
+  onDesignClick?: () => void;
+}) {
+  return (
+    <button
+      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-emerald-50 to-teal-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-emerald-500/20 dark:from-emerald-950/20 dark:to-teal-950/20"
+      onClick={onDesignClick}
+      type="button"
+    >
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <CheckCircleIcon className="size-5 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
+            Design Created
+          </h3>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <h4 className="font-medium text-foreground text-sm">
+              {output.title}
+            </h4>
+            <p className="mt-1 text-muted-foreground text-xs">
+              {output.description}
+            </p>
+          </div>
+
+          {(output.roomType || output.designStyle) && (
+            <div className="flex flex-wrap gap-2">
+              {output.roomType && (
+                <Badge className="text-xs" variant="secondary">
+                  {output.roomType.replace(/-/g, " ")}
+                </Badge>
+              )}
+              {output.designStyle && (
+                <Badge className="text-xs" variant="secondary">
+                  {output.designStyle}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {output.budget !== undefined && (
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <span>Budget:</span>
+              <span className="font-medium">${output.budget.toFixed(2)}</span>
+            </div>
+          )}
+
+          {output.products && output.products.length > 0 && (
+            <div className="text-muted-foreground text-xs">
+              <span className="font-medium">
+                {output.products.length} product
+                {output.products.length > 1 ? "s" : ""} added
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function GenerateDesignImageOutput({
+  output,
+}: {
+  output: GenerateImageOutput;
+}) {
+  const { storageIds } = output;
+
+  if (!storageIds || storageIds.length === 0) {
+    return (
+      <div className="my-2 rounded-lg border border-border bg-muted/50 p-4 text-center text-muted-foreground text-sm">
+        No images generated
+      </div>
+    );
+  }
+
+  // Get the Convex site URL from environment
+  const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(
+    ".cloud",
+    ".site"
+  );
+
+  return (
+    <div className="my-2 space-y-2">
+      <div className="flex items-center gap-2 px-1">
+        <SparklesIcon className="size-4 text-purple-600 dark:text-purple-400" />
+        <span className="font-medium text-sm">
+          Generated {storageIds.length} design
+          {storageIds.length > 1 ? " variations" : ""}
+        </span>
+      </div>
+
+      <div className="grid gap-2">
+        {storageIds.map((storageId) => {
+          // Construct the image URL using Convex HTTP endpoint
+          const imageUrl = `${convexSiteUrl}/storage?id=${storageId}`;
+
+          return (
+            <div
+              className="relative overflow-hidden rounded-lg border border-border"
+              key={`generated-image-${storageId}`}
+            >
+              <Image
+                alt="Generated design visualization"
+                className="w-full object-cover"
+                height={400}
+                src={imageUrl}
+                unoptimized
+                width={600}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AddProductsOutput({
+  output,
+  onDesignClick,
+}: {
+  output: DesignOutput;
+  onDesignClick?: () => void;
+}) {
+  const addedProducts = output.products || [];
+
+  return (
+    <button
+      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-blue-50 to-indigo-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-blue-500/20 dark:from-blue-950/20 dark:to-indigo-950/20"
+      onClick={onDesignClick}
+      type="button"
+    >
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <PackageIcon className="size-5 text-blue-600 dark:text-blue-400" />
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+            Products Added
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-muted-foreground text-xs">
+            Added {addedProducts.length} product
+            {addedProducts.length > 1 ? "s" : ""} to{" "}
+            <span className="font-medium text-foreground">{output.title}</span>
+          </p>
+
+          {addedProducts.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {addedProducts
+                .slice(-MAX_RECENT_PRODUCTS_TO_SHOW)
+                .map((product, index) => (
+                  <div
+                    className="flex items-center gap-2 rounded-md bg-white/50 p-2 dark:bg-black/20"
+                    key={`added-product-${index}-${product.name}`}
+                  >
+                    <div className="relative size-12 shrink-0 overflow-hidden rounded">
+                      <Image
+                        alt={product.name}
+                        className="object-cover"
+                        fill
+                        src={product.imageUrl}
+                        unoptimized
+                      />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="truncate font-medium text-xs">
+                        {product.name}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        ${product.price.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function UpdateDesignOutput({
+  output,
+  onDesignClick,
+}: {
+  output: DesignOutput;
+  onDesignClick?: () => void;
+}) {
+  return (
+    <button
+      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-amber-50 to-orange-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-amber-500/20 dark:from-amber-950/20 dark:to-orange-950/20"
+      onClick={onDesignClick}
+      type="button"
+    >
+      <div className="p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <CheckCircleIcon className="size-5 text-amber-600 dark:text-amber-400" />
+          <h3 className="font-semibold text-amber-900 dark:text-amber-100">
+            Design Updated
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          <p className="font-medium text-foreground text-sm">{output.title}</p>
+          <p className="text-muted-foreground text-xs">
+            Design successfully updated with your changes
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function GetDesignOutput({
+  output,
+  onDesignClick,
+}: {
+  output: DesignOutput;
+  onDesignClick?: () => void;
+}) {
+  return (
+    <button
+      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-slate-50 to-gray-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-slate-500/20 dark:from-slate-950/20 dark:to-gray-950/20"
+      onClick={onDesignClick}
+      type="button"
+    >
+      <div className="p-4">
+        <div className="space-y-3">
+          <div>
+            <h4 className="font-medium text-foreground text-sm">
+              {output.title}
+            </h4>
+            <p className="mt-1 text-muted-foreground text-xs">
+              {output.description}
+            </p>
+          </div>
+
+          {(output.roomType || output.designStyle) && (
+            <div className="flex flex-wrap gap-2">
+              {output.roomType && (
+                <Badge className="text-xs" variant="outline">
+                  {output.roomType.replace(/-/g, " ")}
+                </Badge>
+              )}
+              {output.designStyle && (
+                <Badge className="text-xs" variant="outline">
+                  {output.designStyle}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {output.budget !== undefined && (
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <span>Budget:</span>
+              <span className="font-medium">${output.budget.toFixed(2)}</span>
+            </div>
+          )}
+
+          {output.products && output.products.length > 0 && (
+            <div className="text-muted-foreground text-xs">
+              <span className="font-medium">
+                {output.products.length} product
+                {output.products.length > 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
   );
 }

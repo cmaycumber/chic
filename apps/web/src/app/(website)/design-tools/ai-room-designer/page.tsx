@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 
 export default function AiRoomDesignerPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted/20">
       {/* Hero Section with Tool */}
       <section className="container mx-auto px-4 py-8 md:py-12">
         <div className="mx-auto max-w-5xl">
@@ -130,8 +130,8 @@ export default function AiRoomDesignerPage() {
             Select the interior design style that resonates with you. We offer a
             wide range of styles including Modern, Scandinavian, Industrial,
             Bohemian, and many more. Not sure which style suits you? Check out
-            our <Link href="/inspiration">inspiration gallery</Link> for
-            examples of each style.
+            our <Link href="/ideas">design ideas gallery</Link> for examples of
+            each style.
           </p>
 
           <h3>4. Add Your Design Vision (Optional)</h3>
@@ -542,7 +542,7 @@ export default function AiRoomDesignerPage() {
 
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-12">
-        <Card className="mx-auto max-w-4xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+        <Card className="mx-auto max-w-4xl border-2 border-primary/20 bg-linear-to-br from-primary/5 to-primary/10">
           <CardContent className="flex flex-col items-center gap-6 p-8 text-center md:p-12">
             <h2 className="font-bold text-3xl md:text-4xl">
               Ready to Transform Your Space?
@@ -557,7 +557,7 @@ export default function AiRoomDesignerPage() {
                 <Link href="/signup">Start Designing for Free</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link href="/inspiration">View Design Examples</Link>
+                <Link href="/ideas">View Design Examples</Link>
               </Button>
             </div>
             <p className="text-muted-foreground text-sm">
@@ -568,33 +568,27 @@ export default function AiRoomDesignerPage() {
         </Card>
       </section>
 
-      {/* Related Tools Section */}
+      {/* Design Ideas Section */}
       <section className="container mx-auto px-4 py-12">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 font-bold text-3xl">More Free Design Tools</h2>
+          <h2 className="mb-4 font-bold text-3xl">
+            Browse Interior Design Ideas by Room
+          </h2>
+          <p className="mb-8 text-muted-foreground">
+            Explore hundreds of professionally curated design ideas for every
+            room in your home. Get inspired, save your favorites, and recreate
+            them with our AI room designer.
+          </p>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Link className="hover:underline" href="/inspiration">
-                    Design Inspiration Gallery
+                  <Link className="hover:underline" href="/ideas/living-room">
+                    Living Room Ideas
                   </Link>
                 </CardTitle>
                 <CardDescription>
-                  Browse thousands of professionally designed rooms across all
-                  styles
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  <Link className="hover:underline" href="/chat">
-                    AI Design Assistant
-                  </Link>
-                </CardTitle>
-                <CardDescription>
-                  Chat with our AI to get personalized design advice and
+                  Discover cozy, stylish living room designs with real product
                   recommendations
                 </CardDescription>
               </CardHeader>
@@ -602,25 +596,63 @@ export default function AiRoomDesignerPage() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Link className="hover:underline" href="/create">
-                    Create Design Project
+                  <Link className="hover:underline" href="/ideas/bedroom">
+                    Bedroom Design Ideas
                   </Link>
                 </CardTitle>
                 <CardDescription>
-                  Organize your designs, furniture finds, and ideas in one place
+                  Create your perfect retreat with inspiring bedroom layouts and
+                  decor
                 </CardDescription>
               </CardHeader>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Link className="hover:underline" href="/blog">
-                    Design Blog & Guides
+                  <Link className="hover:underline" href="/ideas/kitchen">
+                    Kitchen Design Ideas
                   </Link>
                 </CardTitle>
                 <CardDescription>
-                  Learn interior design tips, trends, and techniques from
-                  experts
+                  Explore modern, farmhouse, and traditional kitchen designs
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <Link className="hover:underline" href="/ideas/home-office">
+                    Home Office Ideas
+                  </Link>
+                </CardTitle>
+                <CardDescription>
+                  Design a productive workspace with ergonomic furniture and
+                  style
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <Link className="hover:underline" href="/ideas/dining-room">
+                    Dining Room Ideas
+                  </Link>
+                </CardTitle>
+                <CardDescription>
+                  Find elegant dining spaces perfect for entertaining and family
+                  meals
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  <Link className="hover:underline" href="/ideas">
+                    View All Design Ideas
+                  </Link>
+                </CardTitle>
+                <CardDescription>
+                  Browse 500+ designs across all room types and styles
                 </CardDescription>
               </CardHeader>
             </Card>
