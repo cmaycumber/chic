@@ -276,17 +276,21 @@ export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
 
           {hasProducts && (
             <ToggleGroup
+              className="shrink-0"
               onValueChange={(value) => {
                 if (value) {
                   setActiveView(value as "room" | "products");
                 }
               }}
+              size="sm"
               type="single"
               value={activeView}
               variant="outline"
             >
-              <ToggleGroupItem value="room">Room</ToggleGroupItem>
-              <ToggleGroupItem value="products">
+              <ToggleGroupItem className="min-w-20" value="room">
+                Room
+              </ToggleGroupItem>
+              <ToggleGroupItem className="min-w-20" value="products">
                 Products ({design.products?.length ?? 0})
               </ToggleGroupItem>
             </ToggleGroup>
