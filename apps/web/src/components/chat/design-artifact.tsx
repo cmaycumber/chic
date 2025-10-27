@@ -291,7 +291,7 @@ export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
                 Room
               </ToggleGroupItem>
               <ToggleGroupItem className="min-w-20" value="products">
-                Products ({design.products?.length ?? 0})
+                Products
               </ToggleGroupItem>
             </ToggleGroup>
           )}
