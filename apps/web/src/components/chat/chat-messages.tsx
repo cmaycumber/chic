@@ -28,7 +28,7 @@ function ChatMessagesContent({ threadId }: { threadId: string }) {
   );
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl">
       {messages && messages.length > 0 && (
         <>
           {status === "CanLoadMore" && (

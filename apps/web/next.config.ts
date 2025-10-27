@@ -4,7 +4,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   typedRoutes: true,
   images: {
-    remotePatterns: [new URL("https://utmost-tapir-624.convex.cloud/**")],
+    remotePatterns: [
+      new URL("https://utmost-tapir-624.convex.cloud/**"),
+      new URL("https://m.media-amazon.com/**"),
+    ],
   },
   // SEO optimizations
   headers() {

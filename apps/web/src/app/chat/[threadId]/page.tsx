@@ -73,7 +73,7 @@ export default function ChatPage({
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Chat Section */}
-      <div className="flex min-h-0 flex-1 flex-col border-r">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r">
         <ChatHeader
           extra={
             <Button

@@ -4,10 +4,12 @@ import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import {
   AlertCircleIcon,
   CopyIcon,
+  ExternalLinkIcon,
   FileAudioIcon,
   FileIcon,
   FileVideoIcon,
   ImageIcon,
+  StarIcon,
 } from "lucide-react";
 import Image from "next/image";
 import { Action, Actions } from "@/components/ai-elements/actions";
@@ -24,6 +26,22 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@/components/ai-elements/sources";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@/components/ai-elements/tool";
+import { Badge } from "@/components/ui/badge";
+import { CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Stories,
+  StoriesContent,
+  Story,
+  StoryImage,
+  StoryOverlay,
+} from "@/components/ui/stories";
 import { cn } from "@/lib/utils";
 import { ChicTypingIndicator } from "./chic-typing-indicator";
 
@@ -135,6 +153,15 @@ export function MessageItem({
                 );
               }
               default: {
+                // Handle tool calls (type is `tool-${string}`)
+                if (part.type.startsWith("tool-")) {
+                  return (
+                    <ToolPartRenderer
+                      key={`${message.key}-tool-${i}`}
+                      part={part}
+                    />
+                  );
+                }
                 return null;
               }
             }
@@ -425,5 +452,184 @@ function FilePart({
         )}
       </div>
     </a>
+  );
+}
+
+type Product = {
+  name: string;
+  price: number;
+  imageUrl: string;
+  productUrl: string;
+  rating?: number;
+  reviewCount?: number;
+  description?: string;
+};
+
+function parseProductsFromOutput(output: unknown): Product[] {
+  if (Array.isArray(output)) {
+    return output as Product[];
+  }
+
+  if (typeof output === "object" && output !== null) {
+    const outputObj = output as Record<string, unknown>;
+    if (Array.isArray(outputObj.products)) {
+      return outputObj.products as Product[];
+    }
+  }
+
+  return [];
+}
+
+function formatToolName(type: string): string {
+  return type
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+function ToolPartRenderer({
+  part,
+}: {
+  part: {
+    type: string;
+    state?:
+      | "input-streaming"
+      | "input-available"
+      | "output-available"
+      | "output-error";
+    input?: unknown;
+    output?: unknown;
+    errorText?: string;
+  };
+}) {
+  const toolState = part.state ?? "input-streaming";
+  const toolType = part.type as `tool-${string}`;
+  const toolName = part.type.replace("tool-", "");
+
+  // Special rendering for search_products - no Tool wrapper
+  if (toolName === "search_products" && toolState === "output-available") {
+    const products = parseProductsFromOutput(part.output);
+    return <ProductsCarousel products={products} />;
+  }
+
+  return (
+    <Tool defaultOpen={toolState === "output-error"}>
+      <ToolHeader
+        state={toolState}
+        title={formatToolName(toolName)}
+        type={toolType}
+      />
+      <ToolContent>
+        {part.input !== undefined && <ToolInput input={part.input} />}
+        {(part.output !== undefined || part.errorText !== undefined) && (
+          <ToolOutput errorText={part.errorText} output={part.output} />
+        )}
+      </ToolContent>
+    </Tool>
+  );
+}
+
+function ProductsCarousel({ products }: { products: Product[] }) {
+  // Validate products is an array and has items
+  if (!Array.isArray(products) || products.length === 0) {
+    return (
+      <div className="p-4 text-center text-muted-foreground text-sm">
+        No products found
+      </div>
+    );
+  }
+
+  return (
+    <div className="group relative w-full py-2">
+      <Stories
+        opts={{
+          align: "start",
+          loop: false,
+          dragFree: true,
+        }}
+      >
+        <StoriesContent>
+          {products.map((product, index) => (
+            <Story
+              className="w-48 min-w-48"
+              key={`product-${index}-${product.name}`}
+              onClick={() => window.open(product.productUrl, "_blank")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  window.open(product.productUrl, "_blank");
+                }
+              }}
+            >
+              <div className="relative aspect-square w-full">
+                <StoryImage alt={product.name} src={product.imageUrl} />
+                <StoryOverlay side="top" />
+                <StoryOverlay side="bottom" />
+
+                {/* Price badge at top */}
+                <div className="absolute top-2 right-2 z-20">
+                  <Badge
+                    className="bg-white/90 font-semibold text-foreground shadow-lg backdrop-blur-sm"
+                    variant="secondary"
+                  >
+                    ${product.price.toFixed(2)}
+                  </Badge>
+                </div>
+
+                {/* Product info at bottom */}
+                <div className="absolute right-0 bottom-0 left-0 z-20 p-3">
+                  <div className="space-y-1">
+                    <p className="line-clamp-2 font-medium text-white text-xs leading-tight drop-shadow-lg">
+                      {product.name}
+                    </p>
+
+                    {product.rating !== undefined && (
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <StarIcon
+                              className={cn(
+                                "size-2.5",
+                                i < Math.floor(product.rating ?? 0)
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "fill-white/20 text-white/20"
+                              )}
+                              key={`${product.name}-star-${i}`}
+                            />
+                          ))}
+                        </div>
+                        {product.reviewCount !== undefined && (
+                          <span className="text-white/90 text-xs drop-shadow-lg">
+                            ({product.reviewCount.toLocaleString()})
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <a
+                      className="inline-flex items-center gap-1 text-white/90 text-xs underline underline-offset-2 drop-shadow-lg hover:text-white"
+                      href={product.productUrl}
+                      onClick={(e) => e.stopPropagation()}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      View on Amazon
+                      <ExternalLinkIcon className="size-2.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </Story>
+          ))}
+        </StoriesContent>
+
+        {/* Navigation buttons - only show if there are multiple products */}
+        {products.length > 1 && (
+          <>
+            <CarouselPrevious className="left-2 opacity-0 transition-opacity group-hover:opacity-100" />
+            <CarouselNext className="right-2 opacity-0 transition-opacity group-hover:opacity-100" />
+          </>
+        )}
+      </Stories>
+    </div>
   );
 }
