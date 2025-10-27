@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "@/global.css";
 import { ThemeProvider } from "next-themes";
-import { LayoutContent } from "@/components/layout-content";
 import Providers from "@/components/providers";
 import {
   OrganizationStructuredData,
@@ -77,9 +76,7 @@ export default function RootLayout({
           forcedTheme="light"
           storageKey="theme"
         >
-          <Providers>
-            <LayoutContent>{children}</LayoutContent>
-          </Providers>
+          <Providers>{children}</Providers>
         </ThemeProvider>
       </body>
     </html>

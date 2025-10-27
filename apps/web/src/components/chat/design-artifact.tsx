@@ -3,14 +3,7 @@
 import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
-import {
-  CopyIcon,
-  DownloadIcon,
-  EyeIcon,
-  EyeOffIcon,
-  RefreshCwIcon,
-  ShareIcon,
-} from "lucide-react";
+import { EyeIcon, EyeOffIcon, ShareIcon, ShoppingCartIcon } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { buildCartUrlFromProducts } from "@/lib/amazon-affiliate";
 import { cn } from "@/lib/utils";
 
 type Product = {
@@ -51,12 +45,8 @@ type DesignData = {
 
 type DesignArtifactProps = {
   design: DesignData;
-  onRegenerate?: () => void;
   onShare?: () => void;
-  onExport?: () => void;
 };
-
-const COPY_FEEDBACK_DURATION = 2000;
 
 function BudgetSummary({
   budget,
@@ -224,26 +214,12 @@ function ProductsView({
   );
 }
 
-export function DesignArtifact({
-  design,
-  onRegenerate,
-  onShare,
-  onExport,
-}: DesignArtifactProps) {
-  const [copied, setCopied] = useState(false);
+export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
   const [activeView, setActiveView] = useState<"room" | "products">("room");
   const [isPublic, setIsPublic] = useState(design.isPublic);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
 
   const togglePublic = useMutation(api.designs.togglePublic);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(design.description).catch(() => {
-      // Handle error silently
-    });
-    setCopied(true);
-    setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION);
-  };
 
   const handleTogglePublic = async () => {
     setIsTogglingPublic(true);
@@ -319,11 +295,6 @@ export function DesignArtifact({
 
         <ArtifactActions>
           <ArtifactAction
-            icon={CopyIcon}
-            onClick={handleCopy}
-            tooltip={copied ? "Copied!" : "Copy description"}
-          />
-          <ArtifactAction
             disabled={isTogglingPublic}
             icon={isPublic ? EyeIcon : EyeOffIcon}
             onClick={handleTogglePublic}
@@ -333,25 +304,39 @@ export function DesignArtifact({
                 : "Make public (shareable)"
             }
           />
-          {onRegenerate && (
-            <ArtifactAction
-              icon={RefreshCwIcon}
-              onClick={onRegenerate}
-              tooltip="Regenerate design"
-            />
-          )}
-          {onExport && (
-            <ArtifactAction
-              icon={DownloadIcon}
-              onClick={onExport}
-              tooltip="Export design"
-            />
-          )}
           <ArtifactAction
             disabled={!isPublic}
             icon={ShareIcon}
             onClick={handleShare}
             tooltip={isPublic ? "Copy share link" : "Make public to share"}
+          />
+          <ArtifactAction
+            disabled={!hasProducts}
+            icon={ShoppingCartIcon}
+            onClick={() => {
+              if (!design.products || design.products.length === 0) {
+                toast.error("No products to add to cart");
+                return;
+              }
+
+              const cartUrl = buildCartUrlFromProducts(design.products);
+
+              if (cartUrl) {
+                window.open(cartUrl, "_blank", "noopener,noreferrer");
+                toast.success(
+                  `Opening Amazon cart with ${design.products.length} ${design.products.length === 1 ? "item" : "items"}`
+                );
+              } else {
+                toast.error(
+                  "Unable to build cart URL. Some products may not be from Amazon."
+                );
+              }
+            }}
+            tooltip={
+              hasProducts
+                ? "Add all products to Amazon cart"
+                : "No products to checkout"
+            }
           />
         </ArtifactActions>
       </ArtifactHeader>

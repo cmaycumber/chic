@@ -1,7 +1,7 @@
 import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { fetchQuery } from "convex/nextjs";
-import { ExternalLinkIcon, PackageIcon } from "lucide-react";
+import { ExternalLinkIcon, PackageIcon, ShoppingCartIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { buildCartUrlFromProducts } from "@/lib/amazon-affiliate";
 import { cn } from "@/lib/utils";
 
 type DesignPageProps = {
@@ -51,6 +52,116 @@ export async function generateMetadata({
   }
 }
 
+type DesignSidebarProps = {
+  design: {
+    budget: number | undefined;
+    products: Array<{ productUrl?: string; price: number }> | undefined;
+  };
+  totalCost: number;
+  isOverBudget: boolean;
+  hasProducts: boolean;
+  cartUrl: string | null;
+};
+
+function DesignSidebar({
+  design,
+  totalCost,
+  isOverBudget,
+  hasProducts,
+  cartUrl,
+}: DesignSidebarProps) {
+  if (design.budget && hasProducts) {
+    return (
+      <Card className="sticky top-20 rounded-xl border shadow-xl">
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-baseline gap-2">
+            <span className="font-semibold text-2xl">
+              ${design.budget.toLocaleString()}
+            </span>
+            <span className="text-muted-foreground text-sm">budget</span>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total Cost</span>
+              <span
+                className={cn(
+                  "font-medium",
+                  isOverBudget && "text-destructive"
+                )}
+              >
+                ${totalCost.toLocaleString()}
+              </span>
+            </div>
+            {isOverBudget ? (
+              <div className="flex items-center justify-between text-destructive text-sm">
+                <span>Over Budget</span>
+                <span className="font-medium">
+                  ${(totalCost - design.budget).toLocaleString()}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-emerald-600 text-sm">
+                <span>Remaining</span>
+                <span className="font-medium">
+                  ${(design.budget - totalCost).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {cartUrl && (
+            <>
+              <Separator className="my-4" />
+              <Button asChild className="w-full gap-2" size="lg">
+                <a href={cartUrl} rel="noopener noreferrer" target="_blank">
+                  <ShoppingCartIcon className="size-4" />
+                  Add All to Cart
+                </a>
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!design.budget && hasProducts && cartUrl) {
+    return (
+      <Card className="sticky top-20 rounded-xl border shadow-xl">
+        <CardContent className="p-6">
+          <div className="mb-4">
+            <h3 className="font-semibold text-xl">Ready to purchase?</h3>
+            <p className="mt-2 text-muted-foreground text-sm">
+              Add all {design.products?.length} items to your Amazon cart
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-sm">Total Cost</span>
+              <span className="font-semibold text-lg">
+                ${totalCost.toLocaleString()}
+              </span>
+            </div>
+
+            <Button asChild className="w-full gap-2" size="lg">
+              <a href={cartUrl} rel="noopener noreferrer" target="_blank">
+                <ShoppingCartIcon className="size-4" />
+                Add All to Cart
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return null;
+}
+
 export default async function DesignPage({ params }: DesignPageProps) {
   const { designId } = await params;
 
@@ -64,7 +175,10 @@ export default async function DesignPage({ params }: DesignPageProps) {
 
   const totalCost = design.products?.reduce((sum, p) => sum + p.price, 0) ?? 0;
   const isOverBudget = Boolean(design.budget && totalCost > design.budget);
-  const hasProducts = design.products && design.products.length > 0;
+  const hasProducts = Boolean(design.products && design.products.length > 0);
+  const cartUrl = hasProducts
+    ? buildCartUrlFromProducts(design.products ?? [])
+    : null;
 
   return (
     <div className="flex flex-col bg-background">
@@ -206,52 +320,13 @@ export default async function DesignPage({ params }: DesignPageProps) {
 
           {/* Sidebar Column - Airbnb Style */}
           <div className="space-y-6 lg:col-span-1">
-            {/* Budget Summary Card */}
-            {design.budget && hasProducts && (
-              <Card className="sticky top-8 rounded-xl border shadow-xl">
-                <CardContent className="p-6">
-                  <div className="mb-4 flex items-baseline gap-2">
-                    <span className="font-semibold text-2xl">
-                      ${design.budget.toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      budget
-                    </span>
-                  </div>
-
-                  <Separator className="my-4" />
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Total Cost</span>
-                      <span
-                        className={cn(
-                          "font-medium",
-                          isOverBudget && "text-destructive"
-                        )}
-                      >
-                        ${totalCost.toLocaleString()}
-                      </span>
-                    </div>
-                    {isOverBudget ? (
-                      <div className="flex items-center justify-between text-destructive text-sm">
-                        <span>Over Budget</span>
-                        <span className="font-medium">
-                          ${(totalCost - design.budget).toLocaleString()}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-emerald-600 text-sm">
-                        <span>Remaining</span>
-                        <span className="font-medium">
-                          ${(design.budget - totalCost).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DesignSidebar
+              cartUrl={cartUrl}
+              design={design}
+              hasProducts={hasProducts}
+              isOverBudget={isOverBudget}
+              totalCost={totalCost}
+            />
           </div>
         </div>
 

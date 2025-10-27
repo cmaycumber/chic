@@ -4,10 +4,7 @@ import { XIcon } from "lucide-react";
 import React, { useCallback, useState } from "react";
 import type { ArtifactTab } from "@/components/chat/artifact-tabs";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-
-type ViewMode = "room" | "products";
 
 const MIN_PANEL_WIDTH = 300;
 const MAX_PANEL_WIDTH = 800;
@@ -21,7 +18,6 @@ type ArtifactsPanelProps = {
 export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("room");
 
   const handleMouseDown = useCallback(() => {
     setIsResizing(true);
@@ -87,7 +83,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
       />
 
       {/* Designs Header */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background/95 px-6 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="flex items-center gap-3">
           <h2 className="font-semibold text-sm">Designs</h2>
           <span className="text-muted-foreground text-xs">
@@ -95,34 +91,16 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          {artifacts.length > 0 && (
-            <Tabs
-              className="w-auto"
-              onValueChange={(value) => setViewMode(value as ViewMode)}
-              value={viewMode}
-            >
-              <TabsList className="h-8">
-                <TabsTrigger className="text-xs" value="room">
-                  Room
-                </TabsTrigger>
-                <TabsTrigger className="text-xs" value="products">
-                  Products
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-          <Button
-            className="size-8 p-0 transition-all hover:bg-destructive/10 hover:text-destructive"
-            onClick={onClose}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            <XIcon className="size-4" />
-            <span className="sr-only">Close designs panel</span>
-          </Button>
-        </div>
+        <Button
+          className="size-8 p-0 transition-all hover:bg-destructive/10 hover:text-destructive"
+          onClick={onClose}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <XIcon className="size-4" />
+          <span className="sr-only">Close designs panel</span>
+        </Button>
       </header>
 
       {/* Designs Content */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { Authenticated, useMutation, useQuery } from "convex/react";
+import { Authenticated, useQuery } from "convex/react";
 import { PanelRight } from "lucide-react";
 import { use, useState } from "react";
 import type { ArtifactTab } from "@/components/chat/artifact-tabs";
@@ -25,8 +25,6 @@ export default function ChatPage({
 }) {
   const { threadId } = use(params);
 
-  const sendMessage = useMutation(api.messages.initiateAsyncStreaming);
-
   // Fetch artifacts for this thread
   const artifactsData = useQuery(api.artifacts.listByThreadIdWithDetails, {
     threadId,
@@ -41,32 +39,7 @@ export default function ChatPage({
         id: artifact._id,
         title: formatDesignTitle(artifact.design._id),
         type: artifact.type,
-        content: (
-          <DesignArtifact
-            design={artifact.design}
-            onExport={() => {
-              // Download as JSON
-              const dataStr = JSON.stringify(artifact.design, null, 2);
-              const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(
-                dataStr
-              )}`;
-              const exportFileDefaultName = `${formatDesignTitle(artifact.design._id)}.json`;
-              const linkElement = document.createElement("a");
-              linkElement.setAttribute("href", dataUri);
-              linkElement.setAttribute("download", exportFileDefaultName);
-              linkElement.click();
-            }}
-            onRegenerate={() => {
-              // Send a message to regenerate the design
-              sendMessage({
-                threadId,
-                prompt: `Regenerate the design: ${artifact.design.description}`,
-              }).catch(() => {
-                // Error handled silently
-              });
-            }}
-          />
-        ),
+        content: <DesignArtifact design={artifact.design} />,
       })
     ) ?? [];
 

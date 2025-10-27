@@ -7,6 +7,7 @@
 "use node";
 import { createTool } from "@convex-dev/agent";
 import z from "zod";
+import { addAffiliateTag } from "../../lib/amazonAffiliate";
 
 const DEFAULT_PRODUCTS_PER_QUERY = 2;
 const MAX_PRODUCTS_PER_QUERY = 5;
@@ -256,8 +257,8 @@ function parseProductsFromResults(
       continue;
     }
     // Prefer link_clean over link for cleaner URLs
-    const productUrl = item.link_clean || item.link;
-    if (!productUrl) {
+    const rawProductUrl = item.link_clean || item.link;
+    if (!rawProductUrl) {
       continue;
     }
     if (!item.thumbnail) {
@@ -271,6 +272,9 @@ function parseProductsFromResults(
     if (maxPrice !== undefined && price > maxPrice) {
       continue;
     }
+
+    // Add affiliate tag to product URL
+    const productUrl = addAffiliateTag(rawProductUrl);
 
     products.push({
       name: item.title,

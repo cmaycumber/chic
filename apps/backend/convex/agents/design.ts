@@ -313,12 +313,17 @@ Returns products with names, prices, images, ratings, and Amazon links.
 Append new products to an existing design without removing current items. Use when expanding a design.
 
 ### generate_design_image
-Create photorealistic visualizations. Describe:
-- **room**: Room type
+Create photorealistic visualizations. **Always prefer to include product images and existing design images as references** for more accurate and realistic results.
+
+Parameters:
+- **roomType**: Room type
 - **style**: Design aesthetic
 - **designPlan**: Detailed vision (lighting, materials, spatial layout, mood)
-- **products** (optional): Show specific items in context
-- **baseImage** (optional): Image to modify
+- **products** (optional): Products with their imageUrl fields - **always include imageUrl when available** for visual reference
+- **baseImageStorageId** (optional): Existing design image storage ID to use as anchor/reference
+- **referenceImageUrls** (optional): Additional reference images (product images, inspiration photos)
+
+**Best practice**: When creating a design with products, pass the product objects WITH their imageUrl fields to generate_design_image. This gives the AI visual references for more accurate furniture and decor placement.
 
 Provide rich, specific descriptions for best results.
 
@@ -331,15 +336,18 @@ Provide rich, specific descriptions for best results.
    - Apply 4+ star filter by default for quality
    - Add price filters if working within a budget
    - Be specific: "modern charcoal grey velvet sectional sofa 90 inch" not just "sofa"
-3. Generate visualization showing products in context (optional but recommended)
-4. Create design with all elements: products, description, and optional image
+3. **Generate visualization** - Pass the products WITH their imageUrl fields to generate_design_image:
+   - Include all products from search results (they have imageUrl)
+   - If modifying an existing design, include baseImageStorageId for context
+   - This gives the AI visual references for accurate placement and styling
+4. Create design with all elements: products, description, and image storage ID
 
-**Key principle:** Plan then Search then Visualize then Save. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
+**Key principle:** Plan → Search → Visualize with Product Images → Save. Always pass product images to generate_design_image for better results. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
 
 **Iterative refinement:**
-1. Get design to see current state
+1. Get design to see current state (including imageStorageId and products with imageUrl)
 2. Update based on feedback or add products
-3. Generate new image if visual changes were made
+3. Generate new image if visual changes were made - **always pass existing design's imageStorageId as baseImageStorageId** and products with their imageUrl fields for continuity
 
 **Quick explorations:**
 Just search products OR generate an image without saving—not every conversation needs a saved design.

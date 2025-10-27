@@ -22,6 +22,7 @@ import type * as files from "../files.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as ideas from "../ideas.js";
+import type * as lib_amazonAffiliate from "../lib/amazonAffiliate.js";
 import type * as messages from "../messages.js";
 import type * as playground from "../playground.js";
 import type * as seedDesigns from "../seedDesigns.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   http: typeof http;
   ideas: typeof ideas;
+  "lib/amazonAffiliate": typeof lib_amazonAffiliate;
   messages: typeof messages;
   playground: typeof playground;
   seedDesigns: typeof seedDesigns;
