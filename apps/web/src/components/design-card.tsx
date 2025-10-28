@@ -47,7 +47,7 @@ export function DesignCard({ design, showRoomType = false }: DesignCardProps) {
         {design.imageUrl ? (
           <div className="relative aspect-square w-full overflow-hidden bg-muted">
             <Image
-              alt={design}
+              alt={design.title}
               className="object-cover transition-transform duration-300 group-hover:scale-105"
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
