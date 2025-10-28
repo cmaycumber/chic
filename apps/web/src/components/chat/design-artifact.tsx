@@ -148,11 +148,11 @@ function RoomView({
       {design.imageUrl ? (
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
           <Image
-            alt={design.title}
+            alt={design?.title ?? "Design"}
             className="object-cover"
             fill
             priority
-            src={design.imageUrl}
+            src={design?.imageUrl ?? ""}
           />
         </div>
       ) : (
@@ -216,7 +216,7 @@ function ProductsView({
 
 export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
   const [activeView, setActiveView] = useState<"room" | "products">("room");
-  const [isPublic, setIsPublic] = useState(design.isPublic);
+  const [isPublic, setIsPublic] = useState(design?.isPublic ?? false);
   const [isTogglingPublic, setIsTogglingPublic] = useState(false);
 
   const togglePublic = useMutation(api.designs.togglePublic);
@@ -268,7 +268,7 @@ export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
       <ArtifactHeader>
         <div className="flex flex-1 items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <ArtifactTitle>{design.title}</ArtifactTitle>
+            <ArtifactTitle>{design?.title ?? "Design"}</ArtifactTitle>
             <ArtifactDescription className="text-xs">
               Interior design concept
             </ArtifactDescription>
