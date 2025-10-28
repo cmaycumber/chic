@@ -341,7 +341,7 @@ Provide rich, specific descriptions for best results.
    - Include all products from search results (they have imageUrl)
    - If modifying an existing design, include baseImageStorageId for context
    - This gives the AI visual references for accurate placement and styling
-5. **Update the design** - Use update_design to add the products and image storage ID to the design you created in step 2
+4. Create design with all elements: products, description, and image storage ID
 
 **Key principle:** Plan → Create → Search → Visualize with Product Images → Update. This ensures the design artifact is available immediately for users to view, then gets enriched with products and visualization. Always pass product images to generate_design_image for better results. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
 

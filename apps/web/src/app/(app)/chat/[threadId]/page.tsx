@@ -35,14 +35,17 @@ export default function ChatPage({
 
   // Map artifacts data to ArtifactTab format
   const artifacts: ArtifactTab[] =
-    artifactsData?.map(
-      (artifact: NonNullable<typeof artifactsData>[number]) => ({
+    artifactsData
+      ?.filter(
+        (artifact: NonNullable<typeof artifactsData>[number]) =>
+          artifact.design !== null
+      )
+      .map((artifact: NonNullable<typeof artifactsData>[number]) => ({
         id: artifact._id,
         title: formatDesignTitle(artifact.design._id),
         type: artifact.type,
         content: <DesignArtifact design={artifact.design} />,
-      })
-    ) ?? [];
+      })) ?? [];
 
   // Auto-open panel when new artifacts are added
   useEffect(() => {
