@@ -37,12 +37,12 @@ export async function generateMetadata({
     }
 
     return {
-      title: `${design.title} | chic`,
-      description: design.description,
+      title: design?.title ? `${design.title} | chic` : "Design | chic",
+      description: design?.description ?? undefined,
       openGraph: {
-        title: design.title,
-        description: design.description,
-        images: design.imageUrl ? [design.imageUrl] : [],
+        title: design?.title ?? "Design",
+        description: design?.description ?? undefined,
+        images: design?.imageUrl ? [design.imageUrl] : [],
       },
     };
   } catch {
