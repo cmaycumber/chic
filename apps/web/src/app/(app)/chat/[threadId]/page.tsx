@@ -3,7 +3,7 @@
 import { api } from "@furnish/backend/convex/_generated/api";
 import { Authenticated, useQuery } from "convex/react";
 import { PanelRight } from "lucide-react";
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import type { ArtifactTab } from "@/components/chat/artifact-tabs";
 import { ArtifactsPanel } from "@/components/chat/artifacts-panel";
 import { ChatHeader } from "@/components/chat/chat-header";
@@ -31,6 +31,7 @@ export default function ChatPage({
   });
 
   const [isArtifactsPanelOpen, setIsArtifactsPanelOpen] = useState(false);
+  const previousArtifactCountRef = useRef<number>(0);
 
   // Map artifacts data to ArtifactTab format
   const artifacts: ArtifactTab[] =
@@ -42,6 +43,14 @@ export default function ChatPage({
         content: <DesignArtifact design={artifact.design} />,
       })
     ) ?? [];
+
+  // Auto-open panel when new artifacts are added
+  useEffect(() => {
+    if (artifacts.length > previousArtifactCountRef.current) {
+      setIsArtifactsPanelOpen(true);
+    }
+    previousArtifactCountRef.current = artifacts.length;
+  }, [artifacts.length]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

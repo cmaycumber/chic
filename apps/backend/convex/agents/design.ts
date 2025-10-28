@@ -331,18 +331,19 @@ Provide rich, specific descriptions for best results.
 
 **Creating a complete design:**
 1. **Plan the design** - Understand the room type, style, budget, and specific needs
-2. **Search for products** - Based on your plan, identify 3-5 items and construct specific queries:
+2. **Create the design first** - Save the initial design with title, description, room type, style, and design plan using create_design. This creates the artifact that users can reference.
+3. **Search for products** - Based on your plan, identify 3-5 items and construct specific queries:
    - Include all relevant details: style, color, material, size
    - Apply 4+ star filter by default for quality
    - Add price filters if working within a budget
    - Be specific: "modern charcoal grey velvet sectional sofa 90 inch" not just "sofa"
-3. **Generate visualization** - Pass the products WITH their imageUrl fields to generate_design_image:
+4. **Generate visualization** - Pass the products WITH their imageUrl fields to generate_design_image:
    - Include all products from search results (they have imageUrl)
    - If modifying an existing design, include baseImageStorageId for context
    - This gives the AI visual references for accurate placement and styling
-4. Create design with all elements: products, description, and image storage ID
+5. **Update the design** - Use update_design to add the products and image storage ID to the design you created in step 2
 
-**Key principle:** Plan → Search → Visualize with Product Images → Save. Always pass product images to generate_design_image for better results. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
+**Key principle:** Plan → Create → Search → Visualize with Product Images → Update. This ensures the design artifact is available immediately for users to view, then gets enriched with products and visualization. Always pass product images to generate_design_image for better results. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
 
 **Iterative refinement:**
 1. Get design to see current state (including imageStorageId and products with imageUrl)
