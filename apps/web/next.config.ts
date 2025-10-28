@@ -5,8 +5,16 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   images: {
     remotePatterns: [
-      new URL(`${process.env.NEXT_PUBLIC_CONVEX_URL}/**`),
-      new URL("https://m.media-amazon.com/**"),
+      {
+        protocol: "https",
+        hostname: new URL(process.env.NEXT_PUBLIC_CONVEX_URL || "").hostname,
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "m.media-amazon.com",
+        pathname: "/**",
+      },
     ],
   },
   // SEO optimizations
