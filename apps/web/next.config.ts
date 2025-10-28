@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   images: {
     remotePatterns: [
-      new URL("https://utmost-tapir-624.convex.cloud/**"),
+      new URL(`${process.env.NEXT_PUBLIC_CONVEX_URL}/**`),
       new URL("https://m.media-amazon.com/**"),
     ],
   },
