@@ -667,7 +667,7 @@ function ProductsCarousel({ products }: { products: Product[] }) {
           dragFree: true,
         }}
       >
-        <StoriesContent>
+        <StoriesContent className="p-1">
           {products.map((product, index) => (
             <Story
               className="w-48 min-w-48"
@@ -762,14 +762,14 @@ function CreateDesignOutput({
 }) {
   return (
     <button
-      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-emerald-50 to-teal-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-emerald-500/20 dark:from-emerald-950/20 dark:to-teal-950/20"
+      className="my-2 w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-linear-to-br from-purple-50 to-violet-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-purple-500/20 dark:from-purple-950/20 dark:to-violet-950/20"
       onClick={onDesignClick}
       type="button"
     >
       <div className="p-4">
         <div className="mb-3 flex items-center gap-2">
-          <CheckCircleIcon className="size-5 text-emerald-600 dark:text-emerald-400" />
-          <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
+          <CheckCircleIcon className="size-5 text-purple-600 dark:text-purple-400" />
+          <h3 className="font-semibold text-purple-900 dark:text-purple-100">
             Design Created
           </h3>
         </div>
