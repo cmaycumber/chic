@@ -1,6 +1,7 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
@@ -24,7 +25,7 @@ export const createAuth = (
       enabled: true,
       requireEmailVerification: false,
     },
-    plugins: [convex()],
+    plugins: [convex(), nextCookies()],
   });
 
 export const getCurrentUser = query({
