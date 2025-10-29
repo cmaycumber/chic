@@ -777,7 +777,7 @@ function CreateDesignOutput({
         <div className="space-y-3">
           <div>
             <h4 className="font-medium text-foreground text-sm">
-              {output.title}
+              {output?.title}
             </h4>
             <p className="mt-1 text-muted-foreground text-xs">
               {output.description}
@@ -884,7 +884,7 @@ function AddProductsOutput({
   output: DesignOutput;
   onDesignClick?: () => void;
 }) {
-  const addedProducts = output.products || [];
+  const addedProducts = output?.products || [];
 
   return (
     <button
@@ -904,7 +904,7 @@ function AddProductsOutput({
           <p className="text-muted-foreground text-xs">
             Added {addedProducts.length} product
             {addedProducts.length > 1 ? "s" : ""} to{" "}
-            <span className="font-medium text-foreground">{output.title}</span>
+            <span className="font-medium text-foreground">{output?.title}</span>
           </p>
 
           {addedProducts.length > 0 && (
@@ -965,7 +965,7 @@ function UpdateDesignOutput({
         </div>
 
         <div className="space-y-2">
-          <p className="font-medium text-foreground text-sm">{output.title}</p>
+          <p className="font-medium text-foreground text-sm">{output?.title}</p>
           <p className="text-muted-foreground text-xs">
             Design successfully updated with your changes
           </p>
@@ -992,7 +992,7 @@ function GetDesignOutput({
         <div className="space-y-3">
           <div>
             <h4 className="font-medium text-foreground text-sm">
-              {output.title}
+              {output?.title}
             </h4>
             <p className="mt-1 text-muted-foreground text-xs">
               {output.description}

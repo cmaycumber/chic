@@ -16,11 +16,14 @@
  */
 
 "use node";
+import { createThread } from "@convex-dev/agent";
 import { generateText } from "ai";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { z } from "zod/v3";
+import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { internalAction } from "./_generated/server";
+import { designAgent } from "./agents/design";
 
 // Rate limiting configuration
 const DELAY_BETWEEN_API_CALLS_MS = 2000; // 2 seconds between each AI API call
@@ -176,6 +179,67 @@ const DESIGN_TEMPLATES = {
 };
 
 /**
+ * Generate a unique design idea using the design agent (Claude)
+ * Returns title, description, designPlan and optional tags.
+ */
+async function generateDesignIdea(
+  ctx: Parameters<typeof internalAction>[0],
+  args: {
+    roomType: string;
+    designStyle: string;
+    tags: string[];
+    budget: number;
+  }
+): Promise<{
+  title: string;
+  description: string;
+  designPlan: string;
+  tags?: string[];
+}> {
+  const { roomType, designStyle, tags, budget } = args;
+  const titleSeed = `${designStyle} ${roomType.replace("-", " ")} Concept`;
+
+  const threadId = await createThread(ctx, components.agent, {
+    title: `Seeding: ${titleSeed}`,
+  });
+
+  const { thread } = await designAgent.continueThread(ctx, { threadId });
+
+  const { object: idea } = await thread.generateObject(
+    {
+      mode: "json",
+      schemaDescription:
+        "Generate a unique, shoppable interior design concept for the specified room type and style.",
+      schema: z.object({
+        title: z
+          .string()
+          .describe(
+            "Catchy, specific title under 10 words (no generic phrases)"
+          ),
+        description: z
+          .string()
+          .describe(
+            "2-3 sentence inspiring description tailored to the style and room"
+          ),
+        designPlan: z
+          .string()
+          .describe(
+            "Markdown plan with sections: Style, Color Palette, Key Features, Tags"
+          ),
+        tags: z
+          .array(z.string())
+          .optional()
+          .describe("Optional tags specific to this concept"),
+      }),
+      prompt: `Create a unique design idea. Room: ${roomType}. Style: ${designStyle}. Budget: $${budget}. Existing tags: ${tags.join(", ")}. Avoid generic phrasing. Output JSON only matching the schema.`,
+    },
+    { storageOptions: { saveMessages: "none" } }
+  );
+
+  return idea;
+}
+
+/**
  * Generate a single design with AI image
  */
 export const generateSeedDesign = internalAction({
@@ -215,43 +279,19 @@ export const generateSeedDesign = internalAction({
       args.designStyle.charAt(0).toUpperCase() + args.designStyle.slice(1);
     const title = `${styleLabel} ${roomLabel} Design`;
 
-    // Generate description using AI SDK with retry logic
-    const descriptionPrompt = `Create a compelling 2-3 sentence description for a ${args.designStyle} style ${args.roomType.replace("-", " ")} design.
-Focus on the aesthetic, mood, and key features. Make it inspirational and specific.
-Tags: ${template.tags.join(", ")}
-Budget: $${budget}`;
-
-    const { text: description } = await retryWithBackoff(() =>
-      generateText({
-        model: "google/gemini-2.5-flash-image",
-        prompt: descriptionPrompt,
+    // Generate a unique idea (title, description, plan) using the design agent (Claude)
+    const idea = await retryWithBackoff(() =>
+      generateDesignIdea(ctx, {
+        roomType: args.roomType,
+        designStyle: args.designStyle,
+        tags: template.tags,
+        budget,
       })
     );
 
-    // Delay before next API call
-    await sleep(DELAY_BETWEEN_API_CALLS_MS);
-
-    // Generate design plan using AI SDK with retry logic
-    const designPlanPrompt = `Create a detailed interior design plan for a ${args.designStyle} style ${args.roomType.replace("-", " ")}.
-
-Description: ${description}
-Budget: $${budget}
-Tags: ${template.tags.join(", ")}
-
-Format the response as markdown with the following sections:
-- Style (brief overview)
-- Color Palette (primary, accents, neutrals)
-- Key Features (3-5 specific elements)
-- Tags (list the design tags)
-
-Make it professional, detailed, and specific to this style and room type.`;
-
-    const { text: designPlan } = await retryWithBackoff(() =>
-      generateText({
-        model: "google/gemini-2.5-flash-image",
-        prompt: designPlanPrompt,
-      })
-    );
+    const description = idea.description;
+    const designPlan = idea.designPlan;
+    const generatedTitle = idea.title;
 
     // Delay before next API call
     await sleep(DELAY_BETWEEN_API_CALLS_MS);
@@ -311,13 +351,13 @@ Make it look realistic, well-lit, and professionally styled. The composition sho
     const design: { _id: Id<"designs"> } = await ctx.runMutation(
       internal.designs.create,
       {
-        title,
+        title: generatedTitle || title,
         description,
         designPlan,
         budget,
         roomType: args.roomType,
         designStyle: args.designStyle,
-        tags: template.tags,
+        tags: idea.tags && idea.tags.length > 0 ? idea.tags : template.tags,
         isPublic: true,
         featured: args.featured ?? false,
         likes: Math.floor(Math.random() * defaultLikes),
