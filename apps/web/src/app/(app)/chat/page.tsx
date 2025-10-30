@@ -21,6 +21,7 @@ import {
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
+import { ChatHeader } from "@/components/chat/chat-header";
 import { useSession } from "@/lib/auth-client";
 
 // Helper function to convert data URL to ArrayBuffer
@@ -99,24 +100,22 @@ export default function ChatHomePage() {
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <div className="flex h-14 items-center justify-between border-b px-6">
-          <h1 className="font-semibold text-lg">New chat</h1>
-        </div>
+        <ChatHeader />
 
         {/* Chat Area */}
-        <div className="flex flex-1 flex-col items-center justify-center p-8">
-          <div className="w-full max-w-2xl space-y-8">
+        <div className="flex flex-1 flex-col items-center justify-center p-4 sm:p-6 md:p-8">
+          <div className="w-full max-w-2xl space-y-6 sm:space-y-8">
             {/* Greeting */}
-            <div className="space-y-4">
-              <h2 className="font-bold text-3xl tracking-tight">
+            <div className="space-y-3 sm:space-y-4">
+              <h2 className="font-bold text-2xl tracking-tight sm:text-3xl">
                 Hi {userName}, I'm your AI interior designer. How can I help
                 transform your space?
               </h2>
-              <div className="flex items-start gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-                  <span className="font-semibold text-sm">F</span>
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-background sm:size-8">
+                  <span className="font-semibold text-xs sm:text-sm">F</span>
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm sm:text-base">
                   As your AI interior designer, I can help you with room
                   layouts, color schemes, furniture recommendations, style
                   guidance, and complete room transformations. Upload photos or
@@ -149,7 +148,7 @@ export default function ChatHomePage() {
         </div>
 
         {/* Input Area */}
-        <div className="bg-background p-6">
+        <div className="bg-background p-3 sm:p-4 md:p-6">
           <div className="mx-auto max-w-2xl">
             <PromptInput
               accept="image/*"
@@ -162,7 +161,7 @@ export default function ChatHomePage() {
                   {(attachment) => <PromptInputAttachment data={attachment} />}
                 </PromptInputAttachments>
                 <PromptInputTextarea
-                  className="min-h-[60px]"
+                  className="min-h-[56px] text-sm sm:min-h-[60px] sm:text-base"
                   disabled={isSubmitting}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask anything about your space, or drop an image..."
@@ -179,15 +178,15 @@ export default function ChatHomePage() {
                   </PromptInputActionMenu>
                 </PromptInputTools>
                 <button
-                  className="rounded-full p-2 hover:bg-accent"
+                  className="rounded-full p-1.5 hover:bg-accent sm:p-2"
                   disabled={isSubmitting}
                   type="button"
                 >
-                  <Mic className="size-5 text-muted-foreground" />
+                  <Mic className="size-4 text-muted-foreground sm:size-5" />
                 </button>
                 <div className="flex-1" />
                 <PromptInputSubmit disabled={isSubmitting}>
-                  <ArrowUp className="size-5" />
+                  <ArrowUp className="size-4 sm:size-5" />
                 </PromptInputSubmit>
               </PromptInputToolbar>
             </PromptInput>

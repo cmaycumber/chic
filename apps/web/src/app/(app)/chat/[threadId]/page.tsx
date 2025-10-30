@@ -31,7 +31,7 @@ export default function ChatPage({
   });
 
   const [isArtifactsPanelOpen, setIsArtifactsPanelOpen] = useState(false);
-  const previousArtifactCountRef = useRef<number>(0);
+  const previousArtifactCountRef = useRef<number | null>(null);
 
   // Map artifacts data to ArtifactTab format
   const artifacts: ArtifactTab[] =
@@ -47,8 +47,15 @@ export default function ChatPage({
         content: <DesignArtifact design={artifact.design} />,
       })) ?? [];
 
-  // Auto-open panel when new artifacts are added
+  // Auto-open panel when new artifacts are added (but not on initial load)
   useEffect(() => {
+    // Initialize on first render
+    if (previousArtifactCountRef.current === null) {
+      previousArtifactCountRef.current = artifacts.length;
+      return;
+    }
+
+    // Only open if artifacts were added
     if (artifacts.length > previousArtifactCountRef.current) {
       setIsArtifactsPanelOpen(true);
     }
@@ -62,15 +69,16 @@ export default function ChatPage({
         <ChatHeader
           extra={
             <Button
-              className="gap-2"
+              className="gap-1.5 sm:gap-2"
               onClick={() => setIsArtifactsPanelOpen(!isArtifactsPanelOpen)}
               size="sm"
               variant={isArtifactsPanelOpen ? "secondary" : "ghost"}
             >
               <PanelRight className="size-4" />
-              <span className="text-sm">
+              <span className="hidden text-sm sm:inline">
                 {isArtifactsPanelOpen ? "Hide Designs" : "Show Designs"}
               </span>
+              <span className="text-xs sm:hidden">Designs</span>
             </Button>
           }
         />

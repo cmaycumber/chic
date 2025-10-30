@@ -344,7 +344,7 @@ function ImagePart({ url, mimeType }: { url?: string; mimeType?: string }) {
     <div className="relative my-2 overflow-hidden rounded-lg border border-border">
       <Image
         alt="Attached image"
-        className="max-h-96 w-auto object-contain"
+        className="max-h-64 w-auto object-contain sm:max-h-80 md:max-h-96"
         height={400}
         src={url}
         unoptimized={mimeType?.includes("svg")}
@@ -670,7 +670,7 @@ function ProductsCarousel({ products }: { products: Product[] }) {
         <StoriesContent className="p-1">
           {products.map((product, index) => (
             <Story
-              className="w-48 min-w-48"
+              className="w-40 min-w-40 sm:w-44 sm:min-w-44 md:w-48 md:min-w-48"
               key={`product-${index}-${product.name}`}
               onClick={() => window.open(product.productUrl, "_blank")}
               onKeyDown={(e) => {
@@ -766,17 +766,17 @@ function CreateDesignOutput({
       onClick={onDesignClick}
       type="button"
     >
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <CheckCircleIcon className="size-5 text-purple-600 dark:text-purple-400" />
-          <h3 className="font-semibold text-purple-900 dark:text-purple-100">
+      <div className="p-3 sm:p-4">
+        <div className="mb-2 flex items-center gap-2 sm:mb-3">
+          <CheckCircleIcon className="size-4 text-purple-600 sm:size-5 dark:text-purple-400" />
+          <h3 className="font-semibold text-purple-900 text-sm sm:text-base dark:text-purple-100">
             Design Created
           </h3>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           <div>
-            <h4 className="font-medium text-foreground text-sm">
+            <h4 className="font-medium text-foreground text-xs sm:text-sm">
               {output?.title}
             </h4>
             <p className="mt-1 text-muted-foreground text-xs">
@@ -892,10 +892,10 @@ function AddProductsOutput({
       onClick={onDesignClick}
       type="button"
     >
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <PackageIcon className="size-5 text-blue-600 dark:text-blue-400" />
-          <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+      <div className="p-3 sm:p-4">
+        <div className="mb-2 flex items-center gap-2 sm:mb-3">
+          <PackageIcon className="size-4 text-blue-600 sm:size-5 dark:text-blue-400" />
+          <h3 className="font-semibold text-blue-900 text-sm sm:text-base dark:text-blue-100">
             Products Added
           </h3>
         </div>
@@ -908,15 +908,15 @@ function AddProductsOutput({
           </p>
 
           {addedProducts.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 space-y-2 sm:mt-3">
               {addedProducts
                 .slice(-MAX_RECENT_PRODUCTS_TO_SHOW)
                 .map((product, index) => (
                   <div
-                    className="flex items-center gap-2 rounded-md bg-white/50 p-2 dark:bg-black/20"
+                    className="flex items-center gap-2 rounded-md bg-white/50 p-1.5 sm:p-2 dark:bg-black/20"
                     key={`added-product-${index}-${product.name}`}
                   >
-                    <div className="relative size-12 shrink-0 overflow-hidden rounded">
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded sm:size-12">
                       <Image
                         alt={product.name}
                         className="object-cover"
@@ -956,16 +956,18 @@ function UpdateDesignOutput({
       onClick={onDesignClick}
       type="button"
     >
-      <div className="p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <CheckCircleIcon className="size-5 text-amber-600 dark:text-amber-400" />
-          <h3 className="font-semibold text-amber-900 dark:text-amber-100">
+      <div className="p-3 sm:p-4">
+        <div className="mb-2 flex items-center gap-2 sm:mb-3">
+          <CheckCircleIcon className="size-4 text-amber-600 sm:size-5 dark:text-amber-400" />
+          <h3 className="font-semibold text-amber-900 text-sm sm:text-base dark:text-amber-100">
             Design Updated
           </h3>
         </div>
 
         <div className="space-y-2">
-          <p className="font-medium text-foreground text-sm">{output?.title}</p>
+          <p className="font-medium text-foreground text-xs sm:text-sm">
+            {output?.title}
+          </p>
           <p className="text-muted-foreground text-xs">
             Design successfully updated with your changes
           </p>
@@ -988,10 +990,10 @@ function GetDesignOutput({
       onClick={onDesignClick}
       type="button"
     >
-      <div className="p-4">
-        <div className="space-y-3">
+      <div className="p-3 sm:p-4">
+        <div className="space-y-2 sm:space-y-3">
           <div>
-            <h4 className="font-medium text-foreground text-sm">
+            <h4 className="font-medium text-foreground text-xs sm:text-sm">
               {output?.title}
             </h4>
             <p className="mt-1 text-muted-foreground text-xs">

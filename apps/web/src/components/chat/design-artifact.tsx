@@ -89,10 +89,10 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 
   return (
     <Card key={`${product.name}-${index}`}>
-      <CardContent className="p-4">
-        <div className="flex gap-3">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex gap-2.5 sm:gap-3">
           {product.imageUrl && !imageError ? (
-            <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-muted">
+            <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted sm:size-20">
               <Image
                 alt={product.name}
                 className="object-cover"
@@ -103,16 +103,16 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
             </div>
           ) : null}
           <div className="flex flex-1 flex-col gap-1">
-            <h4 className="font-medium text-sm leading-tight">
+            <h4 className="font-medium text-xs leading-tight sm:text-sm">
               {product.name}
             </h4>
             {product.description && (
-              <Response className="text-muted-foreground text-xs leading-relaxed">
+              <Response className="line-clamp-2 text-muted-foreground text-xs leading-relaxed">
                 {product.description}
               </Response>
             )}
             <div className="mt-auto flex items-center justify-between gap-2">
-              <span className="font-semibold text-sm">
+              <span className="font-semibold text-xs sm:text-sm">
                 ${product.price.toLocaleString()}
               </span>
               {product.productUrl && (
@@ -122,7 +122,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  View Product
+                  View
                 </a>
               )}
             </div>
@@ -143,7 +143,7 @@ function RoomView({
   totalCost: number;
 }) {
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-3 sm:space-y-6 sm:p-6">
       {/* Design Image */}
       {design.imageUrl ? (
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
@@ -175,7 +175,7 @@ function RoomView({
       {design.budget && (
         <div className="space-y-2">
           <h3 className="font-semibold text-sm">Budget</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant={isOverBudget ? "destructive" : "default"}>
               ${design.budget.toLocaleString()} budget
             </Badge>
@@ -201,7 +201,7 @@ function ProductsView({
   totalCost: number;
 }) {
   return (
-    <div className="space-y-3 p-6">
+    <div className="space-y-3 p-3 sm:p-6">
       <BudgetSummary budget={budget} totalCost={totalCost} />
       {products.map((product, index) => (
         <ProductCard
@@ -266,9 +266,11 @@ export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
   return (
     <Artifact className="flex size-full">
       <ArtifactHeader>
-        <div className="flex flex-1 items-center justify-between gap-4">
+        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex flex-col gap-1">
-            <ArtifactTitle>{design?.title ?? "Design"}</ArtifactTitle>
+            <ArtifactTitle className="text-sm sm:text-base">
+              {design?.title ?? "Design"}
+            </ArtifactTitle>
             <ArtifactDescription className="text-xs">
               Interior design concept
             </ArtifactDescription>
@@ -287,17 +289,20 @@ export function DesignArtifact({ design, onShare }: DesignArtifactProps) {
               value={activeView}
               variant="outline"
             >
-              <ToggleGroupItem className="min-w-20" value="room">
+              <ToggleGroupItem className="min-w-16 sm:min-w-20" value="room">
                 Room
               </ToggleGroupItem>
-              <ToggleGroupItem className="min-w-20" value="products">
+              <ToggleGroupItem
+                className="min-w-16 sm:min-w-20"
+                value="products"
+              >
                 Products
               </ToggleGroupItem>
             </ToggleGroup>
           )}
         </div>
 
-        <ArtifactActions>
+        <ArtifactActions className="flex-wrap gap-1">
           <ArtifactAction
             disabled={isTogglingPublic}
             icon={isPublic ? EyeIcon : EyeOffIcon}

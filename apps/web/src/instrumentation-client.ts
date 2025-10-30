@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/style/useNamingConvention: <explanation> */
+/** biome-ignore-all lint/style/useNamingConvention: PostHog configuration uses snake_case properties from their API */
 import posthog from "posthog-js";
 
 // Only initialize PostHog if the API key is set

@@ -13,7 +13,7 @@
 
 html {
   height: 100%;
-  @apply bg-background;
+  background-color: var(--color-background);
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
@@ -22,7 +22,7 @@ html {
 
 body {
   min-height: 100%;
-  @apply bg-background;
+  background-color: var(--color-background);
 }
 
 /* Chic — brand tokens
@@ -146,10 +146,12 @@ body {
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
@@ -164,13 +166,16 @@ body {
 
   /* Smooth transitions for theme changes (only after initial load) */
   html:not(.no-transitions) * {
-    @apply transition-colors duration-200;
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
   }
 
   /* Reduce border emphasis throughout */
   [role="separator"],
   hr {
-    @apply border-border/60;
+    border-color: color-mix(in oklch, var(--color-border) 60%, transparent);
   }
 
   /* ChicTypingIndicator animations */

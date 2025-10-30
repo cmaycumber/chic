@@ -39,7 +39,7 @@ export function ChatInput({
   isDisabled,
 }: ChatInputProps) {
   return (
-    <div className="z-10 shrink-0 px-6 pb-6">
+    <div className="z-10 shrink-0 px-3 pb-3 sm:px-4 sm:pb-4 md:px-6 md:pb-6">
       <div className="mx-auto max-w-3xl">
         <PromptInput globalDrop multiple onSubmit={onSubmit}>
           <PromptInputBody>
@@ -47,7 +47,7 @@ export function ChatInput({
               {(attachment) => <PromptInputAttachment data={attachment} />}
             </PromptInputAttachments>
             <PromptInputTextarea
-              className="min-h-[56px] text-base"
+              className="min-h-[52px] text-sm sm:min-h-[56px] sm:text-base"
               onChange={(e) => onPromptChange(e.target.value)}
               placeholder="Ask about your space..."
               rows={2}
@@ -67,13 +67,13 @@ export function ChatInput({
 
             {isStreaming ? (
               <Button
-                className="gap-1.5"
+                className="gap-1 text-xs sm:gap-1.5 sm:text-sm"
                 onClick={onStopStreaming}
                 size="sm"
                 type="button"
                 variant="destructive"
               >
-                <StopCircle className="size-3.5" />
+                <StopCircle className="size-3 sm:size-3.5" />
                 Stop
               </Button>
             ) : (

@@ -221,8 +221,10 @@ export const OpenInTrigger = ({ children, ...props }: OpenInTriggerProps) => (
   </DropdownMenuTrigger>
 );
 
+// biome-ignore lint/style/useNamingConvention: ChatGPT is a brand name
 export type OpenInChatGPTProps = ComponentProps<typeof DropdownMenuItem>;
 
+// biome-ignore lint/style/useNamingConvention: ChatGPT is a brand name
 export const OpenInChatGPT = (props: OpenInChatGPTProps) => {
   const { query } = useOpenInContext();
   return (

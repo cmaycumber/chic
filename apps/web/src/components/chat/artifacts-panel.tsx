@@ -1,14 +1,21 @@
 "use client";
 
 import { XIcon } from "lucide-react";
-import React, { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ArtifactTab } from "@/components/chat/artifact-tabs";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 const MIN_PANEL_WIDTH = 300;
 const MAX_PANEL_WIDTH = 800;
 const DEFAULT_PANEL_WIDTH = 500;
+const MOBILE_BREAKPOINT = 768;
 
 type ArtifactsPanelProps = {
   artifacts: ArtifactTab[];
@@ -18,6 +25,18 @@ type ArtifactsPanelProps = {
 export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
   const [panelWidth, setPanelWidth] = useState(DEFAULT_PANEL_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const handleMouseDown = useCallback(() => {
     setIsResizing(true);
@@ -55,7 +74,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
   };
 
   // Add/remove mouse event listeners for resizing
-  React.useEffect(() => {
+  useEffect(() => {
     if (isResizing) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
@@ -66,6 +85,50 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
     }
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
+  const panelContent = (
+    <>
+      {/* Designs Content */}
+      <div className="flex-1 overflow-auto">
+        {artifacts.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+            <p className="text-muted-foreground text-sm">No designs yet</p>
+            <p className="text-muted-foreground/60 text-xs">
+              Designs will appear here as you create them
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+            {artifacts.map((artifact) => (
+              <div key={artifact.id}>{artifact.content}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  // On mobile, use a Sheet
+  if (isMobile) {
+    return (
+      <Sheet onOpenChange={(open) => !open && onClose()} open>
+        <SheetContent className="w-full p-0 sm:max-w-lg" side="right">
+          <SheetHeader className="border-b px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SheetTitle className="text-sm">Designs</SheetTitle>
+                <span className="text-muted-foreground text-xs">
+                  {getArtifactCountLabel()}
+                </span>
+              </div>
+            </div>
+          </SheetHeader>
+          {panelContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // On desktop, use the resizable panel
   return (
     <div
       className="relative flex h-full shrink-0 flex-col bg-background"
@@ -103,23 +166,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
         </Button>
       </header>
 
-      {/* Designs Content */}
-      <div className="flex-1 overflow-auto">
-        {artifacts.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-            <p className="text-muted-foreground text-sm">No designs yet</p>
-            <p className="text-muted-foreground/60 text-xs">
-              Designs will appear here as you create them
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4 p-4">
-            {artifacts.map((artifact) => (
-              <div key={artifact.id}>{artifact.content}</div>
-            ))}
-          </div>
-        )}
-      </div>
+      {panelContent}
     </div>
   );
 }

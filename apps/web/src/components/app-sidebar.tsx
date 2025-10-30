@@ -64,11 +64,16 @@ const LOAD_MORE_THREADS_COUNT = 20;
 const LOGO_HEIGHT_EXPANDED = 20;
 const LOGO_WIDTH_EXPANDED = 49;
 
-export function AppSidebar({ className, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  className,
+  collapsible,
+  ...props
+}: AppSidebarProps) {
   const { state, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const router = useRouter();
   const collapsed = state === "collapsed";
+  const isMobileMode = collapsible === "none";
 
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -148,16 +153,18 @@ export function AppSidebar({ className, ...props }: AppSidebarProps) {
                     width={LOGO_WIDTH_EXPANDED}
                   />
                 </Link>
-                <Button
-                  className="size-8 p-0"
-                  onClick={toggleSidebar}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ChevronLeft className="size-4" />
-                  <span className="sr-only">Collapse sidebar</span>
-                </Button>
+                {!isMobileMode && (
+                  <Button
+                    className="size-8 p-0"
+                    onClick={toggleSidebar}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <ChevronLeft className="size-4" />
+                    <span className="sr-only">Collapse sidebar</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
