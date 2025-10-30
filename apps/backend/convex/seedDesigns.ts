@@ -22,7 +22,7 @@ import { v } from "convex/values";
 import { z } from "zod/v3";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { internalAction } from "./_generated/server";
+import { type ActionCtx, internalAction } from "./_generated/server";
 import { designAgent } from "./agents/design";
 
 // Rate limiting configuration
@@ -183,7 +183,7 @@ const DESIGN_TEMPLATES = {
  * Returns title, description, designPlan and optional tags.
  */
 async function generateDesignIdea(
-  ctx: Parameters<typeof internalAction>[0],
+  ctx: ActionCtx,
   args: {
     roomType: string;
     designStyle: string;
