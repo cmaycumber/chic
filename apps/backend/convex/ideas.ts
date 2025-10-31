@@ -12,6 +12,7 @@ const DEFAULT_ROOM_IDEAS_LIMIT = 50;
 const DEFAULT_TRENDING_LIMIT = 20;
 const DEFAULT_EXPLORE_LIMIT = 100;
 const DEFAULT_TOP_TAGS_LIMIT = 20;
+const DEFAULT_HERO_DESIGNS_LIMIT = 12;
 
 const roomTypeValidator = v.union(
   v.literal("living-room"),
@@ -520,5 +521,76 @@ export const getRoomFilterOptions = query({
         .sort((a, b) => b.count - a.count)
         .slice(0, DEFAULT_TOP_TAGS_LIMIT),
     };
+  },
+});
+
+/**
+ * Get hero designs for homepage
+ * Returns the most liked public designs with images
+ */
+export const getHeroDesigns = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  returns: v.array(designWithImageValidator),
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? DEFAULT_HERO_DESIGNS_LIMIT;
+
+    // Fetch all public designs with images
+    const designs = await ctx.db
+      .query("designs")
+      .withIndex("by_public", (q) => q.eq("isPublic", true))
+      .collect();
+
+    // Filter to only designs with images
+    const filtered = designs.filter((d) => d.imageStorageId);
+
+    // Sort by: featured first, then by likes, then by recency
+    const sorted = filtered.sort((a, b) => {
+      if (a.featured && !b.featured) {
+        return -1;
+      }
+      if (!a.featured && b.featured) {
+        return 1;
+      }
+
+      const aLikes = a.likes ?? 0;
+      const bLikes = b.likes ?? 0;
+      if (aLikes !== bLikes) {
+        return bLikes - aLikes;
+      }
+
+      return b._creationTime - a._creationTime;
+    });
+
+    // Take limit
+    const limited = sorted.slice(0, limit);
+
+    // Get image URLs
+    const designsWithImages = await Promise.all(
+      limited.map(async (design) => {
+        let imageUrl: string | null = null;
+        if (design.imageStorageId) {
+          imageUrl = await ctx.storage.getUrl(design.imageStorageId);
+        }
+
+        return {
+          _id: design._id,
+          _creationTime: design._creationTime,
+          title: design.title,
+          description: design.description,
+          imageUrl,
+          roomType: design.roomType,
+          designStyle: design.designStyle,
+          likes: design.likes,
+          views: design.views,
+          budget: design.budget,
+          tags: design.tags,
+          featured: design.featured,
+        };
+      })
+    );
+
+    return designsWithImages;
   },
 });
