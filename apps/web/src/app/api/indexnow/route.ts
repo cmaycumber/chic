@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import sitemap from "@/app/sitemap";
 import { siteConfig } from "@/lib/site-config";
@@ -55,21 +56,44 @@ async function submitToIndexNow(urls: string[]): Promise<IndexNowResponse> {
   }
 }
 
+async function verifySignature(request: Request): Promise<boolean> {
+  const webhookSecret = process.env.INDEXNOW_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    return false;
+  }
+
+  const signature = request.headers.get("x-vercel-signature");
+
+  if (!signature) {
+    return false;
+  }
+
+  const payload = await request.text();
+  const expectedSignature = createHmac("sha1", webhookSecret)
+    .update(payload)
+    .digest("hex");
+
+  return signature === expectedSignature;
+}
+
 export async function POST(request: Request) {
   try {
-    // Verify the request is authorized
-    const authHeader = request.headers.get("authorization");
-    const expectedToken = process.env.INDEXNOW_WEBHOOK_SECRET;
-
-    if (!expectedToken) {
+    // Verify HMAC signature
+    if (!process.env.INDEXNOW_WEBHOOK_SECRET) {
       return NextResponse.json(
         { error: "Webhook not configured - INDEXNOW_WEBHOOK_SECRET missing" },
         { status: 500 }
       );
     }
 
-    if (authHeader !== `Bearer ${expectedToken}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const isValid = await verifySignature(request.clone());
+
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid signature" },
+        { status: 401 }
+      );
     }
 
     // Get all URLs from the sitemap
