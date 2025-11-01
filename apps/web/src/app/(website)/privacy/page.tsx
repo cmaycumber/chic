@@ -1,3 +1,32 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | Chic - AI Interior Designer",
+  description:
+    "Learn about how Chic protects your privacy and handles your personal information. Read our comprehensive privacy policy for our AI interior design platform.",
+  openGraph: {
+    title: "Privacy Policy - Chic AI Interior Designer",
+    description:
+      "Learn about how Chic protects your privacy and handles your personal information.",
+    type: "website",
+    images: [
+      {
+        url: "/images/ai-room-designer-hero.png",
+        width: 1200,
+        height: 630,
+        alt: "Chic AI Interior Designer - Privacy Policy",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Privacy Policy - Chic AI Interior Designer",
+    description:
+      "Learn about how Chic protects your privacy and handles your personal information.",
+    images: ["/images/ai-room-designer-hero.png"],
+  },
+};
+
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen">

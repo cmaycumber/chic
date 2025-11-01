@@ -26,6 +26,21 @@ export const metadata: Metadata = {
     description:
       "Expert interior design tips and AI design guides to help you transform your space.",
     type: "website",
+    images: [
+      {
+        url: "/images/interior-design-ai-basics.png",
+        width: 1200,
+        height: 630,
+        alt: "Interior Design Blog - Expert tips and guides",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
+    description:
+      "Expert interior design tips and AI design guides to help you transform your space.",
+    images: ["/images/interior-design-ai-basics.png"],
   },
 };
 

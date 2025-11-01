@@ -26,6 +26,21 @@ export const metadata: Metadata = {
     description:
       "Discover interior design ideas for every room in your home. Browse, filter, and get inspired by thousands of curated designs from modern to traditional styles.",
     type: "website",
+    images: [
+      {
+        url: "/images/ai-room-designer-styles.png",
+        width: 1200,
+        height: 630,
+        alt: "Interior Design Ideas - Explore 500+ inspiring room designs",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Interior Design Ideas - Explore 500+ Inspiring Room Designs",
+    description:
+      "Discover interior design ideas for every room in your home. Browse, filter, and get inspired by thousands of curated designs.",
+    images: ["/images/ai-room-designer-styles.png"],
   },
 };
 

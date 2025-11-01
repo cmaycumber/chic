@@ -37,12 +37,21 @@ export const metadata: Metadata = {
       "Transform your space with our free AI interior designer. Get instant professional design ideas and personalized recommendations.",
     type: "website",
     siteName: "Chic",
+    images: [
+      {
+        url: "/images/ai-room-designer-hero.png",
+        width: 1200,
+        height: 630,
+        alt: "Chic AI Interior Designer - Transform your space with AI",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Chic - AI Interior Designer",
     description:
       "Free AI-powered interior design tool. Transform your space in seconds.",
+    images: ["/images/ai-room-designer-hero.png"],
   },
 };
 

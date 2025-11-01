@@ -96,6 +96,20 @@ export async function generateMetadata({
       title: `${roomLabel} Ideas - Inspiring Interior Designs`,
       description,
       type: "website",
+      images: [
+        {
+          url: "/images/ai-room-designer-bedroom.png",
+          width: 1200,
+          height: 630,
+          alt: `${roomLabel} Design Ideas - Inspiring interior designs`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
+      description,
+      images: ["/images/ai-room-designer-bedroom.png"],
     },
   };
 }

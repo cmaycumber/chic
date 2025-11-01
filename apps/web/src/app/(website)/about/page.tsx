@@ -1,7 +1,42 @@
 import { Target, Users, Zap } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "About Chic - Your AI Interior Designer | Free Interior Design Tool",
+  description:
+    "Learn about Chic, the free AI interior designer democratizing professional interior design. Get expert design guidance, instant room visualizations, and personalized recommendations at no cost.",
+  keywords: [
+    "about chic",
+    "ai interior designer",
+    "free interior design",
+    "design technology",
+    "home design ai",
+  ],
+  openGraph: {
+    title: "About Chic - Your AI Interior Designer",
+    description:
+      "Democratizing professional interior design through AI. Get expert design guidance and instant room visualizations for free.",
+    type: "website",
+    images: [
+      {
+        url: "/images/ai-room-designer-hero.png",
+        width: 1200,
+        height: 630,
+        alt: "About Chic - Your AI Interior Designer",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Chic - Your AI Interior Designer",
+    description:
+      "Democratizing professional interior design through AI. Get expert design guidance and instant room visualizations for free.",
+    images: ["/images/ai-room-designer-hero.png"],
+  },
+};
 
 export default function AboutPage() {
   return (
