@@ -1,4 +1,4 @@
-import { withPostHogConfig } from "@posthog/nextjs-config";
+import { withContentCollections } from "@content-collections/next";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -43,7 +43,9 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 };
 
-export default withPostHogConfig(nextConfig, {
-  personalApiKey: process.env.POSTHOG_API_KEY ?? "", // Personal API Key
-  envId: process.env.POSTHOG_ENV_ID ?? "", // Environment ID
-});
+export default withContentCollections(nextConfig);
+
+// export default withPostHogConfig(nextConfig, {
+//   personalApiKey: process.env.POSTHOG_API_KEY ?? "", // Personal API Key
+//   envId: process.env.POSTHOG_ENV_ID ?? "", // Environment ID
+// });
