@@ -14,7 +14,7 @@ export default async function WebsiteLayout({
   return (
     <div className="min-h-screen">
       <PublicHeader isAuthenticated={isAuthenticated} />
-      <main className="pt-16">{children}</main>
+      <main>{children}</main>
       <PublicFooter />
     </div>
   );

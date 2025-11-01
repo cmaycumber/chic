@@ -12,7 +12,7 @@ const DEFAULT_ROOM_IDEAS_LIMIT = 50;
 const DEFAULT_TRENDING_LIMIT = 20;
 const DEFAULT_EXPLORE_LIMIT = 100;
 const DEFAULT_TOP_TAGS_LIMIT = 20;
-const DEFAULT_HERO_DESIGNS_LIMIT = 12;
+const DEFAULT_HERO_DESIGNS_LIMIT = 24;
 
 const roomTypeValidator = v.union(
   v.literal("living-room"),
