@@ -1,32 +1,36 @@
 /**
  * Seed Designs Script
  *
- * Creates initial design content for the ideas pages using AI.
- * Run this with the Convex MCP server to generate seed content.
+ * Creates complete, shoppable design content using the design agent.
+ * The agent autonomously searches for products, generates visualizations,
+ * and creates designs with all necessary data.
+ *
+ * How It Works:
+ * - Calls the design agent with room type, style, budget, and design requirements
+ * - Agent uses its tools to search Amazon for real furniture and decor products
+ * - Agent generates photorealistic design images showing the products in context
+ * - Agent creates the complete design with products, images, and descriptions
  *
  * Rate Limiting Strategy:
- * - Adds configurable delays between API calls
+ * - Adds configurable delays between design generations
  * - Implements exponential backoff retry logic
  * - Processes designs sequentially to avoid overwhelming the API
  *
  * Usage with Convex MCP:
- * 1. Use mcp_convex_run to call this mutation
+ * 1. Use mcp_convex_run to call these functions
  * 2. Provide roomType, style, and seed count
- * 3. Script will generate designs with AI images (with delays to avoid rate limits)
+ * 3. Script will generate complete designs with products and images
  */
 
 "use node";
 import { createThread } from "@convex-dev/agent";
-import { generateText } from "ai";
 import { v } from "convex/values";
-import { z } from "zod/v3";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
 import { designAgent } from "./agents/design";
 
 // Rate limiting configuration
-const DELAY_BETWEEN_API_CALLS_MS = 2000; // 2 seconds between each AI API call
 const DELAY_BETWEEN_DESIGNS_MS = 8000; // 8 seconds between each design generation
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 5000; // 5 seconds initial retry delay
@@ -179,10 +183,11 @@ const DESIGN_TEMPLATES = {
 };
 
 /**
- * Generate a unique design idea using the design agent (Claude)
- * Returns title, description, designPlan and optional tags.
+ * Generate a complete design using the design agent
+ * The agent will search for products, generate an image, and create the design
+ * Returns the design ID created by the agent
  */
-async function generateDesignIdea(
+async function generateCompleteDesign(
   ctx: ActionCtx,
   args: {
     roomType: string;
@@ -190,54 +195,55 @@ async function generateDesignIdea(
     tags: string[];
     budget: number;
   }
-): Promise<{
-  title: string;
-  description: string;
-  designPlan: string;
-  tags?: string[];
-}> {
+): Promise<Id<"designs">> {
   const { roomType, designStyle, tags, budget } = args;
-  const titleSeed = `${designStyle} ${roomType.replace("-", " ")} Concept`;
+  const titleSeed = `${designStyle} ${roomType.replace("-", " ")} Design`;
 
+  // Create a thread for this design generation
   const threadId = await createThread(ctx, components.agent, {
-    title: `Seeding: ${titleSeed}`,
+    title: `Seed Design: ${titleSeed}`,
   });
 
-  const { thread } = await designAgent.continueThread(ctx, { threadId });
+  // Create a detailed prompt for the agent to generate a complete design
+  const prompt = `Create a complete ${designStyle} design for a ${roomType.replace("-", " ")}.
 
-  const { object: idea } = await thread.generateObject(
-    {
-      schema: z.object({
-        title: z
-          .string()
-          .describe(
-            "Catchy, specific title under 10 words (no generic phrases)"
-          ),
-        description: z
-          .string()
-          .describe(
-            "2-3 sentence inspiring description tailored to the style and room"
-          ),
-        designPlan: z
-          .string()
-          .describe(
-            "Markdown plan with sections: Style, Color Palette, Key Features, Tags"
-          ),
-        tags: z
-          .array(z.string())
-          .optional()
-          .describe("Optional tags specific to this concept"),
-      }),
-      prompt: `Create a unique design idea. Room: ${roomType}. Style: ${designStyle}. Budget: $${budget}. Existing tags: ${tags.join(", ")}. Avoid generic phrasing. Output JSON only matching the schema.`,
-    },
-    { storageOptions: { saveMessages: "none" } }
-  );
+**Requirements:**
+- Budget: $${budget}
+- Style: ${designStyle}
+- Room Type: ${roomType}
+- Design aesthetic tags: ${tags.join(", ")}
 
-  return idea;
+**Your task:**
+1. Create a unique, specific design (avoid generic titles like "Modern Living Room")
+2. Search for 3-5 actual furniture and decor products from Amazon that fit the style and budget
+3. Generate a photorealistic design visualization showing these products in the space
+4. Save the complete design with all products using the create_design tool
+
+Make this design actionable and shoppable with real products. Focus on furniture, lighting, rugs, artwork, and accessories that bring this ${roomType.replace("-", " ")} to life.
+
+After you create the design, respond with the design ID. Don't ask any questions.`;
+
+  // Let the agent run and use its tools to create the complete design
+  await designAgent.generateText(ctx, { threadId }, { prompt });
+
+  // Get the design that was created in this thread
+  const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
+    threadId,
+  });
+
+  if (designs.length === 0) {
+    throw new Error(
+      "Agent did not create a design. The design creation may have failed."
+    );
+  }
+
+  // Return the most recent design ID (should be the only one)
+  return designs[0]._id;
 }
 
 /**
- * Generate a single design with AI image
+ * Generate a single design with AI using the design agent
+ * The agent will search for products, generate an image, and create a complete design
  */
 export const generateSeedDesign = internalAction({
   args: {
@@ -267,18 +273,9 @@ export const generateSeedDesign = internalAction({
         Math.random() * (template.budgetRange[1] - template.budgetRange[0] + 1)
       ) + template.budgetRange[0];
 
-    // Create title
-    const roomLabel = args.roomType
-      .split("-")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-    const styleLabel =
-      args.designStyle.charAt(0).toUpperCase() + args.designStyle.slice(1);
-    const title = `${styleLabel} ${roomLabel} Design`;
-
-    // Generate a unique idea (title, description, plan) using the design agent (Claude)
-    const idea = await retryWithBackoff(() =>
-      generateDesignIdea(ctx, {
+    // Let the design agent generate a complete design with products and image
+    const designId = await retryWithBackoff(() =>
+      generateCompleteDesign(ctx, {
         roomType: args.roomType,
         designStyle: args.designStyle,
         tags: template.tags,
@@ -286,84 +283,20 @@ export const generateSeedDesign = internalAction({
       })
     );
 
-    const description = idea.description;
-    const designPlan = idea.designPlan;
-    const generatedTitle = idea.title;
-
-    // Delay before next API call
-    await sleep(DELAY_BETWEEN_API_CALLS_MS);
-
-    // Generate design visualization image with retry logic
-    const imagePrompt = `Create a photorealistic interior design image of a ${args.roomType.replace("-", " ")}.
-
-Style: ${args.designStyle}
-Design Elements: ${designPlan}
-
-Make it look realistic, well-lit, and professionally styled. The composition should show how all elements work together harmoniously in the space.`;
-
-    const imageResult = await retryWithBackoff(() =>
-      generateText({
-        model: "google/gemini-2.5-flash-image",
-        providerOptions: {
-          google: { responseModalities: ["TEXT", "IMAGE"] },
-        },
-        prompt: imagePrompt,
-      })
-    );
-
-    // Extract the generated image from the response
-    const firstStep = imageResult.steps?.[0];
-    if (!firstStep) {
-      throw new Error("Failed to generate image: No steps in response");
-    }
-
-    // Find the first image file in the response
-    const imageFile = firstStep.content
-      .filter((item) => item.type === "file")
-      .map((item) => (item.type === "file" ? item.file : null))
-      .find((file) => file?.mediaType?.startsWith("image/"));
-
-    if (!imageFile) {
-      throw new Error(
-        "Failed to generate image: No image files found in response"
-      );
-    }
-
-    // Convert Uint8Array to Blob for storage
-    const imageData = new Uint8Array(imageFile.uint8Array);
-    const blob = new Blob([imageData], {
-      type: imageFile.mediaType,
-    });
-
-    const imageStorageId = await ctx.storage.store(blob);
-
-    if (!imageStorageId) {
-      throw new Error("Failed to store generated image: Storage returned null");
-    }
-
+    // Update the design with featured status and seed data (likes, views)
     const defaultLikes = 20;
     const defaultViews = 100;
 
-    // Create the design with generated image
-    const design: { _id: Id<"designs"> } = await ctx.runMutation(
-      internal.designs.create,
-      {
-        title: generatedTitle || title,
-        description,
-        designPlan,
-        budget,
-        roomType: args.roomType,
-        designStyle: args.designStyle,
-        tags: idea.tags && idea.tags.length > 0 ? idea.tags : template.tags,
-        isPublic: true,
+    await ctx.runMutation(internal.designs.update, {
+      id: designId,
+      patch: {
         featured: args.featured ?? false,
         likes: Math.floor(Math.random() * defaultLikes),
         views: Math.floor(Math.random() * defaultViews),
-        imageStorageId,
-      }
-    );
+      },
+    });
 
-    return design._id;
+    return designId;
   },
 });
 
@@ -516,6 +449,9 @@ export const generateSingleDesign = internalAction({
 /**
  * USAGE RECOMMENDATIONS:
  *
+ * The design agent now handles the entire design creation process autonomously,
+ * including product search, image generation, and database creation.
+ *
  * To avoid rate limits, use these strategies:
  *
  * 1. Generate ONE design at a time (SAFEST):
@@ -543,7 +479,7 @@ export const generateSingleDesign = internalAction({
  *      })
  *    })
  *    ```
- *    This will take ~30 seconds per design with built-in delays.
+ *    This will take time as the agent searches products and generates images for each design.
  *
  * 3. Generate all rooms (SLOWEST but complete):
  *    ```
@@ -555,11 +491,17 @@ export const generateSingleDesign = internalAction({
  *      })
  *    })
  *    ```
- *    This will take several minutes but will complete without rate limits.
+ *    This will take several minutes but will complete with full designs including products.
+ *
+ * WHAT THE AGENT DOES:
+ * - Receives room type, style, budget, and design requirements
+ * - Uses search_products tool to find 3-5 real furniture/decor items from Amazon
+ * - Uses generate_design_image tool to create photorealistic visualizations
+ * - Uses create_design tool to save the complete design with products and images
+ * - Returns the design ID for further updates (featured status, likes, views)
  *
  * RATE LIMIT CONFIGURATION:
- * - DELAY_BETWEEN_API_CALLS_MS: 2000ms (2 seconds between each AI call)
  * - DELAY_BETWEEN_DESIGNS_MS: 8000ms (8 seconds between each design)
- * - Each design makes 3 AI calls, so total time per design: ~14 seconds
+ * - Each design involves multiple agent steps (product search, image generation, design creation)
  * - Adjust these constants at the top of the file if you hit rate limits
  */
