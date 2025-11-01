@@ -207,9 +207,6 @@ async function generateDesignIdea(
 
   const { object: idea } = await thread.generateObject(
     {
-      mode: "json",
-      schemaDescription:
-        "Generate a unique, shoppable interior design concept for the specified room type and style.",
       schema: z.object({
         title: z
           .string()
