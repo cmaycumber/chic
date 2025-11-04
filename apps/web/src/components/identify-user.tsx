@@ -1,13 +1,13 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { Authenticated, useQuery } from "convex/react";
 import posthog from "posthog-js";
 import { useEffect, useRef } from "react";
 import { useSession } from "@/lib/auth-client";
 import { POSTHOG_PROPERTIES } from "@/lib/posthog";
 
-export function IdentifyUser() {
+function IdentifyUserComponent() {
   const { data: session } = useSession();
   const user = useQuery(api.auth.getCurrentUser);
   const identifiedRef = useRef(false);
@@ -36,4 +36,12 @@ export function IdentifyUser() {
   }, [session, user]);
 
   return null;
+}
+
+export function IdentifyUser() {
+  return (
+    <Authenticated>
+      <IdentifyUserComponent />
+    </Authenticated>
+  );
 }

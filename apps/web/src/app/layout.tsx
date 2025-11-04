@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "@/global.css";
-import { Authenticated } from "convex/react";
 import { ThemeProvider } from "next-themes";
 import { IdentifyUser } from "@/components/identify-user";
 import Providers from "@/components/providers";
@@ -103,9 +102,7 @@ export default function RootLayout({
         >
           <Providers>
             {children}
-            <Authenticated>
-              <IdentifyUser />
-            </Authenticated>
+            <IdentifyUser />
           </Providers>
         </ThemeProvider>
       </body>
