@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useSession } from "@/lib/auth-client";
 import { POSTHOG_PROPERTIES } from "@/lib/posthog";
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
+export function IdentifyUser() {
   const { data: session } = useSession();
   const user = useQuery(api.auth.getCurrentUser);
   const identifiedRef = useRef(false);
@@ -35,5 +35,5 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     }
   }, [session, user]);
 
-  return <>{children}</>;
+  return null;
 }
