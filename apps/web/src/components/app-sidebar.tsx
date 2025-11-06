@@ -228,7 +228,7 @@ export function AppSidebar({
                     type="button"
                     variant="ghost"
                   >
-                    <Link href="/explore">
+                    <Link href={{ pathname: "/explore" }}>
                       <Compass className="size-5" />
                       <span className="sr-only">Explore Designs</span>
                     </Link>
@@ -250,7 +250,7 @@ export function AppSidebar({
                     type="button"
                     variant="ghost"
                   >
-                    <Link href="/saved">
+                    <Link href={{ pathname: "/saved" }}>
                       <Heart className="size-5" />
                       <span className="sr-only">Saved Designs</span>
                     </Link>
@@ -275,7 +275,7 @@ export function AppSidebar({
                 type="button"
                 variant="ghost"
               >
-                <Link href="/explore">
+                <Link href={{ pathname: "/explore" }}>
                   <Compass className="size-4" />
                   <span>Explore Designs</span>
                 </Link>
@@ -290,7 +290,7 @@ export function AppSidebar({
                 type="button"
                 variant="ghost"
               >
-                <Link href="/saved">
+                <Link href={{ pathname: "/saved" }}>
                   <Heart className="size-4" />
                   <span>Saved Designs</span>
                 </Link>
