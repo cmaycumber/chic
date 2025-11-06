@@ -2,7 +2,7 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useAction, useMutation } from "convex/react";
-import { ArrowUp, Mic } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/chat-header";
+import { PromptHelpers } from "@/components/chat/prompt-helpers";
 import { useSession } from "@/lib/auth-client";
 
 // Helper function to convert data URL to ArrayBuffer
@@ -176,14 +177,8 @@ export default function ChatHomePage() {
                       <PromptInputActionAddAttachments />
                     </PromptInputActionMenuContent>
                   </PromptInputActionMenu>
+                  <PromptHelpers onSelectPrompt={setInput} />
                 </PromptInputTools>
-                <button
-                  className="rounded-full p-1.5 hover:bg-accent sm:p-2"
-                  disabled={isSubmitting}
-                  type="button"
-                >
-                  <Mic className="size-4 text-muted-foreground sm:size-5" />
-                </button>
                 <div className="flex-1" />
                 <PromptInputSubmit disabled={isSubmitting}>
                   <ArrowUp className="size-4 sm:size-5" />

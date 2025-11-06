@@ -17,6 +17,7 @@ import {
   PromptInputToolbar,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { PromptHelpers } from "@/components/chat/prompt-helpers";
 import { Button } from "@/components/ui/button";
 
 type ChatInputProps = {
@@ -63,6 +64,7 @@ export function ChatInput({
                   <PromptInputActionAddAttachments />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
+              <PromptHelpers onSelectPrompt={onPromptChange} />
             </PromptInputTools>
 
             {isStreaming ? (
