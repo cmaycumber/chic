@@ -18,13 +18,12 @@
     "dev:backend": "turbo -F @furnish/backend run dev",
     "dev:setup": "turbo -F @furnish/backend dev:setup",
     "fix": "bun x ultracite fix",
-    "prepare": "husky"
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.6",
     "@manypkg/cli": "^0.25.1",
     "concurrently": "^9.2.1",
-    "husky": "^9.1.7",
     "lefthook": "^1.13.6",
     "lint-staged": "^16.2.4",
     "turbo": "2.5.8",
