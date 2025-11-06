@@ -24,7 +24,7 @@ export default function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/chat", request.url));
   }
 
   // Redirect unauthenticated users to login from protected routes

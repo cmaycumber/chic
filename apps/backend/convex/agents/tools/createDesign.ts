@@ -105,7 +105,7 @@ export const create_design = createTool({
         roomType: args.roomType,
         designStyle: args.designStyle,
         tags: args.tags,
-        likes: 0,
+        likesCount: 0,
         views: 0,
       }
     );

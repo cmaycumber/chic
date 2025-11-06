@@ -283,15 +283,12 @@ export const generateSeedDesign = internalAction({
       })
     );
 
-    // Update the design with featured status and seed data (likes, views)
-    const defaultLikes = 20;
     const defaultViews = 100;
 
     await ctx.runMutation(internal.designs.update, {
       id: designId,
       patch: {
         featured: args.featured ?? false,
-        likes: Math.floor(Math.random() * defaultLikes),
         views: Math.floor(Math.random() * defaultViews),
       },
     });

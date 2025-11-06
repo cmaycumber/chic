@@ -103,6 +103,31 @@ export const getPublicDesign = query({
       ),
       budget: v.optional(v.number()),
       designPlan: v.optional(v.string()),
+      roomType: v.optional(
+        v.union(
+          v.literal("living-room"),
+          v.literal("bedroom"),
+          v.literal("kitchen"),
+          v.literal("bathroom"),
+          v.literal("dining-room"),
+          v.literal("home-office"),
+          v.literal("family-room"),
+          v.literal("nursery"),
+          v.literal("outdoor")
+        )
+      ),
+      designStyle: v.optional(
+        v.union(
+          v.literal("modern"),
+          v.literal("minimalist"),
+          v.literal("scandinavian"),
+          v.literal("industrial"),
+          v.literal("bohemian"),
+          v.literal("coastal"),
+          v.literal("traditional"),
+          v.literal("contemporary")
+        )
+      ),
     }),
     v.null()
   ),
@@ -126,6 +151,8 @@ export const getPublicDesign = query({
       products: design.products,
       budget: design.budget,
       designPlan: design.designPlan,
+      roomType: design.roomType,
+      designStyle: design.designStyle,
     };
   },
 });

@@ -6,6 +6,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Compass,
+  Heart,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -64,6 +66,7 @@ const LOAD_MORE_THREADS_COUNT = 20;
 const LOGO_HEIGHT_EXPANDED = 20;
 const LOGO_WIDTH_EXPANDED = 49;
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: UI state management requires complex conditional rendering
 export function AppSidebar({
   className,
   collapsible,
@@ -211,9 +214,89 @@ export function AppSidebar({
         </div>
 
         {collapsed ? (
-          <div className="flex-1" />
+          <div className="flex-1 space-y-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    asChild
+                    className={cn(
+                      "w-full rounded-lg",
+                      pathname === "/explore" && "bg-accent"
+                    )}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Link href="/explore">
+                      <Compass className="size-5" />
+                      <span className="sr-only">Explore Designs</span>
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Explore Designs</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    asChild
+                    className={cn(
+                      "w-full rounded-lg",
+                      pathname === "/saved" && "bg-accent"
+                    )}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Link href="/saved">
+                      <Heart className="size-5" />
+                      <span className="sr-only">Saved Designs</span>
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Saved Designs</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col">
+            <div className="space-y-0.5 px-3 pb-3">
+              <Button
+                asChild
+                className={cn(
+                  "w-full justify-start gap-3 rounded-lg font-normal",
+                  pathname === "/explore" ? "bg-accent" : "hover:bg-accent/50"
+                )}
+                size="default"
+                type="button"
+                variant="ghost"
+              >
+                <Link href="/explore">
+                  <Compass className="size-4" />
+                  <span>Explore Designs</span>
+                </Link>
+              </Button>
+              <Button
+                asChild
+                className={cn(
+                  "w-full justify-start gap-3 rounded-lg font-normal",
+                  pathname === "/saved" ? "bg-accent" : "hover:bg-accent/50"
+                )}
+                size="default"
+                type="button"
+                variant="ghost"
+              >
+                <Link href="/saved">
+                  <Heart className="size-4" />
+                  <span>Saved Designs</span>
+                </Link>
+              </Button>
+            </div>
+
             <div className="shrink-0 px-6 py-2 font-medium text-muted-foreground/70 text-xs uppercase tracking-wider">
               Chats
             </div>

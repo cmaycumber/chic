@@ -19,6 +19,7 @@
     "@ai-sdk/google": "^2.0.26",
     "@ai-sdk/openai": "^2.0.59",
     "@convex-dev/agent": "^0.2.11",
+    "@convex-dev/aggregate": "^0.1.25",
     "@convex-dev/better-auth": "^0.9.6",
     "ai": "^5.0.86",
     "better-auth": "1.3.27",

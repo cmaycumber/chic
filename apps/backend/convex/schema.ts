@@ -7,6 +7,11 @@ const design = v.object({
   designId: v.id("designs"),
 });
 
+const likedDesign = v.object({
+  type: v.literal("design"),
+  designId: v.id("designs"),
+});
+
 export default defineSchema({
   designs: defineTable({
     title: v.string(),
@@ -56,7 +61,10 @@ export default defineSchema({
     ),
     // Curation & engagement
     featured: v.optional(v.boolean()),
+    // Deprecated: managed by aggregate component
     likes: v.optional(v.number()),
+
+    likesCount: v.optional(v.number()), // Managed by aggregate component
     views: v.optional(v.number()),
     tags: v.optional(v.array(v.string())),
   })
@@ -71,4 +79,12 @@ export default defineSchema({
     // Do we want to make this a union of different artifact types?
     artifact: v.union(design),
   }).index("by_threadId", ["threadId"]),
+
+  likes: defineTable({
+    userId: v.string(),
+    // Union of different types that can be liked
+    likedItem: v.union(likedDesign),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_design", ["userId", "likedItem.designId"]),
 });

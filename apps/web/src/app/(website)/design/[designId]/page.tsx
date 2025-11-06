@@ -7,6 +7,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Response } from "@/components/ai-elements/response";
 import { BackButton } from "@/components/back-button";
+import { DesignChatInput } from "@/components/design-chat-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -330,10 +331,16 @@ export default async function DesignPage({ params }: DesignPageProps) {
           </div>
         </div>
 
-        {/* Footer spacing */}
-        <div className="h-16" />
+        {/* Footer spacing for floating chat input */}
+        <div className="h-32 sm:h-40" />
       </div>
       {/* </ScrollArea> */}
+
+      {/* Floating Chat Input */}
+      <DesignChatInput
+        designId={designId as Id<"designs">}
+        designTitle={design.title}
+      />
     </div>
   );
 }

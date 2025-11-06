@@ -68,7 +68,7 @@ const designWithImageValidator = v.object({
       v.literal("contemporary")
     )
   ),
-  likes: v.optional(v.number()),
+  likesCount: v.optional(v.number()),
   views: v.optional(v.number()),
   budget: v.optional(v.number()),
   tags: v.optional(v.array(v.string())),
@@ -110,7 +110,7 @@ export const getFeaturedRoomDesigns = query({
           imageUrl,
           roomType: design.roomType,
           designStyle: design.designStyle,
-          likes: design.likes,
+          likesCount: design.likesCount,
           views: design.views,
           budget: design.budget,
           tags: design.tags,
@@ -176,8 +176,8 @@ export const getRoomIdeas = query({
       }
 
       // Then by likes
-      const aLikes = a.likes ?? 0;
-      const bLikes = b.likes ?? 0;
+      const aLikes = a.likesCount ?? 0;
+      const bLikes = b.likesCount ?? 0;
       if (aLikes !== bLikes) {
         return bLikes - aLikes;
       }
@@ -205,7 +205,7 @@ export const getRoomIdeas = query({
           imageUrl,
           roomType: design.roomType,
           designStyle: design.designStyle,
-          likes: design.likes,
+          likesCount: design.likesCount,
           views: design.views,
           budget: design.budget,
           tags: design.tags,
@@ -250,7 +250,7 @@ export const getTrendingDesigns = query({
       .map((d) => {
         const ageInDays = (now - d._creationTime) / millisecondsPerDay;
         const score =
-          ((d.likes ?? 0) * likesWeight + (d.views ?? 0)) /
+          ((d.likesCount ?? 0) * likesWeight + (d.views ?? 0)) /
           Math.max(ageInDays, minAgeDays);
         return { design: d, score };
       })
@@ -272,7 +272,7 @@ export const getTrendingDesigns = query({
           imageUrl,
           roomType: design.roomType,
           designStyle: design.designStyle,
-          likes: design.likes,
+          likesCount: design.likesCount,
           views: design.views,
           budget: design.budget,
           tags: design.tags,
@@ -339,8 +339,8 @@ export const exploreAllDesigns = query({
         return 1;
       }
 
-      const aLikes = a.likes ?? 0;
-      const bLikes = b.likes ?? 0;
+      const aLikes = a.likesCount ?? 0;
+      const bLikes = b.likesCount ?? 0;
       if (aLikes !== bLikes) {
         return bLikes - aLikes;
       }
@@ -367,7 +367,7 @@ export const exploreAllDesigns = query({
           imageUrl,
           roomType: design.roomType,
           designStyle: design.designStyle,
-          likes: design.likes,
+          likesCount: design.likesCount,
           views: design.views,
           budget: design.budget,
           tags: design.tags,
@@ -554,8 +554,8 @@ export const getHeroDesigns = query({
         return 1;
       }
 
-      const aLikes = a.likes ?? 0;
-      const bLikes = b.likes ?? 0;
+      const aLikes = a.likesCount ?? 0;
+      const bLikes = b.likesCount ?? 0;
       if (aLikes !== bLikes) {
         return bLikes - aLikes;
       }
@@ -582,7 +582,7 @@ export const getHeroDesigns = query({
           imageUrl,
           roomType: design.roomType,
           designStyle: design.designStyle,
-          likes: design.likes,
+          likesCount: design.likesCount,
           views: design.views,
           budget: design.budget,
           tags: design.tags,

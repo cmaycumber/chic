@@ -29,7 +29,7 @@ export default function SignInForm({
         },
         {
           onSuccess: () => {
-            router.push("/");
+            router.push("/chat");
             toast.success("Sign in successful");
           },
           onError: (error) => {
