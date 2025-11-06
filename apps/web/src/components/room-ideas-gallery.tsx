@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
+import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -37,14 +38,14 @@ type DesignStyle =
   | "contemporary";
 
 type Design = {
-  _id: string;
+  _id: Id<"designs">;
   _creationTime: number;
   title: string;
   description: string;
   imageUrl: string | null;
-  roomType?: string;
-  designStyle?: string;
-  likes?: number;
+  roomType?: RoomType;
+  designStyle?: DesignStyle;
+  likesCount?: number;
   budget?: number;
   tags?: string[];
   featured?: boolean;

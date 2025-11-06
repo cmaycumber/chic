@@ -180,13 +180,13 @@ export function AppSidebar({
                   <TooltipTrigger asChild>
                     <Button
                       asChild
-                      className="w-full rounded-lg"
+                      className="size-8 w-full p-0"
                       size="icon"
                       type="button"
                       variant="ghost"
                     >
                       <Link href="/chat">
-                        <PlusCircle className="size-5" />
+                        <PlusCircle className="size-4" />
                         <span className="sr-only">New Chat</span>
                       </Link>
                     </Button>
@@ -221,15 +221,15 @@ export function AppSidebar({
                   <Button
                     asChild
                     className={cn(
-                      "w-full rounded-lg",
+                      "size-8 w-full p-0",
                       pathname === "/explore" && "bg-accent"
                     )}
                     size="icon"
                     type="button"
                     variant="ghost"
                   >
-                    <Link href={{ pathname: "/explore" }}>
-                      <Compass className="size-5" />
+                    <Link as="/explore" href="/explore">
+                      <Compass className="size-4" />
                       <span className="sr-only">Explore Designs</span>
                     </Link>
                   </Button>
@@ -243,15 +243,15 @@ export function AppSidebar({
                   <Button
                     asChild
                     className={cn(
-                      "w-full rounded-lg",
+                      "size-8 w-full p-0",
                       pathname === "/saved" && "bg-accent"
                     )}
                     size="icon"
                     type="button"
                     variant="ghost"
                   >
-                    <Link href={{ pathname: "/saved" }}>
-                      <Heart className="size-5" />
+                    <Link as="/saved" href="/saved">
+                      <Heart className="size-4" />
                       <span className="sr-only">Saved Designs</span>
                     </Link>
                   </Button>
@@ -275,7 +275,7 @@ export function AppSidebar({
                 type="button"
                 variant="ghost"
               >
-                <Link href={{ pathname: "/explore" }}>
+                <Link as="/explore" href="/explore">
                   <Compass className="size-4" />
                   <span>Explore Designs</span>
                 </Link>
@@ -290,7 +290,7 @@ export function AppSidebar({
                 type="button"
                 variant="ghost"
               >
-                <Link href={{ pathname: "/saved" }}>
+                <Link as="/saved" href="/saved">
                   <Heart className="size-4" />
                   <span>Saved Designs</span>
                 </Link>

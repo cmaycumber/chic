@@ -256,12 +256,12 @@ function NotFoundState() {
           <p className="mt-2 text-muted-foreground text-sm">
             This design may have been removed or is not publicly available
           </p>
-          <Link href="/explore">
-            <Button className="mt-4" type="button" variant="outline">
+          <Button asChild className="mt-4" type="button" variant="outline">
+            <Link as="/explore" href="/explore">
               <ArrowLeft className="mr-2 size-4" />
               Back to Explore
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     </div>
@@ -322,12 +322,12 @@ function DesignContent({
       {/* Header with Back Button */}
       <header className="shrink-0 border-b bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 max-w-7xl items-center px-4 lg:px-8">
-          <Link href="/explore">
-            <Button size="sm" type="button" variant="ghost">
+          <Button asChild size="sm" type="button" variant="ghost">
+            <Link as="/explore" href="/explore">
               <ArrowLeft className="mr-2 size-4" />
               Back to Explore
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </header>
 

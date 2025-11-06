@@ -206,12 +206,10 @@ export function DesignCard({
     </>
   );
 
+  const linkHref = href ?? `/explore/${design._id}`;
+
   return (
-    <Link
-      href={{
-        pathname: href ?? null,
-      }}
-    >
+    <Link href={{ pathname: linkHref }}>
       <Card className="group cursor-pointer overflow-hidden pt-0 transition-shadow hover:shadow-lg">
         {cardContent}
       </Card>

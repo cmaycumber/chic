@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { Heart, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { DesignCard } from "@/components/design-card";
+import { Button } from "@/components/ui/button";
 
 export default function SavedDesignsPage() {
   const likedDesigns = useQuery(api.likes.getUserLikedDesigns);
@@ -34,12 +35,11 @@ export default function SavedDesignsPage() {
             <p className="mt-2 text-muted-foreground text-sm">
               Start exploring and save designs you love
             </p>
-            <Link
-              className="mt-4 inline-block rounded-lg bg-primary px-4 py-2 text-primary-foreground text-sm hover:bg-primary/90"
-              href="/explore"
-            >
-              Explore Designs
-            </Link>
+            <Button asChild className="mt-4" size="sm">
+              <Link as="/explore" href="/explore">
+                Explore Designs
+              </Link>
+            </Button>
           </div>
         </div>
       );
