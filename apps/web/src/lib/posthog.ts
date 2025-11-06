@@ -4,8 +4,8 @@
  */
 export const POSTHOG_PROPERTIES = {
   // User properties
-  USER_EMAIL: "email",
-  USER_NAME: "name",
+  userEmail: "email",
+  userName: "name",
 } as const;
 
 /**

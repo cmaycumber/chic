@@ -122,7 +122,11 @@ export function ExploreIdeasGallery({
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {trendingDesigns.map((design) => (
-                <DesignCard design={design} key={design._id} />
+                <DesignCard
+                  design={design}
+                  href={`/design/${design._id}`}
+                  key={design._id}
+                />
               ))}
             </div>
           </section>
@@ -239,7 +243,11 @@ export function ExploreIdeasGallery({
           {allDesigns && allDesigns.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {allDesigns.map((design) => (
-                <DesignCard design={design} key={design._id} />
+                <DesignCard
+                  design={design}
+                  href={`/design/${design._id}`}
+                  key={design._id}
+                />
               ))}
             </div>
           ) : (

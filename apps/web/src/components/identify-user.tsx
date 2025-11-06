@@ -23,8 +23,8 @@ function IdentifyUserComponent() {
       // Identify user if not already identified
       if (!identifiedRef.current) {
         posthog.identify(user._id, {
-          [POSTHOG_PROPERTIES.USER_EMAIL]: user.email,
-          [POSTHOG_PROPERTIES.USER_NAME]: user.name,
+          [POSTHOG_PROPERTIES.userEmail]: user.email,
+          [POSTHOG_PROPERTIES.userName]: user.name,
         });
         identifiedRef.current = true;
       }

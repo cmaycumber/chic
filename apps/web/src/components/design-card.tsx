@@ -2,7 +2,7 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { Heart } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -86,6 +86,7 @@ export function DesignCard({
   showLikeButton = true,
   href,
 }: DesignCardProps) {
+  const { isAuthenticated } = useConvexAuth();
   const toggleLike = useMutation(
     api.likes.toggleDesignLike
   ).withOptimisticUpdate((localStore, args) => {
@@ -103,9 +104,14 @@ export function DesignCard({
     }
   });
 
-  const isLiked = useQuery(api.likes.isDesignLiked, {
-    designId: design._id,
-  });
+  const isLiked = useQuery(
+    api.likes.isDesignLiked,
+    isAuthenticated
+      ? {
+          designId: design._id,
+        }
+      : "skip"
+  );
 
   // Get the real-time likes count from the aggregate
   const likesCount = useQuery(api.likes.getDesignLikesCount, {
@@ -121,16 +127,18 @@ export function DesignCard({
   const displayLikesCount = likesCount ?? design.likesCount ?? 0;
   const hasLikes = displayLikesCount > 0;
 
-  const cardContent = (
-    <>
-      {design.imageUrl && (
+  const linkHref = href ?? `/explore/${design._id}`;
+
+  return (
+    <Link href={{ pathname: linkHref }}>
+      <Card className="group cursor-pointer overflow-hidden pt-0 transition-shadow hover:shadow-lg">
         <div className="relative aspect-video overflow-hidden bg-muted">
           <Image
             alt={design.title}
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
-            src={design.imageUrl}
+            src={design.imageUrl ?? ""}
           />
           <div className="absolute top-2 right-2 flex gap-2">
             {design.featured && <Badge variant="secondary">Featured</Badge>}
@@ -159,59 +167,48 @@ export function DesignCard({
             )}
           </div>
         </div>
-      )}
-      <CardHeader className="space-y-1 p-3">
-        <CardTitle className="line-clamp-1 text-sm">{design.title}</CardTitle>
-        <CardDescription className="line-clamp-2 text-xs">
-          {design.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2 p-3 pt-0">
-        <div className="flex flex-wrap gap-1.5">
-          {design.roomType && (
-            <Badge className="text-xs" variant="outline">
-              {ROOM_TYPES.find((rt) => rt.value === design.roomType)?.label ||
-                design.roomType}
-            </Badge>
-          )}
-          {design.designStyle && (
-            <Badge className="text-xs" variant="outline">
-              {DESIGN_STYLES.find((ds) => ds.value === design.designStyle)
-                ?.label || design.designStyle}
-            </Badge>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter className="flex items-center justify-between border-border/40 border-t p-3">
-        <div className="flex items-center gap-3 text-muted-foreground text-xs">
-          <span className="flex items-center gap-1">
-            <Heart
-              className={cn(
-                "size-3",
-                hasLikes ? "fill-current text-red-500" : "text-muted-foreground"
-              )}
-            />
-            {displayLikesCount}
-          </span>
-          {design.views !== undefined && design.views > 0 && (
-            <span>👁️ {design.views}</span>
-          )}
-        </div>
-        {design.budget && (
-          <div className="font-medium text-xs">
-            ${design.budget.toLocaleString()}
+        <CardHeader className="space-y-1 p-3">
+          <CardTitle className="line-clamp-1 text-sm">{design.title}</CardTitle>
+          <CardDescription className="line-clamp-2 text-xs">
+            {design.description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 p-3 pt-0">
+          <div className="flex flex-wrap gap-1.5">
+            {design.roomType && (
+              <Badge className="text-xs" variant="outline">
+                {ROOM_TYPES.find((rt) => rt.value === design.roomType)?.label ||
+                  design.roomType}
+              </Badge>
+            )}
+            {design.designStyle && (
+              <Badge className="text-xs" variant="outline">
+                {DESIGN_STYLES.find((ds) => ds.value === design.designStyle)
+                  ?.label || design.designStyle}
+              </Badge>
+            )}
           </div>
-        )}
-      </CardFooter>
-    </>
-  );
-
-  const linkHref = href ?? `/explore/${design._id}`;
-
-  return (
-    <Link href={{ pathname: linkHref }}>
-      <Card className="group cursor-pointer overflow-hidden pt-0 transition-shadow hover:shadow-lg">
-        {cardContent}
+        </CardContent>
+        <CardFooter className="flex items-center justify-between border-border/40 border-t p-3">
+          <div className="flex items-center gap-3 text-muted-foreground text-xs">
+            <span className="flex items-center gap-1">
+              <Heart
+                className={cn(
+                  "size-3",
+                  hasLikes
+                    ? "fill-current text-red-500"
+                    : "text-muted-foreground"
+                )}
+              />
+              {displayLikesCount}
+            </span>
+          </div>
+          {design.budget && (
+            <div className="font-medium text-xs">
+              ${design.budget.toLocaleString()}
+            </div>
+          )}
+        </CardFooter>
       </Card>
     </Link>
   );
