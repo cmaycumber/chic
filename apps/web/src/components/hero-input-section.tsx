@@ -4,7 +4,7 @@ import { api } from "@furnish/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { ArrowUp, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   PromptInput,
   PromptInputBody,
@@ -15,6 +15,8 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { useSession } from "@/lib/auth-client";
 
+const PENDING_CHAT_INPUT_KEY = "furnish_pending_chat_input";
+
 export function HeroInputSection() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -24,6 +26,14 @@ export function HeroInputSection() {
 
   const isAuthenticated = !!session;
 
+  // Restore pending input from sessionStorage on mount
+  useEffect(() => {
+    const pendingInput = sessionStorage.getItem(PENDING_CHAT_INPUT_KEY);
+    if (pendingInput) {
+      setInput(pendingInput);
+    }
+  }, []);
+
   const handleSubmit = useCallback(
     async (message: PromptInputMessage) => {
       if (!message.text?.trim() || isSubmitting) {
@@ -31,6 +41,8 @@ export function HeroInputSection() {
       }
 
       if (!isAuthenticated) {
+        // Save input to sessionStorage before redirecting to login
+        sessionStorage.setItem(PENDING_CHAT_INPUT_KEY, message.text);
         router.push("/login");
         return;
       }
@@ -43,6 +55,10 @@ export function HeroInputSection() {
             content: message.text,
           },
         });
+
+        // Clear sessionStorage after successful thread creation
+        sessionStorage.removeItem(PENDING_CHAT_INPUT_KEY);
+
         router.push(`/chat/${threadId}`);
       } catch {
         // Error handled silently - could add toast notification

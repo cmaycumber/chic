@@ -4,7 +4,7 @@ import { api } from "@furnish/backend/convex/_generated/api";
 import { useAction, useMutation } from "convex/react";
 import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
@@ -31,6 +31,8 @@ async function dataUrlToArrayBuffer(dataUrl: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
+const PENDING_CHAT_INPUT_KEY = "furnish_pending_chat_input";
+
 export default function ChatHomePage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -38,6 +40,24 @@ export default function ChatHomePage() {
   const createThread = useMutation(api.threads.createNewThread);
   const uploadFile = useAction(api.files.uploadFile);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Restore pending input from sessionStorage on mount
+  useEffect(() => {
+    const pendingInput = sessionStorage.getItem(PENDING_CHAT_INPUT_KEY);
+    if (pendingInput) {
+      setInput(pendingInput);
+      sessionStorage.removeItem(PENDING_CHAT_INPUT_KEY);
+    }
+  }, []);
+
+  // Save input to sessionStorage when user types
+  useEffect(() => {
+    if (input.trim()) {
+      sessionStorage.setItem(PENDING_CHAT_INPUT_KEY, input);
+    } else {
+      sessionStorage.removeItem(PENDING_CHAT_INPUT_KEY);
+    }
+  }, [input]);
 
   const handleSubmit = useCallback(
     // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: File upload logic requires sequential steps with error handling
@@ -80,6 +100,10 @@ export default function ChatHomePage() {
           },
           fileIds: fileIds.length > 0 ? fileIds : undefined,
         });
+
+        // Clear sessionStorage after successful thread creation
+        sessionStorage.removeItem(PENDING_CHAT_INPUT_KEY);
+
         router.push(`/chat/${threadId}`);
       } catch {
         // Error handled silently - could add toast notification
