@@ -1,0 +1,19 @@
+#!/bin/sh
+# Exit on any error
+set -e
+
+echo "🔍 Running typecheck before push..."
+
+# Run turbo typecheck
+bun run check-types
+
+TYPECHECK_EXIT_CODE=$?
+
+if [ $TYPECHECK_EXIT_CODE -eq 0 ]; then
+  echo "✅ Typecheck passed"
+else
+  echo "❌ Typecheck failed"
+  exit $TYPECHECK_EXIT_CODE
+fi
+
+exit 0
