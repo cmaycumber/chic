@@ -91,116 +91,142 @@ function DesignSidebar({
   onLikeClick,
 }: DesignSidebarProps) {
   return (
-    <Card className="sticky top-20 rounded-xl border shadow-xl">
+    <Card className="sticky top-6 overflow-hidden rounded-2xl border-2">
       <CardContent className="p-6">
-        {/* Like Button */}
-        <Button
-          className={cn(
-            "mb-4 w-full",
-            isLiked && "bg-red-50 text-red-600 hover:bg-red-100"
-          )}
-          disabled={isLiked === undefined}
-          onClick={onLikeClick}
-          size="lg"
-          type="button"
-          variant={isLiked ? "outline" : "default"}
-        >
-          <Heart className={cn("mr-2 size-5", isLiked && "fill-current")} />
-          {isLiked ? "Saved" : "Save Design"}
-        </Button>
-
-        {/* Likes Count */}
-        {likesCount !== undefined && (
-          <div className="mb-4 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+        {/* Like Button with Count */}
+        <div className="space-y-3">
+          <Button
+            className={cn(
+              "h-12 w-full transition-all",
+              isLiked
+                ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+            disabled={isLiked === undefined}
+            onClick={onLikeClick}
+            size="lg"
+            type="button"
+            variant={isLiked ? "outline" : "default"}
+          >
             <Heart
               className={cn(
-                "size-4",
-                likesCount > 0
-                  ? "fill-current text-red-500"
-                  : "text-muted-foreground"
+                "mr-2 size-5 transition-all",
+                isLiked && "fill-current"
               )}
             />
-            <span>
-              {likesCount} {likesCount === 1 ? "like" : "likes"}
-            </span>
-          </div>
-        )}
+            {isLiked ? "Saved" : "Save Design"}
+          </Button>
 
+          {/* Likes Count */}
+          {likesCount !== undefined && likesCount > 0 && (
+            <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+              <Heart className="size-3.5 fill-current text-red-500" />
+              <span className="font-medium">
+                {likesCount.toLocaleString()}{" "}
+                {likesCount === 1 ? "person" : "people"} saved this
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Budget Section */}
         {design.budget && hasProducts && (
           <>
-            <Separator className="my-4" />
-            <div className="mb-4 flex items-baseline gap-2">
-              <span className="font-semibold text-2xl">
-                ${design.budget.toLocaleString()}
-              </span>
-              <span className="text-muted-foreground text-sm">budget</span>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total Cost</span>
-                <span
-                  className={cn(
-                    "font-medium",
-                    isOverBudget && "text-destructive"
-                  )}
-                >
-                  ${totalCost.toLocaleString()}
-                </span>
+            <Separator className="my-6" />
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/50 p-4">
+                <div className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                  Budget
+                </div>
+                <div className="font-bold text-3xl">
+                  ${design.budget.toLocaleString()}
+                </div>
               </div>
-              {isOverBudget ? (
-                <div className="flex items-center justify-between text-destructive text-sm">
-                  <span>Over Budget</span>
-                  <span className="font-medium">
-                    ${(totalCost - design.budget).toLocaleString()}
+
+              <div className="space-y-3 rounded-lg border bg-card p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-muted-foreground text-sm">
+                    Total Cost
+                  </span>
+                  <span
+                    className={cn(
+                      "font-semibold text-base",
+                      isOverBudget && "text-destructive"
+                    )}
+                  >
+                    ${totalCost.toLocaleString()}
                   </span>
                 </div>
-              ) : (
-                <div className="flex items-center justify-between text-emerald-600 text-sm">
-                  <span>Remaining</span>
-                  <span className="font-medium">
-                    ${(design.budget - totalCost).toLocaleString()}
-                  </span>
-                </div>
-              )}
+                <Separator />
+                {isOverBudget ? (
+                  <div className="flex items-center justify-between rounded-md bg-destructive/10 p-3">
+                    <span className="font-medium text-destructive text-sm">
+                      Over Budget
+                    </span>
+                    <span className="font-bold text-base text-destructive">
+                      +${(totalCost - design.budget).toLocaleString()}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-md bg-emerald-50 p-3">
+                    <span className="font-medium text-emerald-700 text-sm">
+                      Under Budget
+                    </span>
+                    <span className="font-bold text-base text-emerald-700">
+                      ${(design.budget - totalCost).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         )}
 
+        {/* No Budget Section */}
         {!design.budget && hasProducts && (
           <>
-            <Separator className="my-4" />
-            <div className="mb-4">
-              <h3 className="font-semibold text-xl">Ready to purchase?</h3>
-              <p className="mt-2 text-muted-foreground text-sm">
-                Add all {design.products?.length} items to your Amazon cart
-              </p>
-            </div>
+            <Separator className="my-6" />
+            <div className="space-y-4">
+              <div>
+                <h3 className="mb-1 font-semibold text-lg">Ready to shop?</h3>
+                <p className="text-muted-foreground text-sm">
+                  {design.products?.length} item
+                  {design.products?.length === 1 ? "" : "s"} selected for this
+                  design
+                </p>
+              </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground text-sm">
-                  Total Cost
-                </span>
-                <span className="font-semibold text-lg">
-                  ${totalCost.toLocaleString()}
-                </span>
+              <div className="rounded-lg border bg-card p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-muted-foreground text-sm">
+                    Total Cost
+                  </span>
+                  <span className="font-bold text-2xl">
+                    ${totalCost.toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
           </>
         )}
 
+        {/* Add to Cart Button */}
         {cartUrl && hasProducts && (
           <>
-            <Separator className="my-4" />
-            <Button asChild className="w-full gap-2" size="lg">
+            <Separator className="my-6" />
+            <Button
+              asChild
+              className="h-12 w-full gap-2 font-semibold"
+              size="lg"
+            >
               <a href={cartUrl} rel="noopener noreferrer" target="_blank">
-                <ShoppingCartIcon className="size-4" />
-                Add All to Cart
+                <ShoppingCartIcon className="size-5" />
+                Add All to Amazon Cart
               </a>
             </Button>
+            <p className="mt-3 text-center text-muted-foreground text-xs">
+              Purchases support this platform
+            </p>
           </>
         )}
       </CardContent>
@@ -481,6 +507,7 @@ export default function DesignDetailPage() {
   const toggleLike = useMutation(
     api.likes.toggleDesignLike
   ).withOptimisticUpdate((localStore, args) => {
+    // Optimistically toggle the liked state
     const currentValue = localStore.getQuery(api.likes.isDesignLiked, {
       designId: args.designId,
     });
@@ -490,6 +517,20 @@ export default function DesignDetailPage() {
         api.likes.isDesignLiked,
         { designId: args.designId },
         !currentValue
+      );
+    }
+
+    // Optimistically update the likes count
+    const currentCount = localStore.getQuery(api.likes.getDesignLikesCount, {
+      designId: args.designId,
+    });
+
+    if (currentCount !== undefined) {
+      const newCount = currentValue ? currentCount - 1 : currentCount + 1;
+      localStore.setQuery(
+        api.likes.getDesignLikesCount,
+        { designId: args.designId },
+        Math.max(0, newCount)
       );
     }
   });
