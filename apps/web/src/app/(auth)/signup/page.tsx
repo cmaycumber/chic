@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { AuthLayout } from "@/components/auth-layout";
 import SignUpForm from "@/components/sign-up-form";
 
@@ -12,7 +13,9 @@ export default function SignupPage() {
       subtitle="Start your interior design journey today"
       title="Create your account"
     >
-      <SignUpForm onSwitchToSignIn={() => router.push("/login")} />
+      <Suspense>
+        <SignUpForm onSwitchToSignIn={() => router.push("/login")} />
+      </Suspense>
     </AuthLayout>
   );
 }
