@@ -16,7 +16,8 @@ export default function SignUpForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl");
+  // biome-ignore lint/suspicious/noExplicitAny: RouteImpl is not typed
+  const callbackUrl: any = searchParams.get("callbackUrl");
 
   const form = useForm({
     defaultValues: {
