@@ -14,17 +14,15 @@ import { components, internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import {
   type ActionCtx,
-  action,
   internalQuery,
   type MutationCtx,
-  mutation,
   type QueryCtx,
-  query,
 } from "./_generated/server.js";
 import { designAgent } from "./agents/design";
+import { privateAction, privateMutation, privateQuery } from "./lib/utils";
 import { getAuthUserId } from "./utils";
 
-export const listThreads = query({
+export const listThreads = privateQuery({
   args: {
     paginationOpts: paginationOptsValidator,
   },
@@ -38,7 +36,7 @@ export const listThreads = query({
   },
 });
 
-export const createNewThread = mutation({
+export const createNewThread = privateMutation({
   args: {
     title: v.optional(v.string()),
     initialMessage: v.optional(vMessage),
@@ -100,7 +98,7 @@ export const createNewThread = mutation({
   },
 });
 
-export const getThreadDetails = query({
+export const getThreadDetails = privateQuery({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) => {
     await authorizeThreadAccess(ctx, threadId);
@@ -111,7 +109,7 @@ export const getThreadDetails = query({
   },
 });
 
-export const updateThreadTitle = action({
+export const updateThreadTitle = privateAction({
   args: { threadId: v.string() },
   handler: async (ctx, { threadId }) => {
     await authorizeThreadAccess(ctx, threadId);
@@ -132,7 +130,7 @@ export const updateThreadTitle = action({
   },
 });
 
-export const updateThreadTitleManually = mutation({
+export const updateThreadTitleManually = privateMutation({
   args: { threadId: v.string(), title: v.string() },
   returns: v.null(),
   handler: async (ctx, { threadId, title }) => {
@@ -145,7 +143,7 @@ export const updateThreadTitleManually = mutation({
   },
 });
 
-export const deleteThread = action({
+export const deleteThread = privateAction({
   args: { threadId: v.string() },
   returns: v.null(),
   handler: async (ctx, { threadId }) => {

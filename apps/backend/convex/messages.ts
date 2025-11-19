@@ -7,8 +7,9 @@ import {
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
-import { internalAction, mutation, query } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { designAgent } from "./agents/design";
+import { privateMutation, privateQuery } from "./lib/utils";
 import { authorizeThreadAccess } from "./threads";
 
 /**
@@ -16,7 +17,7 @@ import { authorizeThreadAccess } from "./threads";
  * Saves the user's message first, then schedules the AI response to stream asynchronously.
  * This enables optimistic updates on the client for better UX.
  */
-export const initiateAsyncStreaming = mutation({
+export const initiateAsyncStreaming = privateMutation({
   args: {
     prompt: v.string(),
     threadId: v.string(),
@@ -87,7 +88,7 @@ export const streamAsync = internalAction({
  * Query to list thread messages with streaming support.
  * Returns paginated messages and active streams for real-time updates.
  */
-export const listThreadMessages = query({
+export const listThreadMessages = privateQuery({
   args: {
     threadId: v.string(),
     paginationOpts: paginationOptsValidator,

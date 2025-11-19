@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { crud } from "convex-helpers/server/crud";
-import { mutation, query } from "./_generated/server";
+import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import schema from "./schema";
 
 export const { create, read, update, destroy } = crud(schema, "designs");
@@ -8,7 +8,7 @@ export const { create, read, update, destroy } = crud(schema, "designs");
 /**
  * Toggle the public/private status of a design
  */
-export const togglePublic = mutation({
+export const togglePublic = privateMutation({
   args: { designId: v.id("designs") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
@@ -26,7 +26,7 @@ export const togglePublic = mutation({
 /**
  * Get a design with its image URL
  */
-export const getWithImage = query({
+export const getWithImage = privateQuery({
   args: { designId: v.id("designs") },
   returns: v.union(
     v.object({
@@ -81,7 +81,7 @@ export const getWithImage = query({
  * Get a public design with its image URL (for sharing)
  * Returns null if design doesn't exist or is not public
  */
-export const getPublicDesign = query({
+export const getPublicDesign = publicQuery({
   args: { designId: v.id("designs") },
   returns: v.union(
     v.object({

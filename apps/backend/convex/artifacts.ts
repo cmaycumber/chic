@@ -1,11 +1,11 @@
 import { v } from "convex/values";
 import { crud } from "convex-helpers/server/crud";
-import { query } from "./_generated/server";
+import { privateQuery } from "./lib/utils";
 import schema from "./schema";
 
 export const { create, read, update, destroy } = crud(schema, "artifacts");
 
-export const listByThreadId = query({
+export const listByThreadId = privateQuery({
   args: { threadId: v.string() },
   returns: v.array(
     v.object({
@@ -29,7 +29,7 @@ export const listByThreadId = query({
   },
 });
 
-export const listByThreadIdWithDetails = query({
+export const listByThreadIdWithDetails = privateQuery({
   args: { threadId: v.string() },
   returns: v.array(
     v.object({

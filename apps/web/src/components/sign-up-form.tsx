@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
@@ -15,6 +15,8 @@ export default function SignUpForm({
   onSwitchToSignIn: () => void;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
 
   const form = useForm({
     defaultValues: {
@@ -31,7 +33,7 @@ export default function SignUpForm({
         },
         {
           onSuccess: () => {
-            router.push("/chat");
+            router.push(callbackUrl || "/chat");
             toast.success("Sign up successful");
           },
           onError: (error) => {

@@ -5,8 +5,8 @@
  */
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { mutation, query } from "./_generated/server";
 import { likesCountAggregate } from "./aggregate.config";
+import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import { getAuthUserId } from "./utils";
 
 /**
@@ -14,7 +14,7 @@ import { getAuthUserId } from "./utils";
  * If already liked, remove the like. If not liked, add a like.
  * The aggregate component maintains an efficient count of likes per design.
  */
-export const toggleDesignLike = mutation({
+export const toggleDesignLike = privateMutation({
   args: {
     designId: v.id("designs"),
   },
@@ -97,7 +97,7 @@ export const toggleDesignLike = mutation({
  * Get the likes count for a specific design using the aggregate
  * This is efficient O(log(n)) instead of counting all likes
  */
-export const getDesignLikesCount = query({
+export const getDesignLikesCount = publicQuery({
   args: {
     designId: v.id("designs"),
   },
@@ -117,7 +117,7 @@ export const getDesignLikesCount = query({
  * Get likes counts for multiple designs efficiently
  * Uses batch counting from the aggregate component
  */
-export const getDesignLikesCountBatch = query({
+export const getDesignLikesCountBatch = publicQuery({
   args: {
     designIds: v.array(v.id("designs")),
   },
@@ -148,7 +148,7 @@ export const getDesignLikesCountBatch = query({
 /**
  * Check if user has liked a specific design
  */
-export const isDesignLiked = query({
+export const isDesignLiked = privateQuery({
   args: {
     designId: v.id("designs"),
   },
@@ -176,7 +176,7 @@ export const isDesignLiked = query({
  *
  * @internal This is an internal function for maintenance
  */
-export const syncLikesAggregate = mutation({
+export const syncLikesAggregate = privateMutation({
   args: {},
   returns: v.object({
     processed: v.number(),
@@ -222,7 +222,7 @@ export const syncLikesAggregate = mutation({
 /**
  * Get all designs liked by the current user
  */
-export const getUserLikedDesigns = query({
+export const getUserLikedDesigns = privateQuery({
   args: {},
   returns: v.array(
     v.object({

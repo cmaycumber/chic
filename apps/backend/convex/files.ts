@@ -1,13 +1,13 @@
 import { getFile, storeFile } from "@convex-dev/agent";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
-import { action, mutation, query } from "./_generated/server";
+import { privateAction, privateMutation, privateQuery } from "./lib/utils";
 
 /**
  * Upload a file to Convex storage and save a reference in the agent component.
  * Returns the fileId that can be used to reference the file in messages.
  */
-export const uploadFile = action({
+export const uploadFile = privateAction({
   args: {
     data: v.bytes(), // File data as bytes
     mimeType: v.string(),
@@ -38,7 +38,7 @@ export const uploadFile = action({
  * Get file metadata and URL for a given fileId.
  * Used to retrieve file information when displaying messages.
  */
-export const getFileMetadata = action({
+export const getFileMetadata = privateAction({
   args: {
     fileId: v.string(),
   },
@@ -60,7 +60,7 @@ export const getFileMetadata = action({
 /**
  * Generate an upload URL for direct file uploads from the client.
  */
-export const generateUploadUrl = mutation({
+export const generateUploadUrl = privateMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
@@ -69,7 +69,7 @@ export const generateUploadUrl = mutation({
 /**
  * Get a temporary URL for a storage ID.
  */
-export const getStorageUrl = query({
+export const getStorageUrl = privateQuery({
   args: {
     storageId: v.string(),
   },

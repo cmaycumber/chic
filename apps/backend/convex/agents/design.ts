@@ -15,14 +15,16 @@
  */
 "use node";
 import { anthropic } from "@ai-sdk/anthropic";
-import { Agent } from "@convex-dev/agent";
+import { Agent, listUIMessages, type UIMessage } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
   gateway,
+  type ModelMessage,
   stepCountIs,
   wrapLanguageModel,
 } from "ai";
 import { components, internal } from "../_generated/api";
+import type { ActionCtx } from "../_generated/server";
 import { add_products_to_design } from "./tools/addProductsToDesign";
 import { create_design } from "./tools/createDesign";
 import { generate_design_image } from "./tools/generateDesignImage";
@@ -184,6 +186,111 @@ The following designs have been created in this conversation. Reference these wh
 }
 
 /**
+ * Helper to fetch user uploaded images from the thread
+ */
+async function getUserUploadedImages(
+  ctx: ActionCtx,
+  threadId: string
+): Promise<string[]> {
+  const uiMessages = await listUIMessages(ctx, components.agent, {
+    threadId,
+    paginationOpts: { numItems: 20, cursor: null },
+  });
+
+  const lastUserMessageWithFiles = uiMessages.page
+    .slice()
+    .reverse()
+    .find((m) => {
+      const msg = m as UIMessage<{ fileIds?: string[] }>;
+      return msg.role === "user" && (msg.metadata?.fileIds?.length ?? 0) > 0;
+    });
+
+  if (!lastUserMessageWithFiles) {
+    return [];
+  }
+
+  const msg = lastUserMessageWithFiles as UIMessage<{ fileIds?: string[] }>;
+  const fileIds = msg.metadata?.fileIds ?? [];
+  const imageUrls: string[] = [];
+
+  for (const fileId of fileIds) {
+    const fileMetadata = await ctx.runAction(
+      internal.internalFiles.getFileMetadata,
+      {
+        fileId,
+      }
+    );
+    if (fileMetadata.url) {
+      imageUrls.push(fileMetadata.url);
+    } else if (fileMetadata.storageId) {
+      const storageUrl = await ctx.runQuery(
+        internal.internalFiles.getStorageUrl,
+        {
+          storageId: fileMetadata.storageId,
+        }
+      );
+      if (storageUrl) {
+        imageUrls.push(storageUrl);
+      }
+    }
+  }
+
+  return imageUrls;
+}
+
+/**
+ * Enrich context with thread data (uploaded images and existing designs)
+ */
+async function enrichContextWithThreadData(
+  ctx: ActionCtx,
+  threadId: string,
+  messages: ModelMessage[]
+) {
+  // 1. User uploaded images
+  const imageUrls = await getUserUploadedImages(ctx, threadId);
+
+  if (imageUrls.length > 0) {
+    const storageIdNote = {
+      role: "user" as const,
+      content: `[System Note: The user uploaded image(s) with the following URLs: ${imageUrls.join(", ")}. Use these URLs as 'referenceImageUrls' when calling generate_design_image if the user wants to modify or use them as reference.]`,
+    };
+    // Insert after the last user message or at the end
+    messages.push(storageIdNote);
+  }
+
+  // 2. Existing designs
+  const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
+    threadId,
+  });
+
+  if (designs.length > 0) {
+    const contentParts = await buildDesignsContextParts(ctx, designs);
+
+    // Find the last user message index
+    let lastUserMessageIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        lastUserMessageIndex = i;
+        break;
+      }
+    }
+
+    // Insert the designs context with structured parts before the last user message
+    // Use "user" role since system messages don't support multimodal content
+    const designsMessage = {
+      role: "user" as const,
+      content: contentParts,
+    };
+
+    if (lastUserMessageIndex > 0) {
+      messages.splice(lastUserMessageIndex, 0, designsMessage);
+    } else {
+      messages.unshift(designsMessage);
+    }
+  }
+}
+
+/**
  * Interior Design Agent
  * Specialized AI agent for interior design consultation and advice
  */
@@ -213,35 +320,11 @@ export const designAgent = new Agent(components.agent, {
 
     // Fetch existing designs from the thread
     if (args.threadId) {
-      const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
-        threadId: args.threadId,
-      });
-
-      if (designs.length > 0) {
-        const contentParts = await buildDesignsContextParts(ctx, designs);
-
-        // Find the last user message index
-        let lastUserMessageIndex = -1;
-        for (let i = messages.length - 1; i >= 0; i--) {
-          if (messages[i].role === "user") {
-            lastUserMessageIndex = i;
-            break;
-          }
-        }
-
-        // Insert the designs context with structured parts before the last user message
-        // Use "user" role since system messages don't support multimodal content
-        const designsMessage = {
-          role: "user" as const,
-          content: contentParts,
-        };
-
-        if (lastUserMessageIndex > 0) {
-          messages.splice(lastUserMessageIndex, 0, designsMessage);
-        } else {
-          messages.unshift(designsMessage);
-        }
-      }
+      await enrichContextWithThreadData(
+        ctx as ActionCtx,
+        args.threadId,
+        messages
+      );
     }
 
     return [...messages, ...args.existingResponses];

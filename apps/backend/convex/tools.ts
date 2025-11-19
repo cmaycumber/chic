@@ -6,7 +6,7 @@
 "use node";
 import { gateway, generateText } from "ai";
 import { v } from "convex/values";
-import { action } from "./_generated/server";
+import { privateAction } from "./lib/utils";
 
 /**
  * Generate a design image using Google Gemini Flash
@@ -14,7 +14,7 @@ import { action } from "./_generated/server";
  * This public action allows the frontend to generate photorealistic interior design images
  * by transforming an uploaded room photo based on a description of desired changes.
  */
-export const generateDesignImage = action({
+export const generateDesignImage = privateAction({
   args: {
     imageStorageId: v.string(),
     description: v.string(),

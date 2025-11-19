@@ -4,7 +4,7 @@
  * Queries for fetching, filtering, and displaying curated room design ideas
  */
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { publicQuery } from "./lib/utils";
 
 // Constants for query limits
 const DEFAULT_FEATURED_LIMIT = 20;
@@ -79,7 +79,7 @@ const designWithImageValidator = v.object({
  * Get featured designs for a specific room type
  * These are admin-curated designs shown at the top of ideas pages
  */
-export const getFeaturedRoomDesigns = query({
+export const getFeaturedRoomDesigns = publicQuery({
   args: {
     roomType: roomTypeValidator,
     limit: v.optional(v.number()),
@@ -126,7 +126,7 @@ export const getFeaturedRoomDesigns = query({
 /**
  * Get all public designs for a room with optional filtering
  */
-export const getRoomIdeas = query({
+export const getRoomIdeas = publicQuery({
   args: {
     roomType: roomTypeValidator,
     style: v.optional(designStyleValidator),
@@ -221,7 +221,7 @@ export const getRoomIdeas = query({
 /**
  * Get trending designs across all rooms (for homepage/explore)
  */
-export const getTrendingDesigns = query({
+export const getTrendingDesigns = publicQuery({
   args: {
     limit: v.optional(v.number()),
   },
@@ -288,7 +288,7 @@ export const getTrendingDesigns = query({
 /**
  * Get all public designs across all rooms with optional filtering
  */
-export const exploreAllDesigns = query({
+export const exploreAllDesigns = publicQuery({
   args: {
     roomType: v.optional(roomTypeValidator),
     style: v.optional(designStyleValidator),
@@ -384,7 +384,7 @@ export const exploreAllDesigns = query({
  * Get available filter options across all designs
  * Returns counts of designs by room type, style, and tags
  */
-export const getExploreFilterOptions = query({
+export const getExploreFilterOptions = publicQuery({
   args: {},
   returns: v.object({
     roomTypes: v.array(
@@ -464,7 +464,7 @@ export const getExploreFilterOptions = query({
  * Get available filter options for a room type
  * Returns counts of designs by style and tags
  */
-export const getRoomFilterOptions = query({
+export const getRoomFilterOptions = publicQuery({
   args: {
     roomType: roomTypeValidator,
   },
@@ -528,7 +528,7 @@ export const getRoomFilterOptions = query({
  * Get hero designs for homepage
  * Returns the most liked public designs with images
  */
-export const getHeroDesigns = query({
+export const getHeroDesigns = publicQuery({
   args: {
     limit: v.optional(v.number()),
   },

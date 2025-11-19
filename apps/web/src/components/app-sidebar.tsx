@@ -124,7 +124,7 @@ export function AppSidebar({
 
   return (
     <Sidebar className={className} collapsible="icon" {...props}>
-      <SidebarContent>
+      <SidebarContent className="overflow-hidden">
         <div className={cn("space-y-3", collapsed ? "px-2 py-3" : "px-3 py-4")}>
           {/* Header with Logo and Toggle */}
           <div
@@ -438,11 +438,11 @@ export function AppSidebar({
             </ScrollArea>
           </div>
         )}
-
-        <SidebarFooter className={collapsed ? "px-3" : ""}>
-          <NavUser />
-        </SidebarFooter>
       </SidebarContent>
+
+      <SidebarFooter className={collapsed ? "px-3" : ""}>
+        <NavUser />
+      </SidebarFooter>
 
       <AlertDialog
         onOpenChange={(open) => !open && setDeleteThreadId(null)}

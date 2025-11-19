@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,7 +65,8 @@ const VIBES = [
 ];
 
 export function RoomDesignerTool() {
-  const { isLoading: isAuthLoading } = useConvexAuth();
+  const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [roomType, setRoomType] = useState<string>("");
@@ -121,6 +123,13 @@ export function RoomDesignerTool() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      router.push(
+        `/signup?callbackUrl=${encodeURIComponent(window.location.href)}`
+      );
+      return;
+    }
 
     if (!selectedFile) {
       setError("Please upload a room photo");
