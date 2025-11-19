@@ -215,7 +215,7 @@ async function getUserUploadedImages(
 
   for (const fileId of fileIds) {
     const fileMetadata = await ctx.runAction(
-      internal.internalFiles.getFileMetadata,
+      internal.files.internalGetFileMetadata,
       {
         fileId,
       }
@@ -224,7 +224,7 @@ async function getUserUploadedImages(
       imageUrls.push(fileMetadata.url);
     } else if (fileMetadata.storageId) {
       const storageUrl = await ctx.runQuery(
-        internal.internalFiles.getStorageUrl,
+        internal.files.internalGetStorageUrl,
         {
           storageId: fileMetadata.storageId,
         }

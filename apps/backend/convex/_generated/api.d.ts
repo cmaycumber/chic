@@ -9,6 +9,7 @@
  */
 
 import type * as agents_design from "../agents/design.js";
+import type * as agents_pinterest from "../agents/pinterest.js";
 import type * as agents_tools_addProductsToDesign from "../agents/tools/addProductsToDesign.js";
 import type * as agents_tools_createDesign from "../agents/tools/createDesign.js";
 import type * as agents_tools_generateDesignImage from "../agents/tools/generateDesignImage.js";
@@ -21,12 +22,12 @@ import type * as betterAuth__generated_api from "../betterAuth/_generated/api.js
 import type * as betterAuth__generated_server from "../betterAuth/_generated/server.js";
 import type * as betterAuth_adapter from "../betterAuth/adapter.js";
 import type * as betterAuth_auth from "../betterAuth/auth.js";
+import type * as betterAuth_functions from "../betterAuth/functions.js";
 import type * as designs from "../designs.js";
 import type * as files from "../files.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as ideas from "../ideas.js";
-import type * as internalFiles from "../internalFiles.js";
 import type * as lib_amazonAffiliate from "../lib/amazonAffiliate.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as likes from "../likes.js";
@@ -54,6 +55,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   "agents/design": typeof agents_design;
+  "agents/pinterest": typeof agents_pinterest;
   "agents/tools/addProductsToDesign": typeof agents_tools_addProductsToDesign;
   "agents/tools/createDesign": typeof agents_tools_createDesign;
   "agents/tools/generateDesignImage": typeof agents_tools_generateDesignImage;
@@ -66,12 +68,12 @@ declare const fullApi: ApiFromModules<{
   "betterAuth/_generated/server": typeof betterAuth__generated_server;
   "betterAuth/adapter": typeof betterAuth_adapter;
   "betterAuth/auth": typeof betterAuth_auth;
+  "betterAuth/functions": typeof betterAuth_functions;
   designs: typeof designs;
   files: typeof files;
   healthCheck: typeof healthCheck;
   http: typeof http;
   ideas: typeof ideas;
-  internalFiles: typeof internalFiles;
   "lib/amazonAffiliate": typeof lib_amazonAffiliate;
   "lib/utils": typeof lib_utils;
   likes: typeof likes;
@@ -1075,6 +1077,9 @@ export declare const components: {
         },
         any
       >;
+    };
+    functions: {
+      getPinterestAccount: FunctionReference<"query", "internal", {}, any>;
     };
   };
   agent: {

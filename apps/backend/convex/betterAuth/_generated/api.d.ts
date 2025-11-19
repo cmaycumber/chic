@@ -10,6 +10,7 @@
 
 import type * as adapter from "../adapter.js";
 import type * as auth from "../auth.js";
+import type * as functions from "../functions.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +29,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   adapter: typeof adapter;
   auth: typeof auth;
+  functions: typeof functions;
 }>;
 export type Mounts = {
   adapter: {
@@ -1009,6 +1011,9 @@ export type Mounts = {
       },
       any
     >;
+  };
+  functions: {
+    getPinterestAccount: FunctionReference<"query", "public", {}, any>;
   };
 };
 // For now fullApiWithMounts is only fullApi which provides

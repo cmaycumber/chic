@@ -67,6 +67,7 @@ export default defineSchema({
     likesCount: v.optional(v.number()), // Managed by aggregate component
     views: v.optional(v.number()),
     tags: v.optional(v.array(v.string())),
+    pinterestPinId: v.optional(v.string()),
   })
     .index("by_public", ["isPublic"])
     .index("by_room_type", ["roomType", "isPublic"])

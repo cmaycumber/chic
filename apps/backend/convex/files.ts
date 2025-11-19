@@ -1,6 +1,11 @@
 import { getFile, storeFile } from "@convex-dev/agent";
 import { v } from "convex/values";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { privateAction, privateMutation, privateQuery } from "./lib/utils";
 
 /**
@@ -14,6 +19,16 @@ export const uploadFile = privateAction({
     filename: v.optional(v.string()),
   },
   returns: v.string(), // Returns the fileId
+  handler: async (ctx, args): Promise<string> =>
+    await ctx.runAction(internal.files.internalUploadFile, args),
+});
+
+export const internalUploadFile = internalAction({
+  args: {
+    data: v.bytes(), // File data as bytes
+    mimeType: v.string(),
+    filename: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     // Validate and normalize mime type
     const mimeType = args.mimeType?.includes("/")
@@ -47,6 +62,20 @@ export const getFileMetadata = privateAction({
     storageId: v.string(),
     filename: v.optional(v.string()),
   }),
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    url: string | null;
+    storageId: string;
+    filename?: string;
+  }> => await ctx.runAction(internal.files.internalGetFileMetadata, args),
+});
+
+export const internalGetFileMetadata = internalAction({
+  args: {
+    fileId: v.string(),
+  },
   handler: async (ctx, args) => {
     const { file } = await getFile(ctx, components.agent, args.fileId);
     return {
@@ -63,6 +92,12 @@ export const getFileMetadata = privateAction({
 export const generateUploadUrl = privateMutation({
   args: {},
   returns: v.string(),
+  handler: async (ctx): Promise<string> =>
+    await ctx.runMutation(internal.files.internalGenerateUploadUrl, {}),
+});
+
+export const internalGenerateUploadUrl = internalMutation({
+  args: {},
   handler: async (ctx) => await ctx.storage.generateUploadUrl(),
 });
 
@@ -74,5 +109,13 @@ export const getStorageUrl = privateQuery({
     storageId: v.string(),
   },
   returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args): Promise<string | null> =>
+    await ctx.runQuery(internal.files.internalGetStorageUrl, args),
+});
+
+export const internalGetStorageUrl = internalQuery({
+  args: {
+    storageId: v.string(),
+  },
   handler: async (ctx, args) => await ctx.storage.getUrl(args.storageId),
 });

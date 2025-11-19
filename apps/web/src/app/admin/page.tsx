@@ -82,6 +82,18 @@ export default function AdminPage() {
             Refresh
           </Button>
         </div>
+        <div className="mb-4">
+          <Button
+            onClick={async () => {
+              await authClient.signIn.social({
+                provider: "pinterest",
+                callbackURL: "/admin",
+              });
+            }}
+          >
+            Connect Pinterest
+          </Button>
+        </div>
         {loadingUsers ? (
           <div>Loading users...</div>
         ) : (

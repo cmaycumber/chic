@@ -39,7 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -124,7 +123,7 @@ export function AppSidebar({
 
   return (
     <Sidebar className={className} collapsible="icon" {...props}>
-      <SidebarContent className="overflow-hidden">
+      <SidebarContent>
         <div className={cn("space-y-3", collapsed ? "px-2 py-3" : "px-3 py-4")}>
           {/* Header with Logo and Toggle */}
           <div
@@ -300,7 +299,7 @@ export function AppSidebar({
             <div className="shrink-0 px-6 py-2 font-medium text-muted-foreground/70 text-xs uppercase tracking-wider">
               Chats
             </div>
-            <ScrollArea className="flex-1">
+            <div className="flex-1 overflow-auto">
               <div className="flex flex-col gap-0.5 px-3 pb-4">
                 {threads === undefined && (
                   <div className="flex items-center justify-center py-8">
@@ -435,14 +434,14 @@ export function AppSidebar({
                   </>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         )}
-      </SidebarContent>
 
-      <SidebarFooter className={collapsed ? "px-3" : ""}>
-        <NavUser />
-      </SidebarFooter>
+        <SidebarFooter className={collapsed ? "px-3" : ""}>
+          <NavUser />
+        </SidebarFooter>
+      </SidebarContent>
 
       <AlertDialog
         onOpenChange={(open) => !open && setDeleteThreadId(null)}
