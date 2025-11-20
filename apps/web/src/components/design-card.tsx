@@ -146,7 +146,7 @@ export function DesignCard({
               <Button
                 className={cn(
                   "size-8 cursor-pointer rounded-full bg-background/80 p-0 backdrop-blur hover:bg-background/90",
-                  isLiked && "bg-red-50 hover:bg-red-100"
+                  isLiked && "bg-like-muted hover:bg-like-muted-hover"
                 )}
                 disabled={isLiked === undefined}
                 onClick={handleLikeClick}
@@ -157,7 +157,7 @@ export function DesignCard({
                 <Heart
                   className={cn(
                     "size-4 transition-colors",
-                    isLiked ? "fill-red-500 text-red-500" : "text-foreground"
+                    isLiked ? "fill-like text-like" : "text-foreground"
                   )}
                 />
                 <span className="sr-only">
@@ -195,9 +195,7 @@ export function DesignCard({
               <Heart
                 className={cn(
                   "size-3",
-                  hasLikes
-                    ? "fill-current text-red-500"
-                    : "text-muted-foreground"
+                  hasLikes ? "fill-current text-like" : "text-muted-foreground"
                 )}
               />
               {displayLikesCount}

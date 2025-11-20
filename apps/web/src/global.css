@@ -67,6 +67,24 @@ body {
   --sidebar-accent-foreground: oklch(0.15 0 0);
   --sidebar-border: oklch(0.94 0 0);
   --sidebar-ring: oklch(0.15 0 0);
+
+  /* Success tokens - green */
+  --success: oklch(0.55 0.14 145);
+  --success-foreground: oklch(0.98 0 0);
+  --success-muted: oklch(0.95 0.05 145);
+
+  /* Error tokens - red */
+  --error: oklch(0.55 0.22 27);
+  --error-foreground: oklch(0.98 0 0);
+
+  /* Link tokens - indigo */
+  --link: oklch(0.48 0.18 270);
+  --link-hover: oklch(0.38 0.2 270);
+
+  /* Like/favorite tokens - red */
+  --like: oklch(0.55 0.22 27);
+  --like-muted: oklch(0.97 0.05 27);
+  --like-muted-hover: oklch(0.93 0.08 27);
 }
 
 .dark {
@@ -101,6 +119,24 @@ body {
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.25 0 0);
   --sidebar-ring: oklch(0.98 0 0);
+
+  /* Success tokens - green (dark mode) */
+  --success: oklch(0.65 0.16 145);
+  --success-foreground: oklch(0.98 0 0);
+  --success-muted: oklch(0.2 0.08 145);
+
+  /* Error tokens - red (dark mode) */
+  --error: oklch(0.65 0.2 22);
+  --error-foreground: oklch(0.98 0 0);
+
+  /* Link tokens - indigo (dark mode) */
+  --link: oklch(0.65 0.18 270);
+  --link-hover: oklch(0.75 0.2 270);
+
+  /* Like/favorite tokens - red (dark mode) */
+  --like: oklch(0.65 0.2 22);
+  --like-muted: oklch(0.2 0.08 22);
+  --like-muted-hover: oklch(0.25 0.1 22);
 }
 
 @theme inline {
@@ -142,6 +178,18 @@ body {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* New design tokens */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-muted: var(--success-muted);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-like: var(--like);
+  --color-like-muted: var(--like-muted);
+  --color-like-muted-hover: var(--like-muted-hover);
 }
 
 @layer base {

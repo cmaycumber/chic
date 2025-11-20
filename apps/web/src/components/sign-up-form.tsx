@@ -16,8 +16,7 @@ export default function SignUpForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // biome-ignore lint/suspicious/noExplicitAny: RouteImpl is not typed
-  const callbackUrl: any = searchParams.get("callbackUrl");
+  const callbackUrl = (searchParams.get("callbackUrl") ?? "/chat") as string;
 
   const form = useForm({
     defaultValues: {
@@ -34,7 +33,7 @@ export default function SignUpForm({
         },
         {
           onSuccess: () => {
-            router.push(callbackUrl || "/chat");
+            router.push(callbackUrl);
             toast.success("Sign up successful");
           },
           onError: (error) => {
@@ -80,7 +79,7 @@ export default function SignUpForm({
                   value={field.state.value}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
+                  <p className="text-error text-sm" key={error?.message}>
                     {error?.message}
                   </p>
                 ))}
@@ -103,7 +102,7 @@ export default function SignUpForm({
                   value={field.state.value}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
+                  <p className="text-error text-sm" key={error?.message}>
                     {error?.message}
                   </p>
                 ))}
@@ -126,7 +125,7 @@ export default function SignUpForm({
                   value={field.state.value}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
+                  <p className="text-error text-sm" key={error?.message}>
                     {error?.message}
                   </p>
                 ))}
@@ -150,7 +149,7 @@ export default function SignUpForm({
 
       <div className="mt-4 text-center">
         <Button
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-link hover:text-link-hover"
           onClick={onSwitchToSignIn}
           variant="link"
         >

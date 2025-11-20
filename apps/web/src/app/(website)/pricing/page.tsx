@@ -51,8 +51,8 @@ export default function PricingPage() {
             <ul className="mb-8 space-y-4">
               {FEATURES.map((feature) => (
                 <li className="flex items-center gap-3" key={feature}>
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
-                    <Check className="h-4 w-4 text-green-600" />
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success-muted">
+                    <Check className="h-4 w-4 text-success" />
                   </div>
                   <span className="text-neutral-600">{feature}</span>
                 </li>
