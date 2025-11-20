@@ -1,12 +1,19 @@
 import { cn } from "@/lib/utils";
 
+export const LOGO_WIDTH = 49;
+export const LOGO_HEIGHT = 20;
+
 type LogoProps = {
   className?: string;
   width?: number;
   height?: number;
 };
 
-export function Logo({ className, width = 100, height = 41 }: LogoProps) {
+export function Logo({
+  className,
+  width = LOGO_WIDTH,
+  height = LOGO_HEIGHT,
+}: LogoProps) {
   return (
     <svg
       className={cn(className)}

@@ -35,5 +35,10 @@
       "bun x ultracite fix",
       "bun x ultracite fix"
     ]
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "react-hook-form": "^7.66.1",
+    "zod": "^4.1.12"
   }
 }

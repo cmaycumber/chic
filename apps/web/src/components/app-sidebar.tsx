@@ -19,7 +19,8 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Logo } from "@/components/logo";
+import { CreditPurchaseModal } from "@/components/credit-purchase-modal";
+import { LOGO_HEIGHT, LOGO_WIDTH, Logo } from "@/components/logo";
 import { NavUser } from "@/components/nav-user";
 import {
   AlertDialog,
@@ -62,8 +63,6 @@ type AppSidebarProps = Omit<
 
 const INITIAL_THREADS_LOAD = 20;
 const LOAD_MORE_THREADS_COUNT = 20;
-const LOGO_HEIGHT_EXPANDED = 20;
-const LOGO_WIDTH_EXPANDED = 49;
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: UI state management requires complex conditional rendering
 export function AppSidebar({
@@ -80,6 +79,7 @@ export function AppSidebar({
   const [editingThreadId, setEditingThreadId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [deleteThreadId, setDeleteThreadId] = useState<string | null>(null);
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
 
   const updateThreadTitle = useMutation(api.threads.updateThreadTitleManually);
   const deleteThreadAction = useAction(api.threads.deleteThread);
@@ -151,8 +151,8 @@ export function AppSidebar({
                 >
                   <Logo
                     className="text-foreground"
-                    height={LOGO_HEIGHT_EXPANDED}
-                    width={LOGO_WIDTH_EXPANDED}
+                    height={LOGO_HEIGHT}
+                    width={LOGO_WIDTH}
                   />
                 </Link>
                 {!isMobileMode && (
@@ -211,6 +211,21 @@ export function AppSidebar({
             )}
           </div>
         </div>
+
+        {!collapsed && (
+          <div className="px-3 pb-2">
+            <Button
+              className="w-full justify-between bg-amber-600/10 text-amber-700 hover:bg-amber-600/20 hover:text-amber-800"
+              onClick={() => setCreditModalOpen(true)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <span className="font-medium text-xs">Get more credits</span>
+              <span className="font-bold text-xs">Upgrade</span>
+            </Button>
+          </div>
+        )}
 
         {collapsed ? (
           <div className="flex-1 space-y-2">
@@ -443,6 +458,10 @@ export function AppSidebar({
         </SidebarFooter>
       </SidebarContent>
 
+      <CreditPurchaseModal
+        onOpenChange={setCreditModalOpen}
+        open={creditModalOpen}
+      />
       <AlertDialog
         onOpenChange={(open) => !open && setDeleteThreadId(null)}
         open={deleteThreadId !== null}

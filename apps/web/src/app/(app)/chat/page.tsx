@@ -2,27 +2,12 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useAction, useMutation } from "convex/react";
-import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import {
-  PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
-  PromptInputAttachment,
-  PromptInputAttachments,
-  PromptInputBody,
-  type PromptInputMessage,
-  PromptInputSubmit,
-  PromptInputTextarea,
-  PromptInputToolbar,
-  PromptInputTools,
-} from "@/components/ai-elements/prompt-input";
+import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatHeader } from "@/components/chat/chat-header";
-import { PromptHelpers } from "@/components/chat/prompt-helpers";
+import { ChatInput } from "@/components/chat/chat-input";
 import { useSession } from "@/lib/auth-client";
 
 // Helper function to convert data URL to ArrayBuffer
@@ -37,6 +22,7 @@ export default function ChatHomePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const [input, setInput] = useState("");
+  const [model, setModel] = useState("gpt-4o");
   const createThread = useMutation(api.threads.createNewThread);
   const uploadFile = useAction(api.files.uploadFile);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +49,7 @@ export default function ChatHomePage() {
     // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: File upload logic requires sequential steps with error handling
     async function submitWithFiles(
       message: PromptInputMessage,
-      event: React.FormEvent<HTMLFormElement>
+      event: React.FormEvent
     ) {
       event.preventDefault();
       const hasText = Boolean(message.text?.trim());
@@ -173,43 +159,21 @@ export default function ChatHomePage() {
         </div>
 
         {/* Input Area */}
-        <div className="bg-background p-3 sm:p-4 md:p-6">
-          <div className="mx-auto max-w-2xl">
-            <PromptInput
-              accept="image/*"
-              globalDrop
-              multiple
-              onSubmit={handleSubmit}
-            >
-              <PromptInputBody>
-                <PromptInputAttachments>
-                  {(attachment) => <PromptInputAttachment data={attachment} />}
-                </PromptInputAttachments>
-                <PromptInputTextarea
-                  className="min-h-[56px] text-sm sm:min-h-[60px] sm:text-base"
-                  disabled={isSubmitting}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask anything about your space, or drop an image..."
-                  value={input}
-                />
-              </PromptInputBody>
-              <PromptInputToolbar>
-                <PromptInputTools>
-                  <PromptInputActionMenu>
-                    <PromptInputActionMenuTrigger />
-                    <PromptInputActionMenuContent>
-                      <PromptInputActionAddAttachments />
-                    </PromptInputActionMenuContent>
-                  </PromptInputActionMenu>
-                  <PromptHelpers onSelectPrompt={setInput} />
-                </PromptInputTools>
-                <div className="flex-1" />
-                <PromptInputSubmit disabled={isSubmitting}>
-                  <ArrowUp className="size-4 sm:size-5" />
-                </PromptInputSubmit>
-              </PromptInputToolbar>
-            </PromptInput>
-            <div className="mt-2 text-center text-muted-foreground/80 text-xs">
+        <div className="bg-background">
+          <ChatInput
+            isDisabled={isSubmitting}
+            isStreaming={false}
+            model={model}
+            onModelChange={setModel}
+            onPromptChange={setInput}
+            onStopStreaming={() => {
+              // no-op
+            }}
+            onSubmit={handleSubmit}
+            prompt={input}
+          />
+          <div className="mx-auto max-w-3xl px-3 pb-3 sm:px-4 sm:pb-4 md:px-6 md:pb-6">
+            <div className="text-center text-muted-foreground/80 text-xs">
               Your AI interior designer provides suggestions based on design
               principles. Always verify measurements and check product details.
             </div>

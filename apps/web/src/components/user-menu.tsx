@@ -2,7 +2,15 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { Bell, LogOut, Palette, Settings, Shield, User } from "lucide-react";
+import {
+  Bell,
+  CreditCard,
+  LogOut,
+  Palette,
+  Settings,
+  Shield,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -20,6 +28,7 @@ import { Button } from "./ui/button";
 export default function UserMenu() {
   const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
+  const credits = useQuery(api.credits.getCredits);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState("general");
 
@@ -32,15 +41,33 @@ export default function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">{user?.name}</Button>
+          <Button className="gap-2" variant="outline">
+            <span>{user?.name}</span>
+            {credits !== undefined && credits !== null && (
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
+                {credits}c
+              </span>
+            )}
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 bg-card">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+          <DropdownMenuLabel className="flex flex-col gap-1">
+            <span>My Account</span>
+            {credits !== undefined && (
+              <span className="font-normal text-muted-foreground text-xs">
+                {credits} credits available
+              </span>
+            )}
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-muted-foreground" disabled>
             {user?.email}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => openSettings("billing")}>
+            <CreditCard className="mr-2 size-4" />
+            Billing & Credits
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => openSettings("notifications")}>
             <Bell className="mr-2 size-4" />
             Notifications

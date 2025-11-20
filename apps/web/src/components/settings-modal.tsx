@@ -1,8 +1,12 @@
 "use client";
 
+import { api } from "@furnish/backend/convex/_generated/api";
+import { useQuery } from "convex/react";
 import {
   Bell,
   Calendar,
+  Coins,
+  CreditCard,
   Database,
   Grid3x3,
   Palette,
@@ -31,8 +35,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+import { CreditPurchaseModal } from "./credit-purchase-modal";
+
 const TABS = [
   { id: "general", label: "General", icon: Settings },
+  { id: "billing", label: "Billing & Credits", icon: CreditCard },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "personalization", label: "Personalization", icon: Palette },
   { id: "apps", label: "Apps & Connectors", icon: Grid3x3 },
@@ -56,7 +63,9 @@ export function SettingsModal({
   defaultTab = "general",
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [showCreditModal, setShowCreditModal] = useState(false);
   const { theme, setTheme } = useTheme();
+  const credits = useQuery(api.credits.getCredits);
 
   // Update active tab when defaultTab changes
   useEffect(() => {
@@ -91,10 +100,53 @@ export function SettingsModal({
                 );
               })}
             </nav>
+            <div className="border-t p-4">
+              <div className="flex items-center justify-between rounded-md border bg-background p-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <Coins className="size-4 text-primary" />
+                  <span className="font-medium text-sm">Credits</span>
+                </div>
+                <span className="font-bold text-sm">{credits ?? 0}</span>
+              </div>
+            </div>
           </div>
 
           {/* Content */}
           <div className="min-h-0 flex-1 overflow-y-auto">
+            {/* Billing Tab */}
+            {activeTab === "billing" && (
+              <div className="p-6">
+                <h2 className="mb-6 font-semibold text-2xl">
+                  Billing & Credits
+                </h2>
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-4 rounded-lg border p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex size-10 items-center justify-center rounded-full bg-primary/10">
+                          <Coins className="size-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Available Credits</p>
+                          <p className="text-muted-foreground text-sm">
+                            Use credits to generate designs
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-bold text-2xl">
+                          {credits ?? 0}
+                        </span>
+                        <Button onClick={() => setShowCreditModal(true)}>
+                          Buy Credits
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* General Tab */}
             {activeTab === "general" && (
               <div className="p-6">
@@ -319,6 +371,10 @@ export function SettingsModal({
           </div>
         </div>
       </DialogContent>
+      <CreditPurchaseModal
+        onOpenChange={setShowCreditModal}
+        open={showCreditModal}
+      />
     </Dialog>
   );
 }

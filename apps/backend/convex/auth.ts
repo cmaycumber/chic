@@ -1,5 +1,13 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
+import {
+  checkout,
+  polar,
+  portal,
+  usage,
+  webhooks,
+} from "@polar-sh/better-auth";
+import { Polar } from "@polar-sh/sdk";
 import { betterAuth, type OAuth2Tokens } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { admin, genericOAuth } from "better-auth/plugins";
@@ -9,6 +17,11 @@ import { query } from "./_generated/server";
 import authSchema from "./betterAuth/schema";
 
 const siteUrl = process.env.SITE_URL || "http://localhost:3001";
+
+const polarClient = new Polar({
+  accessToken: process.env.POLAR_ACCESS_TOKEN || "",
+  server: process.env.POLAR_SERVER === "production" ? "production" : "sandbox",
+});
 
 // biome-ignore lint/suspicious/noExplicitAny: Schema compatibility issue
 export const authComponent = createClient<DataModel, any>(
@@ -29,7 +42,8 @@ export const createAuth = (
     logger: {
       disabled: optionsOnly,
     },
-    baseUrl: siteUrl,
+    // biome-ignore lint/style/useNamingConvention: Better auth naming convention
+    baseURL: siteUrl,
     trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
@@ -38,6 +52,23 @@ export const createAuth = (
     },
     plugins: [
       convex(),
+      polar({
+        client: polarClient,
+        createCustomerOnSignUp: true,
+        use: [
+          checkout({
+            successUrl:
+              process.env.POLAR_SUCCESS_URL ||
+              `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
+            authenticatedUsersOnly: true,
+          }),
+          portal(),
+          usage(),
+          webhooks({
+            secret: process.env.POLAR_WEBHOOK_SECRET || "",
+          }),
+        ],
+      }),
       nextCookies(),
       admin(),
       genericOAuth({

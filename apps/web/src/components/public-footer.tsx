@@ -11,7 +11,7 @@ export function PublicFooter() {
             <span className="font-medium text-base">chic</span>
           </div>
           <p className="text-muted-foreground text-sm">
-            Your free AI interior designer
+            Your AI interior designer
           </p>
         </div>
 
@@ -19,6 +19,12 @@ export function PublicFooter() {
           <div className="space-y-3">
             <h4 className="font-medium text-sm">Product</h4>
             <div className="flex flex-col gap-2 text-muted-foreground text-sm">
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/pricing"
+              >
+                Pricing
+              </Link>
               <Link
                 className="transition-colors hover:text-foreground"
                 href="/about"

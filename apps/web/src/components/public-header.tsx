@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { LOGO_HEIGHT, LOGO_WIDTH, Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 
@@ -20,9 +20,22 @@ export function PublicHeader({
     <header className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-xl">
       <div className="flex h-14 items-center justify-between px-4 sm:h-16 sm:px-6">
         <Link className="flex items-center" href="/">
-          <Logo className="text-foreground" height={18} width={44} />
+          <Logo
+            className="text-foreground"
+            height={LOGO_HEIGHT}
+            width={LOGO_WIDTH}
+          />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/pricing">
+            <Button
+              className="h-8 text-xs sm:h-9 sm:text-sm"
+              size="sm"
+              variant="ghost"
+            >
+              Pricing
+            </Button>
+          </Link>
           {isAuthenticated ? (
             <Link href="/chat">
               <Button className="h-8 text-xs sm:h-9 sm:text-sm" size="sm">

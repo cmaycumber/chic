@@ -23,6 +23,7 @@ import type * as betterAuth__generated_server from "../betterAuth/_generated/ser
 import type * as betterAuth_adapter from "../betterAuth/adapter.js";
 import type * as betterAuth_auth from "../betterAuth/auth.js";
 import type * as betterAuth_functions from "../betterAuth/functions.js";
+import type * as credits from "../credits.js";
 import type * as designs from "../designs.js";
 import type * as files from "../files.js";
 import type * as healthCheck from "../healthCheck.js";
@@ -33,6 +34,7 @@ import type * as lib_utils from "../lib/utils.js";
 import type * as likes from "../likes.js";
 import type * as messages from "../messages.js";
 import type * as playground from "../playground.js";
+import type * as polar from "../polar.js";
 import type * as seedDesigns from "../seedDesigns.js";
 import type * as streamAbort from "../streamAbort.js";
 import type * as threads from "../threads.js";
@@ -69,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "betterAuth/adapter": typeof betterAuth_adapter;
   "betterAuth/auth": typeof betterAuth_auth;
   "betterAuth/functions": typeof betterAuth_functions;
+  credits: typeof credits;
   designs: typeof designs;
   files: typeof files;
   healthCheck: typeof healthCheck;
@@ -79,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   likes: typeof likes;
   messages: typeof messages;
   playground: typeof playground;
+  polar: typeof polar;
   seedDesigns: typeof seedDesigns;
   streamAbort: typeof streamAbort;
   threads: typeof threads;

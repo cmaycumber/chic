@@ -84,7 +84,7 @@ export default function HomePage() {
                   Ready to Transform Your Space?
                 </h3>
                 <p className="text-lg text-neutral-600">
-                  Start chatting with your free AI interior designer today
+                  Start chatting with your AI interior designer today
                 </p>
                 <div className="flex justify-center">
                   <Link href="/signup">
@@ -92,7 +92,7 @@ export default function HomePage() {
                       className="bg-amber-700 hover:bg-amber-800"
                       size="lg"
                     >
-                      Start Free with AI Designer
+                      Start with AI Designer
                     </Button>
                   </Link>
                 </div>
