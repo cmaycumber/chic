@@ -33,7 +33,8 @@ export default function SignUpForm({
         },
         {
           onSuccess: () => {
-            router.push(callbackUrl);
+            // biome-ignore lint/suspicious/noExplicitAny: Next.js router type requires RouteImpl
+            router.push(callbackUrl as any);
             toast.success("Sign up successful");
           },
           onError: (error) => {

@@ -31,7 +31,8 @@ export default function SignInForm({
         },
         {
           onSuccess: () => {
-            router.push(callbackUrl);
+            // biome-ignore lint/suspicious/noExplicitAny: Next.js router type requires RouteImpl
+            router.push(callbackUrl as any);
             toast.success("Sign in successful");
           },
           onError: (error) => {
