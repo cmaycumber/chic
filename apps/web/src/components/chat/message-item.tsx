@@ -1,16 +1,17 @@
+/** biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: <explanation> */
 "use client";
 
 import { type UIMessage, useSmoothText } from "@convex-dev/agent/react";
 import {
   AlertCircleIcon,
-  CheckCircleIcon,
+  ArrowRightIcon,
+  CheckIcon,
   CopyIcon,
   ExternalLinkIcon,
   FileAudioIcon,
   FileIcon,
   FileVideoIcon,
   ImageIcon,
-  PackageIcon,
   SparklesIcon,
   StarIcon,
 } from "lucide-react";
@@ -488,10 +489,7 @@ function parseProductsFromOutput(output: unknown): Product[] {
 }
 
 function formatToolName(type: string): string {
-  return type
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 type DesignOutput = {
@@ -514,6 +512,40 @@ type GenerateImageOutput = {
 
 const MAX_RECENT_PRODUCTS_TO_SHOW = 3;
 
+// Minimalist tool loading indicator
+function ToolLoadingState({ name }: { name: string }) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <span className="relative flex size-1.5">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-foreground/30" />
+        <span className="relative inline-flex size-1.5 rounded-full bg-foreground/40" />
+      </span>
+      <span className="text-muted-foreground text-sm">{name}</span>
+    </div>
+  );
+}
+
+// Minimalist tool complete state for tools without specialized renderers
+function ToolCompleteState({
+  name,
+  hasOutput,
+}: {
+  name: string;
+  hasOutput: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 py-3">
+      <span className="flex size-4 items-center justify-center rounded-full bg-foreground/5">
+        <CheckIcon className="size-2.5 text-foreground/60" />
+      </span>
+      <span className="text-muted-foreground text-sm">{name}</span>
+      {hasOutput && (
+        <ArrowRightIcon className="ml-auto size-3 text-muted-foreground/40" />
+      )}
+    </div>
+  );
+}
+
 function getCustomToolRenderer(
   toolName: string,
   toolState: string,
@@ -522,7 +554,28 @@ function getCustomToolRenderer(
 ):
   | { type: "products"; products: Product[] }
   | { type: "custom"; component: React.ReactElement }
+  | { type: "loading"; name: string }
   | null {
+  const formattedName = formatToolName(toolName);
+  const isLoading =
+    toolState === "input-streaming" || toolState === "input-available";
+
+  // Show elegant loading state for specialized tools
+  if (isLoading) {
+    const specializedTools = [
+      "search_products",
+      "create_design",
+      "generate_design_image",
+      "add_products_to_design",
+      "update_design",
+      "get_design",
+    ];
+
+    if (specializedTools.includes(toolName)) {
+      return { type: "loading", name: formattedName };
+    }
+  }
+
   if (toolName === "search_products" && toolState === "output-available") {
     const products = parseProductsFromOutput(output);
     return { type: "products", products };
@@ -614,6 +667,7 @@ function ToolPartRenderer({
   const toolState = part.state ?? "input-streaming";
   const toolType = part.type as `tool-${string}`;
   const toolName = part.type.replace("tool-", "");
+  const formattedName = formatToolName(toolName);
 
   // Check for custom tool rendering
   const customRenderer = getCustomToolRenderer(
@@ -624,23 +678,61 @@ function ToolPartRenderer({
   );
 
   if (customRenderer) {
+    if (customRenderer.type === "loading") {
+      return <ToolLoadingState name={customRenderer.name} />;
+    }
     if (customRenderer.type === "products") {
       return <ProductsCarousel products={customRenderer.products} />;
     }
     return customRenderer.component;
   }
 
-  // Default tool rendering with Tool wrapper
+  // For tools in loading state without specialized renderers
+  if (toolState === "input-streaming" || toolState === "input-available") {
+    return <ToolLoadingState name={formattedName} />;
+  }
+
+  // For completed tools without specialized renderers but with output
+  if (toolState === "output-available" && !part.errorText) {
+    return (
+      <Tool defaultOpen={false}>
+        <ToolCompleteState
+          hasOutput={part.output !== undefined}
+          name={formattedName}
+        />
+        <ToolContent>
+          {part.input !== undefined && <ToolInput input={part.input} />}
+          {part.output !== undefined && (
+            <ToolOutput errorText={part.errorText} output={part.output} />
+          )}
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // Error state - always expandable
+  if (toolState === "output-error") {
+    return (
+      <Tool defaultOpen>
+        <ToolHeader state={toolState} title={formattedName} type={toolType} />
+        <ToolContent>
+          {part.input !== undefined && <ToolInput input={part.input} />}
+          <ToolOutput errorText={part.errorText} output={part.output} />
+        </ToolContent>
+      </Tool>
+    );
+  }
+
+  // Fallback - default tool rendering
   return (
-    <Tool defaultOpen={toolState === "output-error"}>
-      <ToolHeader
-        state={toolState}
-        title={formatToolName(toolName)}
-        type={toolType}
+    <Tool defaultOpen={false}>
+      <ToolCompleteState
+        hasOutput={part.output !== undefined}
+        name={formattedName}
       />
       <ToolContent>
         {part.input !== undefined && <ToolInput input={part.input} />}
-        {(part.output !== undefined || part.errorText !== undefined) && (
+        {part.output !== undefined && (
           <ToolOutput errorText={part.errorText} output={part.output} />
         )}
       </ToolContent>
@@ -652,7 +744,7 @@ function ProductsCarousel({ products }: { products: Product[] }) {
   // Validate products is an array and has items
   if (!Array.isArray(products) || products.length === 0) {
     return (
-      <div className="p-4 text-center text-muted-foreground text-sm">
+      <div className="py-3 text-muted-foreground text-sm">
         No products found
       </div>
     );
@@ -753,6 +845,32 @@ function ProductsCarousel({ products }: { products: Product[] }) {
   );
 }
 
+// Minimalist design card component
+function DesignCard({
+  onClick,
+  children,
+  className,
+}: {
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      className={cn(
+        "group/card my-3 w-full text-left transition-all",
+        "rounded-lg border border-border/60 bg-card/50",
+        "hover:border-border hover:bg-card hover:shadow-sm",
+        className
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
 function CreateDesignOutput({
   output,
   onDesignClick,
@@ -761,62 +879,59 @@ function CreateDesignOutput({
   onDesignClick?: () => void;
 }) {
   return (
-    <button
-      className="my-2 w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-linear-to-br from-purple-50 to-violet-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-purple-500/20 dark:from-purple-950/20 dark:to-violet-950/20"
-      onClick={onDesignClick}
-      type="button"
-    >
-      <div className="p-3 sm:p-4">
-        <div className="mb-2 flex items-center gap-2 sm:mb-3">
-          <CheckCircleIcon className="size-4 text-purple-600 sm:size-5 dark:text-purple-400" />
-          <h3 className="font-semibold text-purple-900 text-sm sm:text-base dark:text-purple-100">
-            Design Created
-          </h3>
-        </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          <div>
-            <h4 className="font-medium text-foreground text-xs sm:text-sm">
+    <DesignCard onClick={onDesignClick}>
+      <div className="p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+              New Design
+            </p>
+            <h4 className="truncate font-medium text-foreground">
               {output?.title}
             </h4>
-            <p className="mt-1 text-muted-foreground text-xs">
-              {output.description}
-            </p>
           </div>
-
-          {(output.roomType || output.designStyle) && (
-            <div className="flex flex-wrap gap-2">
-              {output.roomType && (
-                <Badge className="text-xs" variant="secondary">
-                  {output.roomType.replace(/-/g, " ")}
-                </Badge>
-              )}
-              {output.designStyle && (
-                <Badge className="text-xs" variant="secondary">
-                  {output.designStyle}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {output.budget !== undefined && (
-            <div className="flex items-center gap-2 text-muted-foreground text-xs">
-              <span>Budget:</span>
-              <span className="font-medium">${output.budget.toFixed(2)}</span>
-            </div>
-          )}
-
-          {output.products && output.products.length > 0 && (
-            <div className="text-muted-foreground text-xs">
-              <span className="font-medium">
-                {output.products.length} product
-                {output.products.length > 1 ? "s" : ""} added
-              </span>
-            </div>
-          )}
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground/5">
+            <CheckIcon className="size-3 text-foreground/60" />
+          </span>
         </div>
+
+        <p className="line-clamp-2 text-muted-foreground text-sm">
+          {output.description}
+        </p>
+
+        {(output.roomType ||
+          output.designStyle ||
+          output.budget !== undefined) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
+            {output.roomType && (
+              <span className="capitalize">
+                {output.roomType.replace(/-/g, " ")}
+              </span>
+            )}
+            {output.roomType && output.designStyle && (
+              <span className="text-border">·</span>
+            )}
+            {output.designStyle && (
+              <span className="capitalize">{output.designStyle}</span>
+            )}
+            {(output.roomType || output.designStyle) &&
+              output.budget !== undefined && (
+                <span className="text-border">·</span>
+              )}
+            {output.budget !== undefined && (
+              <span>${output.budget.toLocaleString()}</span>
+            )}
+          </div>
+        )}
+
+        {output.products && output.products.length > 0 && (
+          <p className="mt-2 text-muted-foreground/60 text-xs">
+            {output.products.length} product
+            {output.products.length > 1 ? "s" : ""}
+          </p>
+        )}
       </div>
-    </button>
+    </DesignCard>
   );
 }
 
@@ -829,7 +944,7 @@ function GenerateDesignImageOutput({
 
   if (!storageIds || storageIds.length === 0) {
     return (
-      <div className="my-2 rounded-lg border border-border bg-muted/50 p-4 text-center text-muted-foreground text-sm">
+      <div className="py-3 text-muted-foreground text-sm">
         No images generated
       </div>
     );
@@ -842,12 +957,13 @@ function GenerateDesignImageOutput({
   );
 
   return (
-    <div className="my-2 space-y-2">
-      <div className="flex items-center gap-2 px-1">
-        <SparklesIcon className="size-4 text-purple-600 dark:text-purple-400" />
-        <span className="font-medium text-sm">
-          Generated {storageIds.length} design
-          {storageIds.length > 1 ? " variations" : ""}
+    <div className="my-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <SparklesIcon className="size-3.5 text-muted-foreground" />
+        <span className="text-muted-foreground text-sm">
+          {storageIds.length === 1
+            ? "Design visualization"
+            : `${storageIds.length} design variations`}
         </span>
       </div>
 
@@ -858,7 +974,7 @@ function GenerateDesignImageOutput({
 
           return (
             <div
-              className="relative overflow-hidden rounded-lg border border-border"
+              className="relative overflow-hidden rounded-lg"
               key={`generated-image-${storageId}`}
             >
               <Image
@@ -884,62 +1000,52 @@ function AddProductsOutput({
   output: DesignOutput;
   onDesignClick?: () => void;
 }) {
-  const addedProducts = output?.products || [];
+  const addedProducts = output?.products ?? [];
 
   return (
-    <button
-      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-blue-50 to-indigo-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-blue-500/20 dark:from-blue-950/20 dark:to-indigo-950/20"
-      onClick={onDesignClick}
-      type="button"
-    >
-      <div className="p-3 sm:p-4">
-        <div className="mb-2 flex items-center gap-2 sm:mb-3">
-          <PackageIcon className="size-4 text-blue-600 sm:size-5 dark:text-blue-400" />
-          <h3 className="font-semibold text-blue-900 text-sm sm:text-base dark:text-blue-100">
-            Products Added
-          </h3>
+    <DesignCard onClick={onDesignClick}>
+      <div className="p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+              Products Added
+            </p>
+            <h4 className="truncate font-medium text-foreground">
+              {output?.title}
+            </h4>
+          </div>
+          <span className="shrink-0 text-muted-foreground text-xs">
+            +{addedProducts.length}
+          </span>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-xs">
-            Added {addedProducts.length} product
-            {addedProducts.length > 1 ? "s" : ""} to{" "}
-            <span className="font-medium text-foreground">{output?.title}</span>
-          </p>
-
-          {addedProducts.length > 0 && (
-            <div className="mt-2 space-y-2 sm:mt-3">
-              {addedProducts
-                .slice(-MAX_RECENT_PRODUCTS_TO_SHOW)
-                .map((product, index) => (
-                  <div
-                    className="flex items-center gap-2 rounded-md bg-white/50 p-1.5 sm:p-2 dark:bg-black/20"
-                    key={`added-product-${index}-${product.name}`}
-                  >
-                    <div className="relative size-10 shrink-0 overflow-hidden rounded sm:size-12">
-                      <Image
-                        alt={product.name}
-                        className="object-cover"
-                        fill
-                        src={product.imageUrl}
-                        unoptimized
-                      />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="truncate font-medium text-xs">
-                        {product.name}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        ${product.price.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
+        {addedProducts.length > 0 && (
+          <div className="flex items-center gap-2">
+            {addedProducts
+              .slice(-MAX_RECENT_PRODUCTS_TO_SHOW)
+              .map((product, index) => (
+                <div
+                  className="relative size-10 shrink-0 overflow-hidden rounded bg-muted"
+                  key={`added-product-${index}-${product.name}`}
+                >
+                  <Image
+                    alt={product.name}
+                    className="object-cover"
+                    fill
+                    src={product.imageUrl}
+                    unoptimized
+                  />
+                </div>
+              ))}
+            {addedProducts.length > MAX_RECENT_PRODUCTS_TO_SHOW && (
+              <span className="text-muted-foreground text-xs">
+                +{addedProducts.length - MAX_RECENT_PRODUCTS_TO_SHOW} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
-    </button>
+    </DesignCard>
   );
 }
 
@@ -951,29 +1057,23 @@ function UpdateDesignOutput({
   onDesignClick?: () => void;
 }) {
   return (
-    <button
-      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-amber-50 to-orange-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-amber-500/20 dark:from-amber-950/20 dark:to-orange-950/20"
-      onClick={onDesignClick}
-      type="button"
-    >
-      <div className="p-3 sm:p-4">
-        <div className="mb-2 flex items-center gap-2 sm:mb-3">
-          <CheckCircleIcon className="size-4 text-amber-600 sm:size-5 dark:text-amber-400" />
-          <h3 className="font-semibold text-amber-900 text-sm sm:text-base dark:text-amber-100">
-            Design Updated
-          </h3>
-        </div>
-
-        <div className="space-y-2">
-          <p className="font-medium text-foreground text-xs sm:text-sm">
-            {output?.title}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            Design successfully updated with your changes
-          </p>
+    <DesignCard onClick={onDesignClick}>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+              Design Updated
+            </p>
+            <h4 className="truncate font-medium text-foreground">
+              {output?.title}
+            </h4>
+          </div>
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground/5">
+            <CheckIcon className="size-3 text-foreground/60" />
+          </span>
         </div>
       </div>
-    </button>
+    </DesignCard>
   );
 }
 
@@ -985,54 +1085,50 @@ function GetDesignOutput({
   onDesignClick?: () => void;
 }) {
   return (
-    <button
-      className="my-2 w-full overflow-hidden rounded-lg border border-border bg-linear-to-br from-slate-50 to-gray-50 text-left transition-all hover:shadow-md hover:ring-2 hover:ring-slate-500/20 dark:from-slate-950/20 dark:to-gray-950/20"
-      onClick={onDesignClick}
-      type="button"
-    >
-      <div className="p-3 sm:p-4">
-        <div className="space-y-2 sm:space-y-3">
-          <div>
-            <h4 className="font-medium text-foreground text-xs sm:text-sm">
-              {output?.title}
-            </h4>
-            <p className="mt-1 text-muted-foreground text-xs">
-              {output.description}
-            </p>
-          </div>
-
-          {(output.roomType || output.designStyle) && (
-            <div className="flex flex-wrap gap-2">
-              {output.roomType && (
-                <Badge className="text-xs" variant="outline">
-                  {output.roomType.replace(/-/g, " ")}
-                </Badge>
-              )}
-              {output.designStyle && (
-                <Badge className="text-xs" variant="outline">
-                  {output.designStyle}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {output.budget !== undefined && (
-            <div className="flex items-center gap-2 text-muted-foreground text-xs">
-              <span>Budget:</span>
-              <span className="font-medium">${output.budget.toFixed(2)}</span>
-            </div>
-          )}
-
-          {output.products && output.products.length > 0 && (
-            <div className="text-muted-foreground text-xs">
-              <span className="font-medium">
-                {output.products.length} product
-                {output.products.length > 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
+    <DesignCard onClick={onDesignClick}>
+      <div className="p-4">
+        <div className="mb-3">
+          <h4 className="truncate font-medium text-foreground">
+            {output?.title}
+          </h4>
         </div>
+
+        <p className="line-clamp-2 text-muted-foreground text-sm">
+          {output.description}
+        </p>
+
+        {(output.roomType ||
+          output.designStyle ||
+          output.budget !== undefined) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
+            {output.roomType && (
+              <span className="capitalize">
+                {output.roomType.replace(/-/g, " ")}
+              </span>
+            )}
+            {output.roomType && output.designStyle && (
+              <span className="text-border">·</span>
+            )}
+            {output.designStyle && (
+              <span className="capitalize">{output.designStyle}</span>
+            )}
+            {(output.roomType || output.designStyle) &&
+              output.budget !== undefined && (
+                <span className="text-border">·</span>
+              )}
+            {output.budget !== undefined && (
+              <span>${output.budget.toLocaleString()}</span>
+            )}
+          </div>
+        )}
+
+        {output.products && output.products.length > 0 && (
+          <p className="mt-2 text-muted-foreground/60 text-xs">
+            {output.products.length} product
+            {output.products.length > 1 ? "s" : ""}
+          </p>
+        )}
       </div>
-    </button>
+    </DesignCard>
   );
 }

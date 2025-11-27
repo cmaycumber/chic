@@ -20,51 +20,23 @@ const MAX_REFERENCE_IMAGES = 10;
 const ERROR_PREVIEW_LENGTH = 200;
 
 /**
- * Convert a Blob to a base64 data URL
- */
-async function blobToDataUrl(blob: Blob): Promise<string> {
-  const arrayBuffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  let binary = "";
-  // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  const base64 = btoa(binary);
-  const mimeType = blob.type || "image/png";
-  return `data:${mimeType};base64,${base64}`;
-}
-
-/**
  * Collect all reference images from various sources with deduplication
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image collection requires multiple source handling
-async function collectReferenceImages(
-  ctx: ToolCtx,
-  args: {
-    baseImageStorageId?: string;
-    products?: Array<{ imageUrl?: string }>;
-    referenceImageUrls?: string[];
-  }
-): Promise<Array<{ type: "image"; image: string }>> {
+function collectReferenceImages(args: {
+  roomImageUrl?: string;
+  products?: Array<{ imageUrl?: string }>;
+  otherImageUrls?: string[];
+}): Array<{ type: "image"; image: string }> {
   const referenceImages: Array<{ type: "image"; image: string }> = [];
   const seenUrls = new Set<string>();
 
-  // Add base image if provided (from storage) - this gets priority
-  if (args.baseImageStorageId) {
-    try {
-      const baseImageBlob = await ctx.storage.get(args.baseImageStorageId);
-      if (baseImageBlob) {
-        const dataUrl = await blobToDataUrl(baseImageBlob);
-        referenceImages.push({
-          type: "image",
-          image: dataUrl,
-        });
-        seenUrls.add(dataUrl);
-      }
-    } catch {
-      // Silently continue if base image load fails
-    }
+  // Add room image if provided (from URL) - this gets priority
+  if (args.roomImageUrl) {
+    referenceImages.push({
+      type: "image",
+      image: args.roomImageUrl,
+    });
+    seenUrls.add(args.roomImageUrl);
   }
 
   // Add product images (deduplicated)
@@ -85,8 +57,8 @@ async function collectReferenceImages(
   }
 
   // Add additional reference images (deduplicated)
-  if (args.referenceImageUrls) {
-    for (const url of args.referenceImageUrls) {
+  if (args.otherImageUrls) {
+    for (const url of args.otherImageUrls) {
       if (!seenUrls.has(url) && referenceImages.length < MAX_REFERENCE_IMAGES) {
         referenceImages.push({
           type: "image",
@@ -128,19 +100,17 @@ export const generate_design_image = createTool({
       .describe(
         "Detailed vision: color palette, furniture arrangement, materials, lighting mood, and spatial layout"
       ),
+    roomImageUrl: z
+      .string()
+      .optional()
+      .describe("URL to a room image to use as reference"),
     products: z
       .array(productSchema)
       .optional()
       .describe(
         "Products to place in the visualization. Include imageUrl for each product."
       ),
-    baseImageStorageId: z
-      .string()
-      .optional()
-      .describe(
-        "Storage ID from existing design to iterate on or user-uploaded room photo"
-      ),
-    referenceImageUrls: z
+    otherImageUrls: z
       .array(z.string())
       .optional()
       .describe(
@@ -150,9 +120,9 @@ export const generate_design_image = createTool({
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image generation requires complex multimodal handling
   handler: async (ctx: ToolCtx, args) => {
     // Collect all reference images
-    const referenceImages = await collectReferenceImages(ctx, args);
+    const referenceImages = collectReferenceImages(args);
 
-    const hasReferences = args.baseImageStorageId || referenceImages.length > 0;
+    const hasReferences = args.roomImageUrl || referenceImages.length > 0;
 
     const productsSection =
       args.products && args.products.length > 0

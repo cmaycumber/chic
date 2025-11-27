@@ -248,6 +248,17 @@ body {
       opacity: 0;
     }
   }
+
+  /* Tool state animations */
+  @keyframes tool-pulse {
+    0%,
+    100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
 }
 
 /* Chic typing indicator brand tokens - using your brand colors */

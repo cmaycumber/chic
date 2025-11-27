@@ -93,6 +93,7 @@ export const createAuth = (
                 "https://api.pinterest.com/v5/user_account",
                 {
                   headers: {
+                    // biome-ignore lint/style/useNamingConvention: HTTP header names use PascalCase
                     Authorization: `Bearer ${tokens.accessToken}`,
                   },
                 }
