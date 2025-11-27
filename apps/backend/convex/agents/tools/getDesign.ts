@@ -16,9 +16,9 @@ import type { Doc, Id } from "../../_generated/dataModel";
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const get_design = createTool({
   description:
-    "Retrieve a design by ID to view its current details including title, description, products, budget, and image. Use this to check the current state of a design before making modifications.",
+    "Fetch current design state before modifications. Returns all details including imageStorageId and products.",
   args: z.object({
-    designId: z.string().describe("The ID of the design to retrieve"),
+    designId: z.string().describe("Design ID to retrieve"),
   }),
   handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     const design = await ctx.runQuery(internal.designs.read, {

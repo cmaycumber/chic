@@ -1,13 +1,23 @@
 /**
  * Generate Design Image Tool
  *
- * Uses Google Gemini Flash to generate photorealistic interior design images.
+ * Uses Google Gemini 3 Pro to generate photorealistic interior design images.
  * Can create new images or modify existing ones based on design specifications.
+ *
+ * Model: gemini-3-pro-image-preview
+ * - Latest generation image model with highest quality outputs
+ * - Superior understanding of complex spatial relationships
+ * - Excellent product placement and realistic lighting
+ * - Best-in-class prompt adherence for interior design
  */
 "use node";
 import { createTool, type ToolCtx } from "@convex-dev/agent";
 import { gateway, generateText } from "ai";
 import z from "zod";
+
+const IMAGE_MODEL = "google/gemini-3-pro-image-preview";
+const MAX_REFERENCE_IMAGES = 10;
+const ERROR_PREVIEW_LENGTH = 200;
 
 /**
  * Convert a Blob to a base64 data URL
@@ -16,8 +26,9 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
+  // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
   const base64 = btoa(binary);
   const mimeType = blob.type || "image/png";
@@ -25,8 +36,9 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 /**
- * Collect all reference images from various sources
+ * Collect all reference images from various sources with deduplication
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image collection requires multiple source handling
 async function collectReferenceImages(
   ctx: ToolCtx,
   args: {
@@ -36,38 +48,52 @@ async function collectReferenceImages(
   }
 ): Promise<Array<{ type: "image"; image: string }>> {
   const referenceImages: Array<{ type: "image"; image: string }> = [];
+  const seenUrls = new Set<string>();
 
-  // Add base image if provided (from storage)
+  // Add base image if provided (from storage) - this gets priority
   if (args.baseImageStorageId) {
-    const baseImageBlob = await ctx.storage.get(args.baseImageStorageId);
-    if (baseImageBlob) {
-      const dataUrl = await blobToDataUrl(baseImageBlob);
-      referenceImages.push({
-        type: "image",
-        image: dataUrl,
-      });
+    try {
+      const baseImageBlob = await ctx.storage.get(args.baseImageStorageId);
+      if (baseImageBlob) {
+        const dataUrl = await blobToDataUrl(baseImageBlob);
+        referenceImages.push({
+          type: "image",
+          image: dataUrl,
+        });
+        seenUrls.add(dataUrl);
+      }
+    } catch {
+      // Silently continue if base image load fails
     }
   }
 
-  // Add product images
+  // Add product images (deduplicated)
   if (args.products) {
     for (const product of args.products) {
-      if (product.imageUrl) {
+      if (
+        product.imageUrl &&
+        !seenUrls.has(product.imageUrl) &&
+        referenceImages.length < MAX_REFERENCE_IMAGES
+      ) {
         referenceImages.push({
           type: "image",
           image: product.imageUrl,
         });
+        seenUrls.add(product.imageUrl);
       }
     }
   }
 
-  // Add additional reference images
+  // Add additional reference images (deduplicated)
   if (args.referenceImageUrls) {
     for (const url of args.referenceImageUrls) {
-      referenceImages.push({
-        type: "image",
-        image: url,
-      });
+      if (!seenUrls.has(url) && referenceImages.length < MAX_REFERENCE_IMAGES) {
+        referenceImages.push({
+          type: "image",
+          image: url,
+        });
+        seenUrls.add(url);
+      }
     }
   }
 
@@ -84,74 +110,84 @@ const productSchema = z.object({
 });
 
 /**
- * Generates a design visualization image using Google Gemini Flash
+ * Generates a design visualization image using Google Gemini 3 Pro
  */
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const generate_design_image = createTool({
   description:
-    "Generate a photorealistic interior design image using Google Gemini Flash. Creates visualizations based on room type, style, design plan, and optional product placements. Prefer to include product images and existing design images as references for better results. Returns the storage ID of the generated image.",
+    "Generate photorealistic interior design visualization. Pass product imageUrls for accurate furniture placement. Use baseImageStorageId when iterating on existing designs. Returns storageIds for the generated images.",
   args: z.object({
     roomType: z
       .string()
-      .describe("Type of room to visualize (e.g., living room, bedroom)"),
+      .describe("Room type: living room, bedroom, kitchen, etc."),
     style: z
       .string()
-      .describe(
-        "Design style for the image (e.g., modern, minimalist, bohemian)"
-      ),
+      .describe("Design aesthetic: modern, scandinavian, bohemian, etc."),
     designPlan: z
       .string()
       .describe(
-        "Detailed description of design elements: colors, layout, materials, lighting, atmosphere"
+        "Detailed vision: color palette, furniture arrangement, materials, lighting mood, and spatial layout"
       ),
     products: z
       .array(productSchema)
       .optional()
       .describe(
-        "Optional list of products with their images to naturally place in the room visualization. Include imageUrl when available for better visual reference."
+        "Products to place in the visualization. Include imageUrl for each product."
       ),
     baseImageStorageId: z
       .string()
       .optional()
       .describe(
-        "Optional storage ID of an existing design image to use as reference or starting point (e.g., previous design iteration or user-uploaded room photo)"
+        "Storage ID from existing design to iterate on or user-uploaded room photo"
       ),
     referenceImageUrls: z
       .array(z.string())
       .optional()
       .describe(
-        "Optional array of additional reference image URLs (e.g., product images, inspiration photos)"
+        "Additional reference URLs: inspiration photos, product images, style references"
       ),
   }),
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image generation requires complex multimodal handling
   handler: async (ctx: ToolCtx, args) => {
     // Collect all reference images
     const referenceImages = await collectReferenceImages(ctx, args);
 
-    const imagePromptBase =
-      args.baseImageStorageId || referenceImages.length > 0
-        ? "Create an interior design visualization incorporating elements from the reference images provided."
-        : `Create a photorealistic interior design image of a ${args.roomType}.`;
+    const hasReferences = args.baseImageStorageId || referenceImages.length > 0;
 
-    const productsDescription =
+    const productsSection =
       args.products && args.products.length > 0
-        ? `\n\nInclude these products naturally placed in the room:\n${args.products.map((p, i) => `${i + 1}. ${p.name}${p.description ? ` - ${p.description}` : ""}`).join("\n")}`
+        ? `
+
+FURNITURE & DECOR TO INCLUDE:
+${args.products.map((p, i) => `${i + 1}. ${p.name}${p.description ? `: ${p.description}` : ""}`).join("\n")}
+
+Place each item naturally in the space with proper scale and positioning. If product reference images are provided, match their appearance accurately.`
         : "";
 
-    const imagePrompt = `${imagePromptBase}
+    const imagePrompt = `Generate a professional interior design photograph of a ${args.roomType}.
 
-Style: ${args.style}
-Design Elements: ${args.designPlan}${productsDescription}
+STYLE: ${args.style}
 
-Make it look realistic, well-lit, and professionally styled. The composition should show how all elements work together harmoniously in the space.`;
+DESIGN SPECIFICATIONS:
+${args.designPlan}${productsSection}
+
+${hasReferences ? "Use the reference images provided to guide the design, matching colors, textures, and furniture styles shown." : ""}
+
+RENDERING REQUIREMENTS:
+- Photorealistic quality with natural lighting
+- Proper perspective and spatial proportions
+- High-end interior photography composition
+- Cohesive color palette throughout
+- Realistic material textures (fabric, wood, metal, etc.)`;
 
     // Build multimodal messages with images and text
     const messages: Array<
       { type: "text"; text: string } | { type: "image"; image: string }
     > = [...referenceImages, { type: "text", text: imagePrompt }];
 
-    // Use Google Gemini Flash for image generation
+    // Use Google Gemini 3 Pro for high-quality image generation
     const imageResult = await generateText({
-      model: gateway.languageModel("google/gemini-2.5-flash-image"),
+      model: gateway.languageModel(IMAGE_MODEL),
       providerOptions: {
         google: { responseModalities: ["TEXT", "IMAGE"] },
       },
@@ -167,7 +203,9 @@ Make it look realistic, well-lit, and professionally styled. The composition sho
     // Images are in steps[0].content as content items with type: 'file'
     const firstStep = imageResult.steps?.[0];
     if (!firstStep) {
-      throw new Error("Failed to generate image: No steps in response");
+      throw new Error(
+        "Image generation failed: No response steps. This may indicate a model error or rate limit."
+      );
     }
 
     // Find all file content items that are images
@@ -177,40 +215,59 @@ Make it look realistic, well-lit, and professionally styled. The composition sho
       .filter((file) => file?.mediaType?.startsWith("image/"));
 
     if (imageFiles.length === 0) {
+      // Check if there's text content that might explain the failure
+      const textContent = firstStep.content
+        .filter((item) => item.type === "text")
+        .map((item) => (item.type === "text" ? item.text : ""))
+        .join("\n");
       throw new Error(
-        "Failed to generate image: No image files found in response"
+        `Image generation did not produce images. The model returned: ${textContent.substring(0, ERROR_PREVIEW_LENGTH) || "no explanation"}`
       );
     }
 
     // Store all generated images
     const storageIds: string[] = [];
+    const errors: string[] = [];
 
     for (const generatedImage of imageFiles) {
-      if (!generatedImage) {
+      if (!generatedImage?.uint8Array) {
+        errors.push("Skipped image with missing data");
         continue;
       }
 
-      // Convert Uint8Array to Blob for storage
-      // Create a new Uint8Array to ensure proper typing
-      const imageData = new Uint8Array(generatedImage.uint8Array);
-      const blob = new Blob([imageData], {
-        type: generatedImage.mediaType,
-      });
+      try {
+        // Convert Uint8Array to Blob for storage
+        const imageData = new Uint8Array(generatedImage.uint8Array);
+        const blob = new Blob([imageData], {
+          type: generatedImage.mediaType,
+        });
 
-      const imageStorageId = await ctx.storage.store(blob);
+        const imageStorageId = await ctx.storage.store(blob);
 
-      if (!imageStorageId) {
-        throw new Error(
-          "Failed to store generated image: Storage returned null"
+        if (imageStorageId) {
+          storageIds.push(imageStorageId);
+        } else {
+          errors.push("Storage returned null for an image");
+        }
+      } catch (storeError) {
+        errors.push(
+          `Failed to store image: ${storeError instanceof Error ? storeError.message : "unknown error"}`
         );
       }
-
-      storageIds.push(imageStorageId);
     }
 
-    return {
+    if (storageIds.length === 0) {
+      throw new Error(
+        `Failed to store any generated images. Errors: ${errors.join("; ")}`
+      );
+    }
+
+    const result = {
       storageIds,
       message: `Successfully generated ${storageIds.length} design image${storageIds.length > 1 ? "s" : ""}`,
+      ...(errors.length > 0 && { warnings: errors }),
     };
+
+    return result;
   },
 });

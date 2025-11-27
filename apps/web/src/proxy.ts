@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getToken } from "@/lib/auth-server";
 
 const AUTH_ROUTES = ["/login", "/signup"];
 const PROTECTED_ROUTES = [
@@ -10,13 +11,14 @@ const PROTECTED_ROUTES = [
   "/saved",
 ];
 
-export default function proxy(request: NextRequest) {
+// THIS IS NOT SECURE!
+// This is the recommended approach to optimistically redirect users
+// We recommend handling auth checks in each page/route
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Check for Better Auth session cookie
-  const sessionCookie = request.cookies.get("better-auth.session_token");
-  const isAuthenticated = !!sessionCookie?.value;
-
+  const token = await getToken();
+  const isAuthenticated = !!token;
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
   const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
     pathname.startsWith(route)
@@ -38,6 +40,7 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
+  runtime: "nodejs", // Required for auth.api calls
   matcher: [
     /*
      * Match all request paths except for the ones starting with:

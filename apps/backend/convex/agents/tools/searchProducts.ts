@@ -3,6 +3,11 @@
  *
  * Uses SerpAPI's Amazon Search API to find real furniture and decor products
  * that match a design plan, style, and budget.
+ *
+ * Best practices:
+ * - Use specific, detailed queries (style, color, material, size)
+ * - Apply 4+ star filter by default for quality
+ * - Use price filters when budget-conscious
  */
 "use node";
 import { createTool } from "@convex-dev/agent";
@@ -12,6 +17,7 @@ import { addAffiliateTag } from "../../lib/amazonAffiliate";
 const DEFAULT_PRODUCTS_PER_QUERY = 2;
 const MAX_PRODUCTS_PER_QUERY = 5;
 const MIN_PRODUCTS_PER_QUERY = 1;
+const MAX_QUERIES_PER_CALL = 10;
 const ERROR_TEXT_MAX_LENGTH = 200;
 
 const productSchema = z.object({
@@ -139,7 +145,7 @@ async function fetchAmazonProducts(
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const search_products = createTool({
   description:
-    "Search Amazon for real furniture and decor products using SerpAPI. Plan your queries carefully with specific details (style, color, material, size) and appropriate filters before calling this tool. Returns actual products available for purchase with images, prices, ratings, and direct Amazon links.",
+    "Find real furniture and decor on Amazon. Returns products with images, prices, ratings, and purchase links. Always use the 4+ star filter for quality.",
   args: z.object({
     queries: z
       .array(
@@ -147,48 +153,26 @@ export const search_products = createTool({
           query: z
             .string()
             .describe(
-              "Specific, detailed product search query. Include ALL relevant details: style, color, material, size, type. Examples: 'modern grey velvet sectional sofa', 'round walnut coffee table 36 inch', 'geometric wool area rug 8x10 blue'. Be as specific as possible for best results."
+              "Detailed search: include style, color, material, size. Example: 'modern grey velvet sectional sofa 90 inch'"
             ),
           filters: z
             .string()
             .optional()
             .describe(
-              `Optional Amazon filters in 'rh' format to refine results. Combine multiple filters with commas.
-              
-Common filter examples (from https://serpapi.com/amazon-filters):
-- 4+ Stars: "p_72:1248897011" (RECOMMENDED for quality)
-- Prime Eligible: "p_85:2470955011"
-- Free Shipping: "p_76:1249146011"
-- Get It by Tomorrow: "p_90:8308921011"
-- All Discounts: "p_n_deal_type:23566065011"
-
-Price range filters:
-- Under $25: "p_36:1253503011"
-- $25 to $50: "p_36:1253504011"
-- $50 to $100: "p_36:1253505011"
-- $100 to $200: "p_36:1253506011"
-- $200 to $500: "p_36:1253507011"
-
-Brand filters:
-- Top Brands: "p_n_feature_forty-one_browse-bin:119653281011"
-- Amazon Brands: "p_n_feature_forty-seven_browse-bin:24677333011"
-
-Combine filters like: "p_72:1248897011,p_76:1249146011" for 4+ stars AND free shipping.
-Use 4+ star filter by default for better quality products.`
+              `Amazon rh filters. Common: "p_72:1248897011" (4+ stars, RECOMMENDED), "p_36:1253506011" ($100-200). Combine with commas.`
             ),
           maxResults: z
             .number()
             .optional()
             .default(DEFAULT_PRODUCTS_PER_QUERY)
             .describe(
-              `Number of products to return for this specific query (default: ${DEFAULT_PRODUCTS_PER_QUERY}, range: ${MIN_PRODUCTS_PER_QUERY}-${MAX_PRODUCTS_PER_QUERY})`
+              `Products per query (default: ${DEFAULT_PRODUCTS_PER_QUERY}, max: ${MAX_PRODUCTS_PER_QUERY})`
             ),
         })
       )
       .min(1)
-      .describe(
-        "Array of search query objects. Each query should be fully specified with style, color, material, size, and appropriate filters based on your design plan."
-      ),
+      .max(MAX_QUERIES_PER_CALL)
+      .describe("Search queries with specific product details"),
   }),
   handler: async (_ctx, args) => {
     const apiKey = process.env.SERPAPI_API_KEY;

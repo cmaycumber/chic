@@ -24,12 +24,12 @@ const productSchema = z.object({
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const add_products_to_design = createTool({
   description:
-    "Add new products to an existing design without removing the current ones. Use this when the user wants to expand their product list or add more items to an existing design.",
+    "Append products to a design without replacing existing ones. Use for expanding product lists incrementally.",
   args: z.object({
-    designId: z.string().describe("The ID of the design to add products to"),
+    designId: z.string().describe("Design ID from existing designs"),
     products: z
       .array(productSchema)
-      .describe("Array of new products to add to the design"),
+      .describe("Products to add from search_products"),
   }),
   handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     // Get the existing design

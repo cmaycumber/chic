@@ -24,34 +24,21 @@ const productSchema = z.object({
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const update_design = createTool({
   description:
-    "Update an existing design in the database. Use this to modify design details, replace products, update images, or change budget. Only updates fields that are provided.",
+    "Modify an existing design. Replaces only the fields you provide. Use add_products_to_design to append products without replacing.",
   args: z.object({
-    designId: z
-      .string()
-      .describe("The ID of the design to update (from existing designs)"),
-    title: z.string().optional().describe("New title for the design"),
-    description: z
-      .string()
-      .optional()
-      .describe("Updated description or additional notes"),
-    designPlan: z
-      .string()
-      .optional()
-      .describe("Updated design plan with new details"),
-    budget: z
-      .number()
-      .optional()
-      .describe("Updated budget for the design in dollars"),
+    designId: z.string().describe("Design ID from existing designs context"),
+    title: z.string().optional().describe("New title"),
+    description: z.string().optional().describe("Updated description"),
+    designPlan: z.string().optional().describe("Updated design plan"),
+    budget: z.number().optional().describe("Updated budget in dollars"),
     products: z
       .array(productSchema)
       .optional()
-      .describe("Products array - completely replaces existing products"),
+      .describe("Replaces all existing products"),
     imageStorageId: z
       .string()
       .optional()
-      .describe(
-        "Storage ID of a new design image (from generate_design_image)"
-      ),
+      .describe("New storageId from generate_design_image"),
     roomType: z
       .enum([
         "living-room",
@@ -79,10 +66,7 @@ export const update_design = createTool({
       ])
       .optional()
       .describe("Updated design style"),
-    tags: z
-      .array(z.string())
-      .optional()
-      .describe("Updated tags describing the design"),
+    tags: z.array(z.string()).optional().describe("Updated tags"),
   }),
   handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     // Get the existing design

@@ -3,13 +3,13 @@
  *
  * This agent uses multiple AI models:
  * - Claude 4.5 Haiku: Main conversational agent for design consultation
- * - GPT-4o: Product research with web search capabilities
- * - Google Gemini Flash: Design image generation
+ * - Anthropic Web Search: Real-time product and design research
+ * - Google Gemini 3 Pro (gemini-3-pro-image-preview): High-quality design image generation
  *
  * Required API Keys (set in Convex environment variables):
  * - ANTHROPIC_API_KEY: For Claude 4.5 Haiku
- * - OPENAI_API_KEY: For GPT-4o and web search
- * - GOOGLE_GENERATIVE_AI_API_KEY: For Gemini Flash image generation
+ * - GOOGLE_GENERATIVE_AI_API_KEY: For Gemini 3 Pro image generation
+ * - SERPAPI_API_KEY: For Amazon product search
  *
  * biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase
  */
@@ -33,6 +33,7 @@ import { search_products } from "./tools/searchProducts";
 import { update_design } from "./tools/updateDesign";
 
 const MAX_AGENT_STEPS = 15;
+const MAX_DESIGNS_IN_CONTEXT = 5;
 
 // Use Claude 4.5 Haiku for the main agent
 const claude = wrapLanguageModel({
@@ -112,11 +113,12 @@ ${productsList}
     const imageBlob = await ctx.storage.get(design.imageStorageId);
     if (imageBlob) {
       const arrayBuffer = await imageBlob.arrayBuffer();
-      // Convert ArrayBuffer to base64 using browser-compatible APIs
+      // Convert ArrayBuffer to base64 using index-based iteration
       const bytes = new Uint8Array(arrayBuffer);
       let binary = "";
-      for (const byte of bytes) {
-        binary += String.fromCharCode(byte);
+      // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
       }
       const base64 = btoa(binary);
       const mimeType = imageBlob.type || "image/png";
@@ -187,106 +189,133 @@ The following designs have been created in this conversation. Reference these wh
 
 /**
  * Helper to fetch user uploaded images from the thread
+ * Returns URLs for images that the agent can reference
  */
 async function getUserUploadedImages(
   ctx: ActionCtx,
   threadId: string
 ): Promise<string[]> {
-  const uiMessages = await listUIMessages(ctx, components.agent, {
-    threadId,
-    paginationOpts: { numItems: 20, cursor: null },
-  });
-
-  const lastUserMessageWithFiles = uiMessages.page
-    .slice()
-    .reverse()
-    .find((m) => {
-      const msg = m as UIMessage<{ fileIds?: string[] }>;
-      return msg.role === "user" && (msg.metadata?.fileIds?.length ?? 0) > 0;
+  try {
+    const uiMessages = await listUIMessages(ctx, components.agent, {
+      threadId,
+      paginationOpts: { numItems: 20, cursor: null },
     });
 
-  if (!lastUserMessageWithFiles) {
-    return [];
-  }
+    const lastUserMessageWithFiles = uiMessages.page
+      .slice()
+      .reverse()
+      .find((m) => {
+        const msg = m as UIMessage<{ fileIds?: string[] }>;
+        return msg.role === "user" && (msg.metadata?.fileIds?.length ?? 0) > 0;
+      });
 
-  const msg = lastUserMessageWithFiles as UIMessage<{ fileIds?: string[] }>;
-  const fileIds = msg.metadata?.fileIds ?? [];
-  const imageUrls: string[] = [];
+    if (!lastUserMessageWithFiles) {
+      return [];
+    }
 
-  for (const fileId of fileIds) {
-    const fileMetadata = await ctx.runAction(
-      internal.files.internalGetFileMetadata,
-      {
-        fileId,
-      }
-    );
-    if (fileMetadata.url) {
-      imageUrls.push(fileMetadata.url);
-    } else if (fileMetadata.storageId) {
-      const storageUrl = await ctx.runQuery(
-        internal.files.internalGetStorageUrl,
-        {
-          storageId: fileMetadata.storageId,
+    const msg = lastUserMessageWithFiles as UIMessage<{ fileIds?: string[] }>;
+    const fileIds = msg.metadata?.fileIds ?? [];
+    const imageUrls: string[] = [];
+
+    for (const fileId of fileIds) {
+      try {
+        const fileMetadata = await ctx.runAction(
+          internal.files.internalGetFileMetadata,
+          {
+            fileId,
+          }
+        );
+        if (fileMetadata.url) {
+          imageUrls.push(fileMetadata.url);
+        } else if (fileMetadata.storageId) {
+          const storageUrl = await ctx.runQuery(
+            internal.files.internalGetStorageUrl,
+            {
+              storageId: fileMetadata.storageId,
+            }
+          );
+          if (storageUrl) {
+            imageUrls.push(storageUrl);
+          }
         }
-      );
-      if (storageUrl) {
-        imageUrls.push(storageUrl);
+      } catch (_fileError) {
+        // Continue with other files
       }
     }
-  }
 
-  return imageUrls;
+    return imageUrls;
+  } catch (_error) {
+    return [];
+  }
 }
 
 /**
  * Enrich context with thread data (uploaded images and existing designs)
+ * This adds relevant context to help the agent understand the conversation state
  */
 async function enrichContextWithThreadData(
   ctx: ActionCtx,
   threadId: string,
   messages: ModelMessage[]
-) {
-  // 1. User uploaded images
-  const imageUrls = await getUserUploadedImages(ctx, threadId);
+): Promise<void> {
+  // 1. User uploaded images - add as system note for the agent
+  try {
+    const imageUrls = await getUserUploadedImages(ctx, threadId);
 
-  if (imageUrls.length > 0) {
-    const storageIdNote = {
-      role: "user" as const,
-      content: `[System Note: The user uploaded image(s) with the following URLs: ${imageUrls.join(", ")}. Use these URLs as 'referenceImageUrls' when calling generate_design_image if the user wants to modify or use them as reference.]`,
-    };
-    // Insert after the last user message or at the end
-    messages.push(storageIdNote);
+    if (imageUrls.length > 0) {
+      const storageIdNote = {
+        role: "user" as const,
+        content: `[System Note: The user uploaded ${imageUrls.length} image(s) with URLs: ${imageUrls.join(", ")}. Use these URLs as 'referenceImageUrls' when calling generate_design_image if the user wants to modify or use them as reference for their design.]`,
+      };
+      messages.push(storageIdNote);
+    }
+  } catch {
+    // Silently continue if image enrichment fails
   }
 
-  // 2. Existing designs
-  const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
-    threadId,
-  });
+  // 2. Existing designs - provide context about designs in this thread
+  try {
+    const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
+      threadId,
+    });
 
-  if (designs.length > 0) {
-    const contentParts = await buildDesignsContextParts(ctx, designs);
+    if (designs.length > 0) {
+      // Limit designs to prevent context overflow
+      const limitedDesigns = designs.slice(0, MAX_DESIGNS_IN_CONTEXT);
+      const contentParts = await buildDesignsContextParts(ctx, limitedDesigns);
 
-    // Find the last user message index
-    let lastUserMessageIndex = -1;
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === "user") {
-        lastUserMessageIndex = i;
-        break;
+      // Find the last user message index
+      let lastUserMessageIndex = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          lastUserMessageIndex = i;
+          break;
+        }
+      }
+
+      // Insert the designs context with structured parts before the last user message
+      // Use "user" role since system messages don't support multimodal content
+      const designsMessage = {
+        role: "user" as const,
+        content: contentParts,
+      };
+
+      if (lastUserMessageIndex > 0) {
+        messages.splice(lastUserMessageIndex, 0, designsMessage);
+      } else {
+        messages.unshift(designsMessage);
+      }
+
+      // Add truncation notice if there are more designs
+      if (designs.length > MAX_DESIGNS_IN_CONTEXT) {
+        messages.push({
+          role: "user" as const,
+          content: `[Note: Showing ${MAX_DESIGNS_IN_CONTEXT} of ${designs.length} designs. Use get_design to retrieve specific designs by ID.]`,
+        });
       }
     }
-
-    // Insert the designs context with structured parts before the last user message
-    // Use "user" role since system messages don't support multimodal content
-    const designsMessage = {
-      role: "user" as const,
-      content: contentParts,
-    };
-
-    if (lastUserMessageIndex > 0) {
-      messages.splice(lastUserMessageIndex, 0, designsMessage);
-    } else {
-      messages.unshift(designsMessage);
-    }
+  } catch {
+    // Silently continue if design enrichment fails
   }
 }
 

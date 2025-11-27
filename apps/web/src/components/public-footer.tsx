@@ -127,6 +127,12 @@ export function PublicFooter() {
               >
                 Sign up
               </Link>
+              <a
+                className="transition-colors hover:text-foreground"
+                href="mailto:chad.maycumber11@gmail.com"
+              >
+                Contact
+              </a>
             </div>
           </div>
         </div>
