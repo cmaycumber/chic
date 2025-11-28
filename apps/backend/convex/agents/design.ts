@@ -263,9 +263,29 @@ async function enrichContextWithThreadData(
     const imageUrls = await getUserUploadedImages(ctx, threadId);
 
     if (imageUrls.length > 0) {
+      const primaryImageUrl = imageUrls[0];
+      const additionalUrls = imageUrls.slice(1);
+
+      let instruction = `[IMPORTANT - User Uploaded Image(s)]
+The user has uploaded ${imageUrls.length} image(s) to this conversation.
+
+PRIMARY ROOM IMAGE: ${primaryImageUrl}
+When the user asks to design, redesign, furnish, or style "this space/room/image", you MUST pass this URL as the 'roomImageUrl' parameter to generate_design_image. This is the user's actual space they want designed.`;
+
+      if (additionalUrls.length > 0) {
+        instruction += `
+
+ADDITIONAL REFERENCE IMAGES: ${additionalUrls.join(", ")}
+Pass these as the 'otherImageUrls' array parameter to generate_design_image for additional style/furniture references.`;
+      }
+
+      instruction += `
+
+CRITICAL: Do NOT generate a random room from scratch when the user has uploaded an image. Always use their uploaded image as the base reference via 'roomImageUrl'.`;
+
       const storageIdNote = {
         role: "user" as const,
-        content: `[System Note: The user uploaded ${imageUrls.length} image(s) with URLs: ${imageUrls.join(", ")}. Use these URLs as 'referenceImageUrls' when calling generate_design_image if the user wants to modify or use them as reference for their design.]`,
+        content: instruction,
       };
       messages.push(storageIdNote);
     }
@@ -425,15 +445,17 @@ Returns products with names, prices, images, ratings, and Amazon links.
 Append new products to an existing design without removing current items. Use when expanding a design.
 
 ### generate_design_image
-Create photorealistic visualizations. **Always prefer to include product images and existing design images as references** for more accurate and realistic results.
+Create photorealistic visualizations. **Always prefer to include the user's uploaded room image and product images as references** for more accurate and realistic results.
 
 Parameters:
-- **roomType**: Room type
-- **style**: Design aesthetic
-- **designPlan**: Detailed vision (lighting, materials, spatial layout, mood)
-- **products** (optional): Products with their imageUrl fields - **always include imageUrl when available** for visual reference
-- **baseImageStorageId** (optional): Existing design image storage ID to use as anchor/reference
-- **referenceImageUrls** (optional): Additional reference images (product images, inspiration photos)
+- **roomType**: Room type (required)
+- **style**: Design aesthetic (required)
+- **designPlan**: Detailed vision - color palette, furniture arrangement, materials, lighting mood, spatial layout (required)
+- **roomImageUrl** (optional but CRITICAL): **If the user uploaded an image of their space, you MUST pass that URL here.** This is the primary room reference that grounds the visualization in the user's actual space.
+- **products** (optional): Products with their imageUrl fields - always include imageUrl when available for visual reference
+- **otherImageUrls** (optional): Additional reference images - inspiration photos, style references, or additional product images
+
+**CRITICAL**: When a user uploads an image of their room and asks you to design/style/furnish it, you MUST pass their uploaded image URL as 'roomImageUrl'. Never generate a random room when the user has provided their actual space.
 
 **Best practice**: When creating a design with products, pass the product objects WITH their imageUrl fields to generate_design_image. This gives the AI visual references for more accurate furniture and decor placement.
 
@@ -441,7 +463,12 @@ Provide rich, specific descriptions for best results.
 
 ## Tool Usage Patterns
 
-**Creating a complete design:**
+**When user uploads an image of their space:**
+1. **ALWAYS use their uploaded image** - Pass the uploaded image URL as 'roomImageUrl' in generate_design_image. This is non-negotiable when the user has shared their actual space.
+2. **Understand what they want** - Are they looking to redesign the whole room? Add specific pieces? Change the style?
+3. **Create the design** - Include the roomImageUrl as the base for visualization
+
+**Creating a complete design (from scratch or with uploaded image):**
 1. **Plan the design** - Understand the room type, style, budget, and specific needs
 2. **Create the design first** - Save the initial design with title, description, room type, style, and design plan using create_design. This creates the artifact that users can reference.
 3. **Search for products** - Based on your plan, identify 3-5 items and construct specific queries:
@@ -450,17 +477,18 @@ Provide rich, specific descriptions for best results.
    - Add price filters if working within a budget
    - Be specific: "modern charcoal grey velvet sectional sofa 90 inch" not just "sofa"
 4. **Generate visualization** - Pass the products WITH their imageUrl fields to generate_design_image:
+   - **If user uploaded an image**: Pass their image URL as 'roomImageUrl' - this is REQUIRED
    - Include all products from search results (they have imageUrl)
-   - If modifying an existing design, include baseImageStorageId for context
+   - Use 'otherImageUrls' for additional inspiration/reference images
    - This gives the AI visual references for accurate placement and styling
-4. Create design with all elements: products, description, and image storage ID
+5. Update design with all elements: products, description, and image storage ID
 
-**Key principle:** Plan → Create → Search → Visualize with Product Images → Update. This ensures the design artifact is available immediately for users to view, then gets enriched with products and visualization. Always pass product images to generate_design_image for better results. All product details (style, budget, room type) are incorporated into the query strings, not passed as separate parameters.
+**Key principle:** Plan → Create → Search → Visualize (with user's room image if provided) → Update. When the user uploads an image, ALWAYS use it as roomImageUrl. This ensures the visualization matches their actual space rather than generating a random room.
 
 **Iterative refinement:**
 1. Get design to see current state (including imageStorageId and products with imageUrl)
 2. Update based on feedback or add products
-3. Generate new image if visual changes were made - **always pass existing design's imageStorageId as baseImageStorageId** and products with their imageUrl fields for continuity
+3. Generate new image if visual changes were made - pass products with their imageUrl fields for continuity
 
 **Quick explorations:**
 Just search products OR generate an image without saving—not every conversation needs a saved design.
