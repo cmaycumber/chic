@@ -883,7 +883,7 @@ function CreateDesignOutput({
       <div className="p-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/70 uppercase tracking-widest">
               New Design
             </p>
             <h4 className="truncate font-medium text-foreground">
@@ -925,7 +925,7 @@ function CreateDesignOutput({
         )}
 
         {output.products && output.products.length > 0 && (
-          <p className="mt-2 text-muted-foreground/60 text-xs">
+          <p className="mt-2 text-muted-foreground/70 text-xs">
             {output.products.length} product
             {output.products.length > 1 ? "s" : ""}
           </p>
@@ -1007,7 +1007,7 @@ function AddProductsOutput({
       <div className="p-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/70 uppercase tracking-widest">
               Products Added
             </p>
             <h4 className="truncate font-medium text-foreground">
@@ -1061,7 +1061,7 @@ function UpdateDesignOutput({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/60 uppercase tracking-widest">
+            <p className="mb-0.5 font-medium text-[10px] text-muted-foreground/70 uppercase tracking-widest">
               Design Updated
             </p>
             <h4 className="truncate font-medium text-foreground">
@@ -1123,7 +1123,7 @@ function GetDesignOutput({
         )}
 
         {output.products && output.products.length > 0 && (
-          <p className="mt-2 text-muted-foreground/60 text-xs">
+          <p className="mt-2 text-muted-foreground/70 text-xs">
             {output.products.length} product
             {output.products.length > 1 ? "s" : ""}
           </p>

@@ -20,6 +20,11 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground active:bg-accent/70",
         link: "text-foreground underline-offset-4 hover:underline",
+        brass:
+          "bg-[var(--accent-brass)] text-white shadow-sm hover:bg-[var(--accent-brass)]/90 active:bg-[var(--accent-brass)]/80",
+        coral:
+          "bg-[var(--accent-coral)] text-white shadow-sm hover:bg-[var(--accent-coral)]/90 active:bg-[var(--accent-coral)]/80",
+        cta: "bg-[var(--accent-cta)] text-white shadow-md hover:bg-[var(--accent-cta)]/90 hover:shadow-lg active:bg-[var(--accent-cta)]/80",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

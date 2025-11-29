@@ -118,9 +118,9 @@ export function ThinkingPanel({ steps, onClose }: ThinkingPanelProps) {
       <div className="flex-1 overflow-auto">
         {steps.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-            <BrainIcon className="size-8 text-muted-foreground/50" />
+            <BrainIcon className="size-8 text-muted-foreground" />
             <p className="text-muted-foreground text-sm">No thinking yet</p>
-            <p className="text-muted-foreground/60 text-xs">
+            <p className="text-muted-foreground/70 text-xs">
               The agent's reasoning steps will appear here
             </p>
           </div>

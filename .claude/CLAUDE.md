@@ -12,6 +12,24 @@ Ultracite enforces strict type safety, accessibility standards, and consistent c
 2. Consider edge cases and error scenarios
 3. Follow the rules below strictly
 4. Validate accessibility requirements
+5. **Review design guidelines** - See `apps/web/.claude/DESIGN.md` for UI/UX patterns
+
+## Design System
+
+### Quick Reference
+- **Design Tokens**: Use CSS custom properties from `apps/web/src/global.css`
+- **Button Variants**: `brass`, `coral`, `cta` for brand-specific actions
+- **Gradients**: `gradient-hero-warm` for hero sections
+- **Glassmorphism**: `glass-dark`, `glass-light` utility classes
+- **Spacing**: Use 8px grid (space-2, space-4, space-6, etc.)
+- **Border Radius**: Use tokens (radius-xl for cards, radius-lg for buttons)
+
+### Brand Colors
+- **Brass** (`var(--accent-brass)`): Primary accent - use for main actions
+- **Coral** (`var(--accent-coral)`): Secondary accent
+- **CTA** (`var(--accent-cta)`): Call-to-action buttons
+
+For detailed design guidelines, component patterns, and examples, see `apps/web/.claude/DESIGN.md` and `apps/web/DESIGN_SPEC.md`.
 
 ## Rules
 

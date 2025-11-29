@@ -92,7 +92,7 @@ export function ArtifactsPanel({ artifacts, onClose }: ArtifactsPanelProps) {
         {artifacts.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
             <p className="text-muted-foreground text-sm">No designs yet</p>
-            <p className="text-muted-foreground/60 text-xs">
+            <p className="text-muted-foreground/70 text-xs">
               Designs will appear here as you create them
             </p>
           </div>

@@ -2,7 +2,7 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useMutation } from "convex/react";
-import { ArrowUp, Sparkles } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -70,39 +70,30 @@ export function HeroInputSection() {
   );
 
   return (
-    <div className="pointer-events-none relative z-10 mb-12 space-y-6 pt-12 text-center">
-      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 shadow-sm backdrop-blur-sm">
-        <Sparkles className="size-4 text-amber-600" />
-        <span className="font-medium text-sm">AI-Powered Design</span>
-      </div>
-      <h1 className="font-bold text-5xl text-white leading-tight tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-        Your <span className="text-amber-700 italic">intelligent</span>
-        <br />
-        canvas.
-      </h1>
-      <p className="mx-auto max-w-2xl text-lg text-neutral-100 sm:text-xl">
-        Every creative AI tool. Thoughtfully connected.
+    <div className="mx-auto max-w-md">
+      <PromptInput onSubmit={handleSubmit}>
+        <PromptInputBody>
+          <PromptInputTextarea
+            className="bg-white font-light text-ink placeholder:text-ink/40"
+            disabled={isSubmitting}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Describe your vision..."
+            value={input}
+          />
+        </PromptInputBody>
+        <PromptInputToolbar className="bg-white">
+          <div className="flex-1" />
+          <PromptInputSubmit
+            className="bg-ink text-white hover:bg-ink/90"
+            disabled={!input.trim() || isSubmitting}
+          >
+            <ArrowUp className="size-4" />
+          </PromptInputSubmit>
+        </PromptInputToolbar>
+      </PromptInput>
+      <p className="mt-3 font-light text-white/60 text-xs">
+        Start with a simple description or upload a photo of your space
       </p>
-
-      {/* CTA */}
-      <div className="pointer-events-auto mx-auto max-w-md">
-        <PromptInput onSubmit={handleSubmit}>
-          <PromptInputBody>
-            <PromptInputTextarea
-              disabled={isSubmitting}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Describe your dream space..."
-              value={input}
-            />
-          </PromptInputBody>
-          <PromptInputToolbar>
-            <div className="flex-1" />
-            <PromptInputSubmit disabled={!input.trim() || isSubmitting}>
-              <ArrowUp className="size-4" />
-            </PromptInputSubmit>
-          </PromptInputToolbar>
-        </PromptInput>
-      </div>
     </div>
   );
 }

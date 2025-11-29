@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -9,6 +10,8 @@
   --font-sans:
     "Inter", "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --font-serif: "Cormorant Garamond", "Playfair Display", "Georgia", serif;
 }
 
 html {
@@ -27,7 +30,7 @@ body {
 
 /* Chic — brand tokens
    Ink  #161617 → oklch(0.201 0.002 286.029)
-   Bone #F4F1EA → oklch(0.959 0.010 87.511)
+   Bone #FAF8F4 → oklch(0.980 0.008 87.511) (lightened for better contrast)
    Greige #CFC8BC → oklch(0.835 0.018 81.321)
    Brass #B08D57 → oklch(0.664 0.083 77.403)
    Forest #0B3D2E → oklch(0.323 0.058 168.364)
@@ -35,8 +38,50 @@ body {
 */
 
 :root {
+  /* Border radius tokens */
   --radius: 0.75rem;
-  --background: oklch(1 0 0);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-full: 9999px;
+
+  /* Hero gradient backgrounds */
+  --gradient-hero-warm: linear-gradient(
+    135deg,
+    oklch(0.45 0.08 40) 0%,
+    oklch(0.35 0.12 25) 30%,
+    oklch(0.4 0.1 310) 60%,
+    oklch(0.42 0.08 50) 100%
+  );
+
+  --gradient-hero-dark: linear-gradient(
+    135deg,
+    oklch(0.25 0.04 30) 0%,
+    oklch(0.2 0.06 340) 50%,
+    oklch(0.22 0.05 20) 100%
+  );
+
+  /* Glassmorphism effects */
+  --glass-light-bg: rgba(255, 255, 255, 0.1);
+  --glass-light-border: rgba(255, 255, 255, 0.2);
+  --glass-dark-bg: rgba(0, 0, 0, 0.4);
+  --glass-dark-border: rgba(0, 0, 0, 0.6);
+
+  /* Accent colors */
+  --accent-brass: oklch(0.664 0.083 77.403);
+  --accent-coral: oklch(0.6 0.15 35);
+  --accent-cta: oklch(0.65 0.2 25);
+
+  /* Chic color palette */
+  --color-bone: oklch(0.98 0.008 87.511);
+  --color-ink: oklch(0.201 0.002 286.029);
+  --color-greige: oklch(0.835 0.018 81.321);
+  --color-brass: oklch(0.664 0.083 77.403);
+  --color-blush: oklch(0.805 0.044 51.921);
+
+  --background: var(--color-bone);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0 0);
@@ -264,9 +309,112 @@ body {
 /* Chic typing indicator brand tokens - using your brand colors */
 :root {
   --chic-ink: oklch(0.201 0.002 286.029); /* Brand Ink */
-  --chic-veil: oklch(0.959 0.01 87.511); /* Brand Bone */
+  --chic-veil: oklch(0.98 0.008 87.511); /* Brand Bone */
 }
 .dark {
   --chic-ink: oklch(0.98 0 0); /* matches --foreground in dark mode */
   --chic-veil-dark: oklch(0.2 0 0); /* matches --muted in dark mode */
+}
+
+/* Glassmorphism utility classes */
+@layer utilities {
+  .glass-light {
+    background: var(--glass-light-bg);
+    border: 1px solid var(--glass-light-border);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  .glass-dark {
+    background: var(--glass-dark-bg);
+    border: 1px solid var(--glass-dark-border);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  .gradient-hero-warm {
+    background: var(--gradient-hero-warm);
+  }
+
+  .gradient-hero-dark {
+    background: var(--gradient-hero-dark);
+  }
+
+  /* Text gradient utilities */
+  .text-gradient-brass {
+    background: linear-gradient(
+      135deg,
+      oklch(0.764 0.083 77.403),
+      oklch(0.564 0.083 77.403)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-gradient-warm {
+    background: linear-gradient(135deg, oklch(0.8 0.1 40), oklch(0.65 0.15 35));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Chic design utilities */
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .text-ink {
+    color: var(--color-ink);
+  }
+
+  .text-brass {
+    color: var(--color-brass);
+  }
+
+  .text-greige {
+    color: var(--color-greige);
+  }
+
+  .bg-bone {
+    background-color: var(--color-bone);
+  }
+
+  .bg-ink {
+    background-color: var(--color-ink);
+  }
+
+  .bg-greige {
+    background-color: var(--color-greige);
+  }
+
+  .border-greige {
+    border-color: var(--color-greige);
+  }
+
+  /* Subtle paper texture */
+  .texture-paper {
+    background-image:
+      linear-gradient(90deg, transparent 79px, rgba(0, 0, 0, 0.01) 79px),
+      linear-gradient(rgba(0, 0, 0, 0.005) 0.5px, transparent 0.5px);
+    background-size:
+      80px 80px,
+      100% 20px;
+  }
+
+  /* Elegant divider */
+  .divider-elegant {
+    position: relative;
+  }
+
+  .divider-elegant::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 1px;
+    background: var(--color-brass);
+  }
 }

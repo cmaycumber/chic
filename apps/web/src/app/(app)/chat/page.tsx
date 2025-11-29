@@ -173,7 +173,7 @@ export default function ChatHomePage() {
             prompt={input}
           />
           <div className="mx-auto max-w-3xl px-3 pb-3 sm:px-4 sm:pb-4 md:px-6 md:pb-6">
-            <div className="text-center text-muted-foreground/80 text-xs">
+            <div className="text-center text-muted-foreground text-xs">
               Your AI interior designer provides suggestions based on design
               principles. Always verify measurements and check product details.
             </div>
