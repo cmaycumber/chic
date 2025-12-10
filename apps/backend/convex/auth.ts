@@ -34,6 +34,24 @@ export const authComponent = createClient<DataModel, any>(
   }
 );
 
+/** Time constants in seconds */
+const SECONDS_PER_MINUTE = 60;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const DAYS_PER_MONTH = 30;
+
+/** Session duration: 30 days in seconds */
+const SESSION_EXPIRES_IN =
+  SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY * DAYS_PER_MONTH;
+
+/** Session update age: refresh session if older than 1 day */
+const SESSION_UPDATE_AGE =
+  SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER_DAY;
+
+/** Cookie cache duration: 5 minutes in seconds */
+const COOKIE_CACHE_MINUTES = 5;
+const COOKIE_CACHE_MAX_AGE = SECONDS_PER_MINUTE * COOKIE_CACHE_MINUTES;
+
 export const createAuth = (
   ctx: GenericCtx<DataModel>,
   { optionsOnly } = { optionsOnly: false }
@@ -49,6 +67,14 @@ export const createAuth = (
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+    },
+    session: {
+      expiresIn: SESSION_EXPIRES_IN,
+      updateAge: SESSION_UPDATE_AGE,
+      cookieCache: {
+        enabled: true,
+        maxAge: COOKIE_CACHE_MAX_AGE,
+      },
     },
     plugins: [
       convex(),

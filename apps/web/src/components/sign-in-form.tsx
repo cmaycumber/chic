@@ -28,6 +28,7 @@ export default function SignInForm({
         {
           email: value.email,
           password: value.password,
+          rememberMe: true, // Keep user logged in across browser sessions
         },
         {
           onSuccess: () => {
