@@ -14,7 +14,7 @@
  * biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase
  */
 "use node";
-import { Agent, listUIMessages, type UIMessage } from "@convex-dev/agent";
+import { Agent, listUIMessages } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
   gateway,
@@ -188,7 +188,7 @@ The following designs have been created in this conversation. Reference these wh
 
 /**
  * Helper to fetch user uploaded images from the thread
- * Returns URLs for images that the agent can reference
+ * Extracts image URLs directly from UIMessage parts
  */
 async function getUserUploadedImages(
   ctx: ActionCtx,
@@ -197,53 +197,53 @@ async function getUserUploadedImages(
   try {
     const uiMessages = await listUIMessages(ctx, components.agent, {
       threadId,
-      paginationOpts: { numItems: 20, cursor: null },
+      paginationOpts: { numItems: 50, cursor: null },
     });
 
-    const lastUserMessageWithFiles = uiMessages.page
+    // Find the last user message with image parts
+    const lastUserMessageWithImages = uiMessages.page
       .slice()
       .reverse()
       .find((m) => {
-        const msg = m as UIMessage<{ fileIds?: string[] }>;
-        return msg.role === "user" && (msg.metadata?.fileIds?.length ?? 0) > 0;
+        if (m.role !== "user") {
+          return false;
+        }
+        // Check if any part is an image file
+        // biome-ignore lint/suspicious/noExplicitAny: UIMessage parts have dynamic structure
+        return (m.parts as any[])?.some(
+          (part) =>
+            part.type === "file" &&
+            part.mediaType?.startsWith("image/") &&
+            part.url
+        );
       });
 
-    if (!lastUserMessageWithFiles) {
+    if (!lastUserMessageWithImages) {
+      console.log(
+        "[getUserUploadedImages] No user message with images found in thread"
+      );
       return [];
     }
 
-    const msg = lastUserMessageWithFiles as UIMessage<{ fileIds?: string[] }>;
-    const fileIds = msg.metadata?.fileIds ?? [];
+    // Extract image URLs directly from parts
     const imageUrls: string[] = [];
-
-    for (const fileId of fileIds) {
-      try {
-        const fileMetadata = await ctx.runAction(
-          internal.files.internalGetFileMetadata,
-          {
-            fileId,
-          }
-        );
-        if (fileMetadata.url) {
-          imageUrls.push(fileMetadata.url);
-        } else if (fileMetadata.storageId) {
-          const storageUrl = await ctx.runQuery(
-            internal.files.internalGetStorageUrl,
-            {
-              storageId: fileMetadata.storageId,
-            }
-          );
-          if (storageUrl) {
-            imageUrls.push(storageUrl);
-          }
-        }
-      } catch (_fileError) {
-        // Continue with other files
+    // biome-ignore lint/suspicious/noExplicitAny: UIMessage parts have dynamic structure
+    for (const part of (lastUserMessageWithImages.parts as any[]) ?? []) {
+      if (
+        part.type === "file" &&
+        part.mediaType?.startsWith("image/") &&
+        part.url
+      ) {
+        imageUrls.push(part.url);
       }
     }
 
+    console.log(
+      `[getUserUploadedImages] Found ${imageUrls.length} image(s) in thread`
+    );
     return imageUrls;
-  } catch (_error) {
+  } catch (error) {
+    console.error("[getUserUploadedImages] Error fetching images:", error);
     return [];
   }
 }
