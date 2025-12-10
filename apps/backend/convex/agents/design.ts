@@ -14,7 +14,6 @@
  * biome-ignore-all lint/style/useNamingConvention: OpenAI tools are not camelCase
  */
 "use node";
-import { anthropic } from "@ai-sdk/anthropic";
 import { Agent, listUIMessages, type UIMessage } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
@@ -36,8 +35,8 @@ const MAX_AGENT_STEPS = 15;
 const MAX_DESIGNS_IN_CONTEXT = 5;
 
 // Use Claude 4.5 Haiku for the main agent
-const claude = wrapLanguageModel({
-  model: gateway.languageModel("anthropic/claude-4.5-haiku"),
+const primaryModel = wrapLanguageModel({
+  model: gateway.languageModel("deepseek/deepseek-v3.2-exp-thinking"),
   middleware: defaultSettingsMiddleware({ settings: {} }),
 });
 
@@ -345,11 +344,8 @@ CRITICAL: Do NOT generate a random room from scratch when the user has uploaded 
  */
 export const designAgent = new Agent(components.agent, {
   name: "Interior Design Consultant",
-  languageModel: claude,
+  languageModel: primaryModel,
   tools: {
-    web_search: anthropic.tools.webSearch_20250305({
-      maxUses: 10,
-    }),
     create_design,
     update_design,
     search_products,
