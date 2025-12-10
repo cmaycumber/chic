@@ -33,6 +33,12 @@ import { update_design } from "./tools/updateDesign";
 
 const MAX_AGENT_STEPS = 15;
 const MAX_DESIGNS_IN_CONTEXT = 5;
+const MAX_MESSAGES_TO_SCAN = 50;
+
+/** Content part types used throughout context building */
+type TextPart = { type: "text"; text: string };
+type ImagePart = { type: "image"; image: string };
+type ContentPart = TextPart | ImagePart;
 
 // Use Claude 4.5 Haiku for the main agent
 const primaryModel = wrapLanguageModel({
@@ -65,37 +71,57 @@ function formatProductsList<
 }
 
 /**
+ * Convert a Blob to a base64 data URL
+ */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+  const mimeType = blob.type || "image/png";
+  return `data:${mimeType};base64,${base64}`;
+}
+
+/** Design data shape for context formatting */
+type DesignData = {
+  _id: { toString(): string };
+  title: string;
+  description: string;
+  designPlan?: string;
+  budget?: number;
+  products?: Array<{
+    name: string;
+    price: number;
+    description?: string;
+    productUrl?: string;
+  }>;
+  imageStorageId?: string;
+};
+
+/** Storage context for fetching images */
+type StorageContext = {
+  storage: { get: (id: string) => Promise<Blob | null> };
+};
+
+/**
  * Format a single design for context with structured message parts
  */
-async function formatDesignContext<
-  T extends {
-    _id: { toString(): string };
-    title: string;
-    description: string;
-    designPlan?: string;
-    budget?: number;
-    products?: Array<{
-      name: string;
-      price: number;
-      description?: string;
-      productUrl?: string;
-    }>;
-    imageStorageId?: string;
-  },
->(
-  ctx: { storage: { get: (id: string) => Promise<Blob | null> } },
-  design: T
-): Promise<
-  Array<{ type: "text"; text: string } | { type: "image"; image: string }>
-> {
+async function formatDesignContext(
+  ctx: StorageContext,
+  design: DesignData
+): Promise<ContentPart[]> {
   const designPlan = design.designPlan
     ? `Design Plan: ${design.designPlan}`
     : "";
   const budget = design.budget ? `Budget: $${design.budget}` : "";
   const productsList = formatProductsList(design.products);
 
-  const textPart = {
-    type: "text" as const,
+  const textPart: TextPart = {
+    type: "text",
     text: `
 Design: ${design.title}
 ID: ${design._id}
@@ -107,29 +133,12 @@ ${productsList}
 ---`,
   };
 
-  // If there's an image, fetch it as bytes and convert to base64 data URL
+  // If there's an image, fetch it and convert to base64 data URL
   if (design.imageStorageId) {
     const imageBlob = await ctx.storage.get(design.imageStorageId);
     if (imageBlob) {
-      const arrayBuffer = await imageBlob.arrayBuffer();
-      // Convert ArrayBuffer to base64 using index-based iteration
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
-      for (let i = 0; i < bytes.length; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64 = btoa(binary);
-      const mimeType = imageBlob.type || "image/png";
-      const dataUrl = `data:${mimeType};base64,${base64}`;
-
-      return [
-        textPart,
-        {
-          type: "image" as const,
-          image: dataUrl,
-        },
-      ];
+      const dataUrl = await blobToDataUrl(imageBlob);
+      return [textPart, { type: "image", image: dataUrl }];
     }
   }
 
@@ -139,32 +148,13 @@ ${productsList}
 /**
  * Build structured content parts for designs context
  */
-async function buildDesignsContextParts<
-  T extends {
-    _id: { toString(): string };
-    title: string;
-    description: string;
-    designPlan?: string;
-    budget?: number;
-    products?: Array<{
-      name: string;
-      price: number;
-      description?: string;
-      productUrl?: string;
-    }>;
-    imageStorageId?: string;
-  },
->(
-  ctx: { storage: { get: (id: string) => Promise<Blob | null> } },
-  designs: T[]
-): Promise<
-  Array<{ type: "text"; text: string } | { type: "image"; image: string }>
-> {
-  const contentParts: Array<
-    { type: "text"; text: string } | { type: "image"; image: string }
-  > = [
+async function buildDesignsContextParts(
+  ctx: StorageContext,
+  designs: DesignData[]
+): Promise<ContentPart[]> {
+  const contentParts: ContentPart[] = [
     {
-      type: "text" as const,
+      type: "text",
       text: `
 === EXISTING DESIGNS IN THIS CONVERSATION ===
 The following designs have been created in this conversation. Reference these when the user asks about existing designs or wants to modify them:
@@ -179,11 +169,31 @@ The following designs have been created in this conversation. Reference these wh
   }
 
   contentParts.push({
-    type: "text" as const,
+    type: "text",
     text: "\n=== END OF EXISTING DESIGNS ===",
   });
 
   return contentParts;
+}
+
+/** UIMessage file part structure from @convex-dev/agent */
+type UIFilePart = {
+  type: "file";
+  url?: string;
+  mediaType?: string;
+};
+
+/**
+ * Check if a part is an image file part with a valid URL
+ */
+function isImageFilePart(part: unknown): part is UIFilePart {
+  const filePart = part as UIFilePart;
+  return (
+    filePart?.type === "file" &&
+    typeof filePart.url === "string" &&
+    typeof filePart.mediaType === "string" &&
+    filePart.mediaType.startsWith("image/")
+  );
 }
 
 /**
@@ -197,7 +207,7 @@ async function getUserUploadedImages(
   try {
     const uiMessages = await listUIMessages(ctx, components.agent, {
       threadId,
-      paginationOpts: { numItems: 50, cursor: null },
+      paginationOpts: { numItems: MAX_MESSAGES_TO_SCAN, cursor: null },
     });
 
     // Find the last user message with image parts
@@ -208,17 +218,11 @@ async function getUserUploadedImages(
         if (m.role !== "user") {
           return false;
         }
-        // Check if any part is an image file
-        // biome-ignore lint/suspicious/noExplicitAny: UIMessage parts have dynamic structure
-        return (m.parts as any[])?.some(
-          (part) =>
-            part.type === "file" &&
-            part.mediaType?.startsWith("image/") &&
-            part.url
-        );
+        return (m.parts as unknown[])?.some(isImageFilePart);
       });
 
     if (!lastUserMessageWithImages) {
+      // biome-ignore lint/suspicious/noConsole: Debug logging for troubleshooting
       console.log(
         "[getUserUploadedImages] No user message with images found in thread"
       );
@@ -226,25 +230,146 @@ async function getUserUploadedImages(
     }
 
     // Extract image URLs directly from parts
-    const imageUrls: string[] = [];
-    // biome-ignore lint/suspicious/noExplicitAny: UIMessage parts have dynamic structure
-    for (const part of (lastUserMessageWithImages.parts as any[]) ?? []) {
-      if (
-        part.type === "file" &&
-        part.mediaType?.startsWith("image/") &&
-        part.url
-      ) {
-        imageUrls.push(part.url);
-      }
-    }
+    const imageUrls = (lastUserMessageWithImages.parts as unknown[])
+      ?.filter(isImageFilePart)
+      .map((part) => part.url)
+      .filter((url): url is string => Boolean(url));
 
+    // biome-ignore lint/suspicious/noConsole: Debug logging for troubleshooting
     console.log(
-      `[getUserUploadedImages] Found ${imageUrls.length} image(s) in thread`
+      `[getUserUploadedImages] Found ${imageUrls?.length ?? 0} image(s) in thread`
     );
-    return imageUrls;
+    return imageUrls ?? [];
   } catch (error) {
+    // biome-ignore lint/suspicious/noConsole: Error logging for debugging
     console.error("[getUserUploadedImages] Error fetching images:", error);
     return [];
+  }
+}
+
+/**
+ * Check if a URL is valid for use as an image source
+ */
+function isValidImageUrl(url: string): boolean {
+  return (
+    url.startsWith("data:") ||
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  );
+}
+
+/**
+ * Build multimodal content parts for user-uploaded images
+ * Returns content array with text instructions and image parts
+ */
+function buildUserImageContextParts(imageUrls: string[]): ContentPart[] {
+  const primaryImageUrl = imageUrls[0];
+  const additionalUrls = imageUrls.slice(1);
+
+  const contentParts: ContentPart[] = [];
+
+  // Build instruction text
+  let instruction = `[IMPORTANT - User Uploaded Image(s)]
+The user has uploaded ${imageUrls.length} image(s) to this conversation.
+
+PRIMARY ROOM IMAGE URL: ${primaryImageUrl}
+When the user asks to design, redesign, furnish, or style "this space/room/image", you MUST pass this URL as the 'roomImageUrl' parameter to generate_design_image. This is the user's actual space they want designed.`;
+
+  if (additionalUrls.length > 0) {
+    instruction += `
+
+ADDITIONAL REFERENCE IMAGE URLs: ${additionalUrls.join(", ")}
+Pass these as the 'otherImageUrls' array parameter to generate_design_image for additional style/furniture references.`;
+  }
+
+  instruction += `
+
+CRITICAL: Do NOT generate a random room from scratch when the user has uploaded an image. Always use their uploaded image as the base reference via 'roomImageUrl'.
+
+Below are the actual uploaded images for your visual reference:`;
+
+  contentParts.push({ type: "text", text: instruction });
+
+  // Add valid image URLs as visual content
+  for (const imageUrl of imageUrls) {
+    if (isValidImageUrl(imageUrl)) {
+      contentParts.push({ type: "image", image: imageUrl });
+    }
+  }
+
+  return contentParts;
+}
+
+/**
+ * Add user-uploaded images to the context messages
+ */
+async function addUserImagesContext(
+  ctx: ActionCtx,
+  threadId: string,
+  messages: ModelMessage[]
+): Promise<void> {
+  const imageUrls = await getUserUploadedImages(ctx, threadId);
+
+  if (imageUrls.length === 0) {
+    return;
+  }
+
+  const contentParts = buildUserImageContextParts(imageUrls);
+  const imageContextMessage = {
+    role: "user" as const,
+    content: contentParts,
+  };
+  messages.push(imageContextMessage);
+}
+
+/**
+ * Add existing designs context to messages
+ */
+async function addDesignsContext(
+  ctx: ActionCtx,
+  threadId: string,
+  messages: ModelMessage[]
+): Promise<void> {
+  const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
+    threadId,
+  });
+
+  if (designs.length === 0) {
+    return;
+  }
+
+  // Limit designs to prevent context overflow
+  const limitedDesigns = designs.slice(0, MAX_DESIGNS_IN_CONTEXT);
+  const contentParts = await buildDesignsContextParts(ctx, limitedDesigns);
+
+  // Find the last user message index
+  let lastUserMessageIndex = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      lastUserMessageIndex = i;
+      break;
+    }
+  }
+
+  // Insert the designs context with structured parts before the last user message
+  // Use "user" role since system messages don't support multimodal content
+  const designsMessage = {
+    role: "user" as const,
+    content: contentParts,
+  };
+
+  if (lastUserMessageIndex > 0) {
+    messages.splice(lastUserMessageIndex, 0, designsMessage);
+  } else {
+    messages.unshift(designsMessage);
+  }
+
+  // Add truncation notice if there are more designs
+  if (designs.length > MAX_DESIGNS_IN_CONTEXT) {
+    messages.push({
+      role: "user" as const,
+      content: `[Note: Showing ${MAX_DESIGNS_IN_CONTEXT} of ${designs.length} designs. Use get_design to retrieve specific designs by ID.]`,
+    });
   }
 }
 
@@ -257,84 +382,26 @@ async function enrichContextWithThreadData(
   threadId: string,
   messages: ModelMessage[]
 ): Promise<void> {
-  // 1. User uploaded images - add as system note for the agent
+  // 1. User uploaded images - add as multimodal content for the agent to see
   try {
-    const imageUrls = await getUserUploadedImages(ctx, threadId);
-
-    if (imageUrls.length > 0) {
-      const primaryImageUrl = imageUrls[0];
-      const additionalUrls = imageUrls.slice(1);
-
-      let instruction = `[IMPORTANT - User Uploaded Image(s)]
-The user has uploaded ${imageUrls.length} image(s) to this conversation.
-
-PRIMARY ROOM IMAGE: ${primaryImageUrl}
-When the user asks to design, redesign, furnish, or style "this space/room/image", you MUST pass this URL as the 'roomImageUrl' parameter to generate_design_image. This is the user's actual space they want designed.`;
-
-      if (additionalUrls.length > 0) {
-        instruction += `
-
-ADDITIONAL REFERENCE IMAGES: ${additionalUrls.join(", ")}
-Pass these as the 'otherImageUrls' array parameter to generate_design_image for additional style/furniture references.`;
-      }
-
-      instruction += `
-
-CRITICAL: Do NOT generate a random room from scratch when the user has uploaded an image. Always use their uploaded image as the base reference via 'roomImageUrl'.`;
-
-      const storageIdNote = {
-        role: "user" as const,
-        content: instruction,
-      };
-      messages.push(storageIdNote);
-    }
-  } catch {
-    // Silently continue if image enrichment fails
+    await addUserImagesContext(ctx, threadId, messages);
+  } catch (imageError) {
+    // biome-ignore lint/suspicious/noConsole: Error logging for debugging
+    console.error(
+      "[enrichContextWithThreadData] Image enrichment failed:",
+      imageError
+    );
   }
 
   // 2. Existing designs - provide context about designs in this thread
   try {
-    const designs = await ctx.runQuery(internal.threads.getThreadDesigns, {
-      threadId,
-    });
-
-    if (designs.length > 0) {
-      // Limit designs to prevent context overflow
-      const limitedDesigns = designs.slice(0, MAX_DESIGNS_IN_CONTEXT);
-      const contentParts = await buildDesignsContextParts(ctx, limitedDesigns);
-
-      // Find the last user message index
-      let lastUserMessageIndex = -1;
-      for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].role === "user") {
-          lastUserMessageIndex = i;
-          break;
-        }
-      }
-
-      // Insert the designs context with structured parts before the last user message
-      // Use "user" role since system messages don't support multimodal content
-      const designsMessage = {
-        role: "user" as const,
-        content: contentParts,
-      };
-
-      if (lastUserMessageIndex > 0) {
-        messages.splice(lastUserMessageIndex, 0, designsMessage);
-      } else {
-        messages.unshift(designsMessage);
-      }
-
-      // Add truncation notice if there are more designs
-      if (designs.length > MAX_DESIGNS_IN_CONTEXT) {
-        messages.push({
-          role: "user" as const,
-          content: `[Note: Showing ${MAX_DESIGNS_IN_CONTEXT} of ${designs.length} designs. Use get_design to retrieve specific designs by ID.]`,
-        });
-      }
-    }
-  } catch {
-    // Silently continue if design enrichment fails
+    await addDesignsContext(ctx, threadId, messages);
+  } catch (designError) {
+    // biome-ignore lint/suspicious/noConsole: Error logging for debugging
+    console.error(
+      "[enrichContextWithThreadData] Design enrichment failed:",
+      designError
+    );
   }
 }
 
@@ -441,21 +508,29 @@ Returns products with names, prices, images, ratings, and Amazon links.
 Append new products to an existing design without removing current items. Use when expanding a design.
 
 ### generate_design_image
-Create photorealistic visualizations. **Always prefer to include the user's uploaded room image and product images as references** for more accurate and realistic results.
+Create **composite** photorealistic visualizations by combining multiple reference images into one cohesive design. This tool merges:
+- User's uploaded room photo (the actual space)
+- Product images (furniture/decor to place)
+- Previous design iterations (for refinement)
+- Style/inspiration references
 
 Parameters:
 - **roomType**: Room type (required)
 - **style**: Design aesthetic (required)
 - **designPlan**: Detailed vision - color palette, furniture arrangement, materials, lighting mood, spatial layout (required)
-- **roomImageUrl** (optional but CRITICAL): **If the user uploaded an image of their space, you MUST pass that URL here.** This is the primary room reference that grounds the visualization in the user's actual space.
-- **products** (optional): Products with their imageUrl fields - always include imageUrl when available for visual reference
-- **otherImageUrls** (optional): Additional reference images - inspiration photos, style references, or additional product images
+- **roomImageUrl** (CRITICAL): **If the user uploaded an image of their space, you MUST pass that URL here.** This is the PRIMARY reference that grounds the visualization in their actual space.
+- **baseImageStorageIds** (optional): Array of storage IDs from previous generate_design_image calls. Use when iterating/refining an existing design.
+- **products** (optional): Products with their imageUrl fields - these will be composited into the scene
+- **referenceImageUrls** (optional): Additional reference images - inspiration photos, style references, mood boards
 
-**CRITICAL**: When a user uploads an image of their room and asks you to design/style/furnish it, you MUST pass their uploaded image URL as 'roomImageUrl'. Never generate a random room when the user has provided their actual space.
+**CRITICAL**: When a user uploads an image of their room, you MUST pass their uploaded image URL as 'roomImageUrl'. Never generate a random room when the user has provided their actual space.
 
-**Best practice**: When creating a design with products, pass the product objects WITH their imageUrl fields to generate_design_image. This gives the AI visual references for more accurate furniture and decor placement.
+**Composite workflow**: The tool combines ALL reference images into ONE output. For example:
+- roomImageUrl (user's room) + products[].imageUrl (furniture) → Room with those exact furniture pieces placed in it
+- baseImageStorageIds (previous design) + new products → Refined version with new items added
+- roomImageUrl + referenceImageUrls (inspiration) → User's room styled like the inspiration
 
-Provide rich, specific descriptions for best results.
+**Best practice**: Always pass product objects WITH their imageUrl fields - this ensures the generated image shows those exact products, not generic alternatives.
 
 ## Tool Usage Patterns
 

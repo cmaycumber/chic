@@ -9,14 +9,7 @@ import { createTool, type ToolCtx } from "@convex-dev/agent";
 import z from "zod";
 import { internal } from "../../_generated/api";
 import type { Doc, Id } from "../../_generated/dataModel";
-
-const productSchema = z.object({
-  name: z.string().describe("Product name"),
-  price: z.number().describe("Product price in dollars"),
-  imageUrl: z.string().describe("URL to product image"),
-  productUrl: z.string().optional().describe("URL to product page"),
-  description: z.string().optional().describe("Product description"),
-});
+import { productSchema } from "./index";
 
 /**
  * Updates an existing design in the database

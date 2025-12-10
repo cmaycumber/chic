@@ -1,8 +1,13 @@
 /**
  * Generate Design Image Tool
  *
- * Uses Google Gemini 3 Pro to generate photorealistic interior design images.
- * Can create new images or modify existing ones based on design specifications.
+ * Creates composite interior design visualizations by combining multiple reference images:
+ * - User-uploaded room photos (the space to redesign)
+ * - Product images from search results (furniture/decor to place)
+ * - Previous design images (for iterative refinement)
+ * - Style/inspiration reference images
+ *
+ * The tool merges all inputs into a single cohesive output image.
  *
  * Model: gemini-3-pro-image-preview
  * - Latest generation image model with highest quality outputs
@@ -14,32 +19,76 @@
 import { createTool, type ToolCtx } from "@convex-dev/agent";
 import { gateway, generateText } from "ai";
 import z from "zod";
+import { imageGenProductSchema } from "./index";
 
 const IMAGE_MODEL = "google/gemini-3-pro-image-preview";
 const MAX_REFERENCE_IMAGES = 10;
 const ERROR_PREVIEW_LENGTH = 200;
 
+type ImagePart = { type: "image"; image: string };
+
+/**
+ * Convert a Convex storage blob to a base64 data URL
+ */
+async function storageIdToDataUrl(
+  ctx: { storage: { get: (id: string) => Promise<Blob | null> } },
+  storageId: string
+): Promise<string | null> {
+  const blob = await ctx.storage.get(storageId);
+  if (!blob) {
+    return null;
+  }
+
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+  const mimeType = blob.type || "image/png";
+  return `data:${mimeType};base64,${base64}`;
+}
+
 /**
  * Collect all reference images from various sources with deduplication
+ * Handles both URLs and Convex storage IDs
  */
-function collectReferenceImages(args: {
-  roomImageUrl?: string;
-  products?: Array<{ imageUrl?: string }>;
-  otherImageUrls?: string[];
-}): Array<{ type: "image"; image: string }> {
-  const referenceImages: Array<{ type: "image"; image: string }> = [];
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Multiple image sources require sequential processing
+async function collectReferenceImages(
+  ctx: { storage: { get: (id: string) => Promise<Blob | null> } },
+  args: {
+    roomImageUrl?: string;
+    baseImageStorageIds?: string[];
+    products?: Array<{ imageUrl?: string }>;
+    referenceImageUrls?: string[];
+  }
+): Promise<ImagePart[]> {
+  const referenceImages: ImagePart[] = [];
   const seenUrls = new Set<string>();
 
-  // Add room image if provided (from URL) - this gets priority
+  // 1. Add room image if provided (user's uploaded space) - highest priority
   if (args.roomImageUrl) {
-    referenceImages.push({
-      type: "image",
-      image: args.roomImageUrl,
-    });
+    referenceImages.push({ type: "image", image: args.roomImageUrl });
     seenUrls.add(args.roomImageUrl);
   }
 
-  // Add product images (deduplicated)
+  // 2. Add base images from storage (previous designs to iterate on)
+  if (args.baseImageStorageIds) {
+    for (const storageId of args.baseImageStorageIds) {
+      if (referenceImages.length >= MAX_REFERENCE_IMAGES) {
+        break;
+      }
+      const dataUrl = await storageIdToDataUrl(ctx, storageId);
+      if (dataUrl && !seenUrls.has(dataUrl)) {
+        referenceImages.push({ type: "image", image: dataUrl });
+        seenUrls.add(dataUrl);
+      }
+    }
+  }
+
+  // 3. Add product images (furniture/decor to place in the design)
   if (args.products) {
     for (const product of args.products) {
       if (
@@ -47,23 +96,17 @@ function collectReferenceImages(args: {
         !seenUrls.has(product.imageUrl) &&
         referenceImages.length < MAX_REFERENCE_IMAGES
       ) {
-        referenceImages.push({
-          type: "image",
-          image: product.imageUrl,
-        });
+        referenceImages.push({ type: "image", image: product.imageUrl });
         seenUrls.add(product.imageUrl);
       }
     }
   }
 
-  // Add additional reference images (deduplicated)
-  if (args.otherImageUrls) {
-    for (const url of args.otherImageUrls) {
+  // 4. Add additional reference images (inspiration, style references)
+  if (args.referenceImageUrls) {
+    for (const url of args.referenceImageUrls) {
       if (!seenUrls.has(url) && referenceImages.length < MAX_REFERENCE_IMAGES) {
-        referenceImages.push({
-          type: "image",
-          image: url,
-        });
+        referenceImages.push({ type: "image", image: url });
         seenUrls.add(url);
       }
     }
@@ -72,22 +115,13 @@ function collectReferenceImages(args: {
   return referenceImages;
 }
 
-const productSchema = z.object({
-  name: z.string().describe("Product name"),
-  description: z.string().optional().describe("Product description"),
-  imageUrl: z
-    .string()
-    .optional()
-    .describe("Product image URL to use as reference"),
-});
-
 /**
- * Generates a design visualization image using Google Gemini 3 Pro
+ * Generates a composite design visualization by combining multiple reference images
  */
 // biome-ignore lint/style/useNamingConvention: OpenAI tool names use snake_case
 export const generate_design_image = createTool({
   description:
-    "Generate photorealistic interior design visualization. Pass product imageUrls for accurate furniture placement. Use baseImageStorageId when iterating on existing designs. Returns storageIds for the generated images.",
+    "Create a composite interior design image from multiple references. Combines user's room photo, product images, and style references into one cohesive visualization. Use baseImageStorageIds to iterate on previous designs. Returns storageIds for generated images.",
   args: z.object({
     roomType: z
       .string()
@@ -103,26 +137,42 @@ export const generate_design_image = createTool({
     roomImageUrl: z
       .string()
       .optional()
-      .describe("URL to a room image to use as reference"),
-    products: z
-      .array(productSchema)
-      .optional()
       .describe(
-        "Products to place in the visualization. Include imageUrl for each product."
+        "URL to user's uploaded room photo - the actual space to redesign. This is the PRIMARY reference."
       ),
-    otherImageUrls: z
+    baseImageStorageIds: z
       .array(z.string())
       .optional()
       .describe(
-        "Additional reference URLs: inspiration photos, product images, style references"
+        "Convex storage IDs of previous design images to iterate on. Use when refining an existing design."
+      ),
+    products: z
+      .array(imageGenProductSchema)
+      .optional()
+      .describe(
+        "Products to place in the visualization. Include imageUrl for each - these will be composited into the scene."
+      ),
+    referenceImageUrls: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Additional reference URLs: inspiration photos, style references, mood boards. These guide the overall aesthetic."
       ),
   }),
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image generation requires complex multimodal handling
   handler: async (ctx: ToolCtx, args) => {
-    // Collect all reference images
-    const referenceImages = collectReferenceImages(args);
+    // Collect all reference images (handles both URLs and storage IDs)
+    const referenceImages = await collectReferenceImages(ctx, {
+      roomImageUrl: args.roomImageUrl,
+      baseImageStorageIds: args.baseImageStorageIds,
+      products: args.products,
+      referenceImageUrls: args.referenceImageUrls,
+    });
 
-    const hasReferences = args.roomImageUrl || referenceImages.length > 0;
+    const hasReferences =
+      args.roomImageUrl ||
+      args.baseImageStorageIds?.length ||
+      referenceImages.length > 0;
 
     const productsSection =
       args.products && args.products.length > 0
@@ -134,21 +184,40 @@ ${args.products.map((p, i) => `${i + 1}. ${p.name}${p.description ? `: ${p.descr
 Place each item naturally in the space with proper scale and positioning. If product reference images are provided, match their appearance accurately.`
         : "";
 
-    const imagePrompt = `Generate a professional interior design photograph of a ${args.roomType}.
+    // Build context-aware prompt based on what references are provided
+    const referenceContext: string[] = [];
+    if (args.roomImageUrl) {
+      referenceContext.push(
+        "The first image is the user's actual room - preserve its layout, dimensions, and architectural features while transforming the decor."
+      );
+    }
+    if (args.baseImageStorageIds?.length) {
+      referenceContext.push(
+        "Previous design iterations are included - build upon them while incorporating the requested changes."
+      );
+    }
+    if (args.products?.length) {
+      referenceContext.push(
+        "Product reference images show the exact furniture/decor to place - match their appearance accurately."
+      );
+    }
+
+    const imagePrompt = `Create a composite interior design visualization for a ${args.roomType}.
 
 STYLE: ${args.style}
 
 DESIGN SPECIFICATIONS:
 ${args.designPlan}${productsSection}
 
-${hasReferences ? "Use the reference images provided to guide the design, matching colors, textures, and furniture styles shown." : ""}
+${hasReferences ? `REFERENCE IMAGE GUIDANCE:\n${referenceContext.join("\n")}\n\nCombine all reference images into ONE cohesive final design. The output should seamlessly blend the room structure, furniture pieces, and style references into a unified visualization.` : ""}
 
 RENDERING REQUIREMENTS:
 - Photorealistic quality with natural lighting
 - Proper perspective and spatial proportions
 - High-end interior photography composition
 - Cohesive color palette throughout
-- Realistic material textures (fabric, wood, metal, etc.)`;
+- Realistic material textures (fabric, wood, metal, etc.)
+- Seamless integration of all referenced elements`;
 
     // Build multimodal messages with images and text
     const messages: Array<

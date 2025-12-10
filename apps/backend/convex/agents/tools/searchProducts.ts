@@ -13,24 +13,13 @@
 import { createTool } from "@convex-dev/agent";
 import z from "zod";
 import { addAffiliateTag } from "../../lib/amazonAffiliate";
+import type { Product } from "./index";
 
 const DEFAULT_PRODUCTS_PER_QUERY = 2;
 const MAX_PRODUCTS_PER_QUERY = 5;
 const MIN_PRODUCTS_PER_QUERY = 1;
 const MAX_QUERIES_PER_CALL = 10;
 const ERROR_TEXT_MAX_LENGTH = 200;
-
-const productSchema = z.object({
-  name: z.string().describe("Product name"),
-  price: z.number().describe("Product price in dollars"),
-  imageUrl: z.string().describe("URL to product image"),
-  productUrl: z.string().describe("Amazon product page URL"),
-  rating: z.number().optional().describe("Product rating (out of 5)"),
-  reviewCount: z.number().optional().describe("Number of reviews"),
-  description: z.string().optional().describe("Product description"),
-});
-
-type Product = z.infer<typeof productSchema>;
 
 type AmazonProduct = {
   position?: number;
