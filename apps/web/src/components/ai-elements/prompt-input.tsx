@@ -2,6 +2,7 @@
 
 import type { ChatStatus, FileUIPart } from "ai";
 import {
+  CameraIcon,
   ImageIcon,
   Loader2Icon,
   PaperclipIcon,
@@ -188,6 +189,29 @@ export const PromptInputActionAddAttachments = ({
     </DropdownMenuItem>
   );
 };
+
+export type PromptInputActionTakePhotoProps = ComponentProps<
+  typeof DropdownMenuItem
+> & {
+  label?: string;
+  onOpenCamera: () => void;
+};
+
+export const PromptInputActionTakePhoto = ({
+  label = "Take a photo",
+  onOpenCamera,
+  ...props
+}: PromptInputActionTakePhotoProps) => (
+  <DropdownMenuItem
+    {...props}
+    onSelect={(e) => {
+      e.preventDefault();
+      onOpenCamera();
+    }}
+  >
+    <CameraIcon className="mr-2 size-4" /> {label}
+  </DropdownMenuItem>
+);
 
 export type PromptInputMessage = {
   text?: string;

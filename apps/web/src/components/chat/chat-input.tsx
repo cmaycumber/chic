@@ -2,23 +2,28 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { AlertCircle, ArrowUp, StopCircle } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowUp,
+  CameraIcon,
+  ImageIcon,
+  StopCircle,
+} from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { CameraCapture } from "@/components/ai-elements/camera-capture";
 import {
   PromptInput,
-  PromptInputActionAddAttachments,
-  PromptInputActionMenu,
-  PromptInputActionMenuContent,
-  PromptInputActionMenuTrigger,
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
+  PromptInputButton,
   type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools,
+  usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { PromptHelpers } from "@/components/chat/prompt-helpers";
 import { CreditPurchaseModal } from "@/components/credit-purchase-modal";
@@ -34,6 +39,50 @@ type ChatInputProps = {
   onStopStreaming: () => void;
   isDisabled: boolean;
 };
+
+/**
+ * Inner component that can access the PromptInput attachments context
+ * Handles camera capture and file upload with prominent buttons
+ */
+function ChatInputActions({ isOutOfCredits }: { isOutOfCredits: boolean }) {
+  const attachments = usePromptInputAttachments();
+  const [showCamera, setShowCamera] = useState(false);
+
+  const handleCameraCapture = useCallback(
+    (file: File) => {
+      attachments.add([file]);
+    },
+    [attachments]
+  );
+
+  return (
+    <>
+      {/* Take Photo Button */}
+      <PromptInputButton
+        disabled={isOutOfCredits}
+        onClick={() => setShowCamera(true)}
+      >
+        <CameraIcon className="size-4" />
+        <span className="hidden sm:inline">Take Photo</span>
+      </PromptInputButton>
+
+      {/* Upload Photo Button */}
+      <PromptInputButton
+        disabled={isOutOfCredits}
+        onClick={() => attachments.openFileDialog()}
+      >
+        <ImageIcon className="size-4" />
+        <span className="hidden sm:inline">Upload</span>
+      </PromptInputButton>
+
+      <CameraCapture
+        onCapture={handleCameraCapture}
+        onOpenChange={setShowCamera}
+        open={showCamera}
+      />
+    </>
+  );
+}
 
 export function ChatInput({
   prompt,
@@ -85,12 +134,7 @@ export function ChatInput({
 
           <PromptInputToolbar>
             <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger disabled={isOutOfCredits} />
-                <PromptInputActionMenuContent>
-                  <PromptInputActionAddAttachments />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
+              <ChatInputActions isOutOfCredits={isOutOfCredits} />
               <PromptHelpers onSelectPrompt={onPromptChange} />
             </PromptInputTools>
 
