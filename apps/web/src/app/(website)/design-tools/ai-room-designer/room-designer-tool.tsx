@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { fixImageOrientation } from "@/lib/utils";
 
 const DESIGN_STYLES = [
   { value: "modern", label: "Modern", icon: Sparkles },
@@ -80,13 +81,23 @@ export function RoomDesignerTool() {
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const generateDesign = useAction(api.tools.generateDesignImage);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setError(null);
+      try {
+        // Fix EXIF orientation before setting file
+        const correctedFile = await fixImageOrientation(file);
+        setSelectedFile(correctedFile);
+        const url = URL.createObjectURL(correctedFile);
+        setPreviewUrl(url);
+        setError(null);
+      } catch {
+        // Fallback to original file if orientation fix fails
+        setSelectedFile(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+        setError(null);
+      }
     }
   };
 
