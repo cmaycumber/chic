@@ -79,7 +79,45 @@ async function storageToBytes(
   return new Uint8Array(await blob.arrayBuffer());
 }
 
-function describeAnchor(anchor?: { x: number; y: number }): string {
+interface AnchorPoint {
+  x: number;
+  y: number;
+}
+
+interface AnchoredItem {
+  box: { height: number; width: number; x: number; y: number };
+  description: string;
+  label: string;
+}
+
+/**
+ * The detected item under a pin: the smallest bounding box containing it.
+ * Lets the prompt name the object ("the sofa") instead of only a location.
+ */
+function findAnchoredItem(
+  items: AnchoredItem[] | undefined,
+  anchor: AnchorPoint
+): AnchoredItem | null {
+  let best: AnchoredItem | null = null;
+  for (const item of items ?? []) {
+    const { box } = item;
+    const inside =
+      anchor.x >= box.x &&
+      anchor.x <= box.x + box.width &&
+      anchor.y >= box.y &&
+      anchor.y <= box.y + box.height;
+    if (!inside) {
+      continue;
+    }
+    const area = box.width * box.height;
+    if (!best || area < best.box.width * best.box.height) {
+      best = item;
+    }
+  }
+  return best;
+}
+
+function describeAnchor(anchor?: AnchorPoint, item?: AnchoredItem | null) {
   if (!anchor) {
     return "";
   }
@@ -87,16 +125,28 @@ function describeAnchor(anchor?: { x: number; y: number }): string {
   const y = Math.round(anchor.y * PERCENT);
   const horizontal = pickThird(x, "left", "center", "right");
   const vertical = pickThird(y, "top", "middle", "bottom");
-  return `The comment is pinned to the ${vertical}-${horizontal} area of the photo (about ${x}% from the left edge and ${y}% from the top). Apply the change to whatever is at that spot.`;
+  const where = `The comment is pinned at ${x}% from the left edge and ${y}% from the top of the photo (the ${vertical}-${horizontal} area).`;
+  if (!item) {
+    return `${where} Apply the change to whatever object is at that exact spot and leave the rest untouched.`;
+  }
+  const left = Math.round(item.box.x * PERCENT);
+  const right = Math.round((item.box.x + item.box.width) * PERCENT);
+  const top = Math.round(item.box.y * PERCENT);
+  const bottom = Math.round((item.box.y + item.box.height) * PERCENT);
+  return `${where} That spot is on the ${item.label} (${item.description}), which occupies the region from ${left}% to ${right}% horizontally and ${top}% to ${bottom}% vertically. The comment is about that object: apply the change to it and leave everything else untouched.`;
 }
 
-function buildEditPrompt(text: string, anchor?: { x: number; y: number }) {
+function buildEditPrompt(
+  text: string,
+  anchor?: AnchorPoint,
+  item?: AnchoredItem | null
+) {
   return `You are editing a photo of a real room for an interior design app.
 
 The user left this comment on the photo:
 "${text}"
 
-${describeAnchor(anchor)}
+${describeAnchor(anchor, item)}
 
 Apply exactly what the comment asks for and nothing else. Keep the camera angle, room layout, architecture, windows, flooring, lighting direction and everything the comment does not mention identical to the input photo. The result must be photorealistic and look like the same photo with only the requested change.`;
 }
@@ -185,7 +235,13 @@ export const applyComment = internalAction({
       const imageStorageId = await renderEdit(
         ctx,
         baseImage,
-        buildEditPrompt(comment.text, comment.anchor)
+        buildEditPrompt(
+          comment.text,
+          comment.anchor,
+          comment.anchor
+            ? findAnchoredItem(baseVersion.items, comment.anchor)
+            : null
+        )
       );
 
       const versionId = await ctx.runMutation(
