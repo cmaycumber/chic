@@ -93,7 +93,13 @@ export function LiquidGlass({
       <LiquidGlassLib
         aberrationIntensity={1.5}
         blurAmount={blurAmount}
-        className={cn("lg-root", tone !== "light" && "text-white")}
+        className={cn(
+          "lg-root",
+          tone === "dark" && "liquid-glass-dark",
+          tone === "frost" && "liquid-glass-frost",
+          tone === "panel" && "liquid-glass-panel",
+          tone !== "light" && "text-white"
+        )}
         cornerRadius={cornerRadius}
         displacementScale={displacementScale}
         elasticity={0}

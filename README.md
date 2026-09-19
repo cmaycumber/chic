@@ -59,8 +59,9 @@ Convex (`bunx convex env set NAME value` from `apps/backend`):
 | --- | --- |
 | `SITE_URL` | Public web origin, e.g. `https://www.usechic.com` |
 | `BETTER_AUTH_SECRET` | Session signing secret |
-| `OPENAI_API_KEY` | Room edits call `gpt-image-2.5-flare` directly so WebP output works (the gateway drops image options) |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway: furniture detection (`google/gemini-2.5-flash`) and the fallback for room edits |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway: room edits (`meta/muse-image-1.0`) and furniture detection (`google/gemini-3.1-flash-lite`) |
+| `ROOM_EDIT_MODEL`, `ROOM_DETECT_MODEL` | Optional gateway model ids to swap either step (e.g. `openai/gpt-image-2.5-flare`) |
+| `OPENAI_API_KEY` | Only when `ROOM_EDIT_MODEL` is an `openai/` model; edits then go direct so WebP output works |
 | `SERPAPI_API_KEY` | Amazon product search for shoppable items |
 | `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER` | Billing (optional; sign-up works without them) |
 | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Optional Pinterest OAuth |

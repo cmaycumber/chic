@@ -6,8 +6,10 @@
  * - searchItemProducts: fetch Amazon products for a detected item.
  *
  * Required Convex environment variables:
- * - AI_GATEWAY_API_KEY: Vercel AI Gateway (GPT Image 2.5 Flare edits the
- *   photo; Gemini 2.5 Flash detects furniture)
+ * - AI_GATEWAY_API_KEY: Vercel AI Gateway (Muse Image edits the photo,
+ *   Gemini 3.1 Flash Lite detects furniture; override with ROOM_EDIT_MODEL
+ *   and ROOM_DETECT_MODEL)
+ * - OPENAI_API_KEY: only needed when ROOM_EDIT_MODEL is an openai/ model
  * - SERPAPI_API_KEY: Amazon product search
  */
 "use node";
@@ -22,9 +24,11 @@ import { type AmazonProduct, searchAmazon } from "./lib/amazonSearch";
 import { privateAction } from "./lib/utils";
 import { vProduct } from "./schema";
 
-const IMAGE_EDIT_MODEL = "openai/gpt-image-2.5-flare";
-const OPENAI_IMAGE_EDIT_MODEL = "gpt-image-2.5-flare";
-const DETECTION_MODEL = "google/gemini-2.5-flash";
+/** Gateway id of the model that renders comment edits (override with ROOM_EDIT_MODEL). */
+const DEFAULT_IMAGE_EDIT_MODEL = "meta/muse-image-1.0";
+const OPENAI_PREFIX = "openai/";
+/** Gateway id of the vision model that finds furniture (override with ROOM_DETECT_MODEL). */
+const DEFAULT_DETECTION_MODEL = "google/gemini-3.1-flash-lite";
 const MAX_ITEMS = 12;
 const PRODUCTS_PER_ITEM = 6;
 const BOX_SCALE = 1000;
@@ -98,16 +102,17 @@ Apply exactly what the comment asks for and nothing else. Keep the camera angle,
 }
 
 /**
- * Prefer the OpenAI provider when its key is present: the AI Gateway does not
- * forward image provider options, and PNG edits come back at 2MB+. The
- * gateway remains the fallback.
+ * Resolve the edit model. OpenAI models go through the OpenAI provider when
+ * its key is present, because the AI Gateway drops image provider options
+ * (WebP output). Everything else, e.g. `meta/muse-image-1.0`, uses the gateway.
  */
 function imageEditModel() {
+  const modelId = process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL;
   const apiKey = process.env.OPENAI_API_KEY;
-  if (apiKey) {
-    return createOpenAI({ apiKey }).image(OPENAI_IMAGE_EDIT_MODEL);
+  if (apiKey && modelId.startsWith(OPENAI_PREFIX)) {
+    return createOpenAI({ apiKey }).image(modelId.slice(OPENAI_PREFIX.length));
   }
-  return gateway.imageModel(IMAGE_EDIT_MODEL);
+  return gateway.imageModel(modelId);
 }
 
 /**
@@ -258,7 +263,9 @@ export const detectItems = internalAction({
             role: "user",
           },
         ],
-        model: gateway.languageModel(DETECTION_MODEL),
+        model: gateway.languageModel(
+          process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
+        ),
         schema: detectionSchema,
       });
 
