@@ -28,7 +28,7 @@ import { vProduct } from "./schema";
 const DEFAULT_IMAGE_EDIT_MODEL = "meta/muse-image-1.0";
 const OPENAI_PREFIX = "openai/";
 /** Gateway id of the vision model that finds furniture (override with ROOM_DETECT_MODEL). */
-const DEFAULT_DETECTION_MODEL = "google/gemini-3.1-flash-lite";
+const DEFAULT_DETECTION_MODEL = "google/gemini-3.5-flash-lite";
 const MAX_ITEMS = 12;
 const PRODUCTS_PER_ITEM = 6;
 const BOX_SCALE = 1000;
@@ -124,6 +124,7 @@ async function renderEdit(
   baseImage: Uint8Array,
   prompt: string
 ): Promise<Id<"_storage">> {
+  const startedAt = Date.now();
   const result = await generateImage({
     model: imageEditModel(),
     prompt: { images: [baseImage], text: prompt },
@@ -136,6 +137,12 @@ async function renderEdit(
     },
   });
 
+  // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+  console.info("[roomsAi] edit", {
+    model: process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL,
+    ms: Date.now() - startedAt,
+    usage: result.calls[0]?.usage ?? null,
+  });
   const image = result.images.find((candidate) =>
     candidate.mediaType.startsWith("image/")
   );
@@ -246,7 +253,8 @@ export const detectItems = internalAction({
 
     try {
       const image = await storageToDataUrl(ctx, version.imageStorageId);
-      const { object } = await generateObject({
+      const detectStartedAt = Date.now();
+      const { object, usage } = await generateObject({
         messages: [
           {
             content: [
@@ -266,9 +274,21 @@ export const detectItems = internalAction({
         model: gateway.languageModel(
           process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
         ),
+        // Detection is a lookup, not a reasoning task: turn thinking off so
+        // small models answer in seconds and bill only the answer tokens.
+        providerOptions: {
+          google: { thinkingConfig: { thinkingBudget: 0 } },
+          openai: { reasoningEffort: "minimal" },
+        },
         schema: detectionSchema,
       });
 
+      // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+      console.info("[roomsAi] detect", {
+        model: process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL,
+        ms: Date.now() - detectStartedAt,
+        usage,
+      });
       const items = object.items.map((item, index) => {
         const [ymin, xmin, ymax, xmax] = item.box_2d;
         const x = clamp01(xmin);
