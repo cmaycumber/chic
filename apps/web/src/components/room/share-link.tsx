@@ -35,11 +35,27 @@ export async function copyShareLink(url: string): Promise<ShareOutcome> {
   }
 }
 
+/**
+ * The OS share sheet is the right gesture on a phone and the wrong one at a
+ * desk, where a button that says "Copy" should leave the link on the
+ * clipboard instead of opening a panel. A coarse pointer is what tells the
+ * two apart; `canShare` then confirms this payload is one the sheet takes.
+ */
+function prefersShareSheet(title: string, url: string): boolean {
+  if (typeof navigator.share !== "function") {
+    return false;
+  }
+  if (!window.matchMedia("(pointer: coarse)").matches) {
+    return false;
+  }
+  return navigator.canShare?.({ title, url }) === true;
+}
+
 export async function deliverShareLink(
   title: string,
   url: string
 ): Promise<ShareOutcome> {
-  if (typeof navigator.share === "function") {
+  if (prefersShareSheet(title, url)) {
     try {
       await navigator.share({ title, url });
       return "delivered";

@@ -481,6 +481,61 @@ export const getPublic = publicQuery({
 });
 
 /**
+ * What an invite link shows before anyone opens it: the room's name, who is
+ * asking, and the two photos that make the preview card. The token stands in
+ * for a session here, so a stale link or a room already past its clock gets
+ * nothing back.
+ */
+export const getInvitePreview = publicQuery({
+  args: { roomId: v.id("rooms"), token: v.string() },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room?.inviteToken || room.inviteToken !== args.token) {
+      return null;
+    }
+    if (room.expiresAt !== undefined && room.expiresAt <= Date.now()) {
+      return null;
+    }
+
+    const versions = await ctx.db
+      .query("roomVersions")
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
+      .order("asc")
+      .collect();
+
+    const before = versions.at(0);
+    // The room points at whichever version is on screen; without one, the
+    // newest is what the owner is looking at.
+    const current = versions.find(
+      (version) => version._id === room.currentVersionId
+    );
+    const after = current ?? versions.at(-1);
+
+    const [names, beforeUrl, afterUrl] = await Promise.all([
+      namesByUserId(ctx, [room.userId]),
+      before ? ctx.storage.getUrl(before.imageStorageId) : null,
+      after ? ctx.storage.getUrl(after.imageStorageId) : null,
+    ]);
+
+    return {
+      afterUrl,
+      beforeUrl,
+      ownerName: names.get(room.userId),
+      title: room.title,
+    };
+  },
+  returns: v.union(
+    v.object({
+      afterUrl: v.union(v.string(), v.null()),
+      beforeUrl: v.union(v.string(), v.null()),
+      ownerName: v.optional(v.string()),
+      title: v.optional(v.string()),
+    }),
+    v.null()
+  ),
+});
+
+/**
  * Leave a comment asking for a change. The change is applied to the version
  * currently displayed and produces a new version when it finishes.
  */
