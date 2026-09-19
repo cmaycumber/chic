@@ -11,9 +11,9 @@ type Params = Promise<{
   slug: string;
 }>;
 
-type Props = {
+interface Props {
   params: Params;
-};
+}
 
 export function generateStaticParams() {
   return allPosts.map((post) => ({
@@ -32,16 +32,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: `${post.title} | Chic Blog`,
     description: post.summary,
     openGraph: {
-      title: post.title,
-      description: post.summary,
-      type: "article",
-      publishedTime: post.date,
       authors: post.author ? [post.author] : undefined,
+      description: post.summary,
       images: post.image ? [post.image] : undefined,
+      publishedTime: post.date,
+      title: post.title,
+      type: "article",
     },
+    title: `${post.title} | Chic Blog`,
   };
 }
 
@@ -67,9 +67,9 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="mb-4 flex items-center gap-2 text-muted-foreground text-sm">
             <time dateTime={post.date}>
               {new Date(post.date).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
                 day: "numeric",
+                month: "long",
+                year: "numeric",
               })}
             </time>
             {post.author ? (

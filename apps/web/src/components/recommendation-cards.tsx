@@ -12,58 +12,58 @@ import { cn } from "@/lib/utils";
 
 const forYouCards = [
   {
-    title: "Modern Minimalist",
     category: "Style",
-    image: "bg-gradient-to-br from-slate-100 to-slate-300",
     icon: Palette,
+    image: "bg-gradient-to-br from-slate-100 to-slate-300",
+    title: "Modern Minimalist",
   },
   {
-    title: "Scandinavian Comfort",
     category: "Living Room",
-    image: "bg-gradient-to-br from-amber-100 to-amber-300",
     icon: MapPin,
+    image: "bg-gradient-to-br from-amber-100 to-amber-300",
+    title: "Scandinavian Comfort",
   },
   {
-    title: "Industrial Chic",
     category: "Kitchen",
-    image: "bg-gradient-to-br from-zinc-200 to-zinc-400",
     icon: Lightbulb,
+    image: "bg-gradient-to-br from-zinc-200 to-zinc-400",
+    title: "Industrial Chic",
   },
 ];
 
 const getStartedCards = [
   {
-    title: "Take our style quiz",
     description: "Discover your design personality",
     image: "bg-gradient-to-br from-cyan-100 to-cyan-300",
+    title: "Take our style quiz",
   },
   {
-    title: "Create a design board",
     description: "Start planning your space",
     image: "bg-gradient-to-br from-blue-200 to-blue-400",
+    title: "Create a design board",
   },
   {
-    title: "Designer tools",
     description: "Professional planning features",
     image: "bg-gradient-to-br from-amber-200 to-amber-400",
+    title: "Designer tools",
   },
 ];
 
 const inspiredCards = [
   {
-    title: "Bohemian Retreat: Textures, Colors, Comfort",
-    location: "Bedroom Design",
     image: "bg-gradient-to-br from-rose-200 to-rose-400",
+    location: "Bedroom Design",
+    title: "Bohemian Retreat: Textures, Colors, Comfort",
   },
   {
-    title: "FREE | Industrial & Modern Fusion",
-    location: "Loft Design",
     image: "bg-gradient-to-br from-slate-300 to-slate-500",
+    location: "Loft Design",
+    title: "FREE | Industrial & Modern Fusion",
   },
   {
-    title: "A Coastal Sanctuary",
-    location: "Beach House",
     image: "bg-gradient-to-br from-sky-200 to-sky-400",
+    location: "Beach House",
+    title: "A Coastal Sanctuary",
   },
 ];
 

@@ -54,9 +54,11 @@ function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
 const fieldVariants = cva(
   "group/field flex w-full gap-3 data-[invalid=true]:text-destructive",
   {
+    defaultVariants: {
+      orientation: "vertical",
+    },
     variants: {
       orientation: {
-        vertical: ["flex-col [&>*]:w-full [&>.sr-only]:w-auto"],
         horizontal: [
           "flex-row items-center",
           "[&>[data-slot=field-label]]:flex-auto",
@@ -67,10 +69,8 @@ const fieldVariants = cva(
           "@md/field-group:[&>[data-slot=field-label]]:flex-auto",
           "@md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:has-[>[data-slot=field-content]]:[&>[role=checkbox],[role=radio]]:mt-px",
         ],
+        vertical: ["flex-col [&>*]:w-full [&>.sr-only]:w-auto"],
       },
-    },
-    defaultVariants: {
-      orientation: "vertical",
     },
   }
 );
@@ -140,7 +140,7 @@ function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       className={cn(
         "font-normal text-muted-foreground text-sm leading-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
-        "nth-last-2:-mt-1 [[data-variant=legend]+&]:-mt-1.5 last:mt-0",
+        "nth-last-2:-mt-1 last:mt-0 [[data-variant=legend]+&]:-mt-1.5",
         "[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4",
         className
       )}
@@ -160,7 +160,7 @@ function FieldSeparator({
   return (
     <div
       className={cn(
-        "-my-2 group-data-[variant=outline]/field-group:-mb-2 relative h-5 text-sm",
+        "relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
         className
       )}
       data-content={!!children}
@@ -168,7 +168,7 @@ function FieldSeparator({
       {...props}
     >
       <Separator className="absolute inset-0 top-1/2" />
-      {children && (
+      {Boolean(children) && (
         <span
           className="relative mx-auto block w-fit bg-background px-2 text-muted-foreground"
           data-slot="field-separator-content"
@@ -229,13 +229,13 @@ function FieldError({
 
 export {
   Field,
-  FieldLabel,
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldLabel,
   FieldLegend,
   FieldSeparator,
   FieldSet,
-  FieldContent,
   FieldTitle,
 };

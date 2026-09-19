@@ -23,32 +23,32 @@ const VALID_ROOM_TYPES = [
 ] as const;
 
 const ROOM_LABELS: Record<string, string> = {
-  "living-room": "Living Room",
-  bedroom: "Bedroom",
-  kitchen: "Kitchen",
   bathroom: "Bathroom",
+  bedroom: "Bedroom",
   "dining-room": "Dining Room",
-  "home-office": "Home Office",
   "family-room": "Family Room",
+  "home-office": "Home Office",
+  kitchen: "Kitchen",
+  "living-room": "Living Room",
   nursery: "Nursery",
   outdoor: "Outdoor Space",
 };
 
 const ROOM_DESCRIPTIONS: Record<string, string> = {
-  "living-room":
-    "Discover inspiring living room designs from modern to traditional. Browse hundreds of curated living room ideas with real furniture and decor recommendations.",
-  bedroom:
-    "Transform your bedroom into a serene retreat. Explore cozy, modern, and luxurious bedroom designs with complete furniture shopping lists.",
-  kitchen:
-    "Get inspired by stunning kitchen designs. From farmhouse to modern, find your perfect kitchen style with practical layout ideas and product recommendations.",
   bathroom:
     "Create your dream bathroom with our curated design gallery. Browse spa-like, modern, and traditional bathroom ideas with shopping guides.",
+  bedroom:
+    "Transform your bedroom into a serene retreat. Explore cozy, modern, and luxurious bedroom designs with complete furniture shopping lists.",
   "dining-room":
     "Elevate your dining space with elegant design ideas. Explore formal and casual dining room styles with complete furniture and lighting recommendations.",
-  "home-office":
-    "Design a productive workspace you'll love. Browse modern, minimalist, and cozy home office ideas with ergonomic furniture suggestions.",
   "family-room":
     "Create the perfect family gathering space. Discover comfortable, durable, and stylish family room designs that work for everyone.",
+  "home-office":
+    "Design a productive workspace you'll love. Browse modern, minimalist, and cozy home office ideas with ergonomic furniture suggestions.",
+  kitchen:
+    "Get inspired by stunning kitchen designs. From farmhouse to modern, find your perfect kitchen style with practical layout ideas and product recommendations.",
+  "living-room":
+    "Discover inspiring living room designs from modern to traditional. Browse hundreds of curated living room ideas with real furniture and decor recommendations.",
   nursery:
     "Design a beautiful and functional nursery for your little one. Explore gender-neutral, modern, and classic nursery ideas with safety in mind.",
   outdoor:
@@ -80,7 +80,6 @@ export async function generateMetadata({
   const description = ROOM_DESCRIPTIONS[roomType];
 
   return {
-    title: `${roomLabel} Ideas: 50+ Inspiring Designs | Chic AI Interior Designer`,
     description,
     keywords: [
       `${roomType} ideas`,
@@ -93,23 +92,24 @@ export async function generateMetadata({
       "room design",
     ],
     openGraph: {
-      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
       description,
-      type: "website",
       images: [
         {
+          alt: `${roomLabel} Design Ideas - Inspiring interior designs`,
+          height: 630,
           url: "/images/ai-room-designer-bedroom.png",
           width: 1200,
-          height: 630,
-          alt: `${roomLabel} Design Ideas - Inspiring interior designs`,
         },
       ],
+      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
+      type: "website",
     },
+    title: `${roomLabel} Ideas: 50+ Inspiring Designs | Chic AI Interior Designer`,
     twitter: {
       card: "summary_large_image",
-      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
       description,
       images: ["/images/ai-room-designer-bedroom.png"],
+      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
     },
   };
 }
@@ -128,8 +128,8 @@ export default async function RoomIdeasPage({ params }: { params: Params }) {
 
   // Fetch featured designs for SSR
   const featuredDesigns = await fetchQuery(api.ideas.getFeaturedRoomDesigns, {
-    roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
     limit: 6,
+    roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
   });
 
   // Fetch filter options

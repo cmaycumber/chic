@@ -24,12 +24,12 @@ function extractAsin(url: string): string | null {
   }
 }
 
-type CartItem = {
+interface CartItem {
   asin?: string;
   offerListingId?: string;
   qty: number;
   sellerId?: string;
-};
+}
 
 /**
  * Build Amazon Add-to-Cart URL with multiple items
@@ -114,5 +114,5 @@ export function buildCartUrlFromProducts(
     return null;
   }
 
-  return buildAmazonCartUrl(items, { domain, associateTag });
+  return buildAmazonCartUrl(items, { associateTag, domain });
 }

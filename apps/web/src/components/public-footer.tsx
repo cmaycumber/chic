@@ -49,12 +49,6 @@ export function PublicFooter() {
               >
                 AI Room Designer
               </Link>
-              <Link
-                className="transition-colors hover:text-foreground"
-                href="/chat"
-              >
-                AI Chat
-              </Link>
             </div>
           </div>
 

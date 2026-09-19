@@ -1,38 +1,49 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getToken } from "@/lib/auth-server";
+import { getSessionKind } from "@/lib/auth-server";
 
 const AUTH_ROUTES = ["/login", "/signup"];
-const PROTECTED_ROUTES = [
-  "/chat",
-  "/create",
-  "/explore",
-  "/inspiration",
-  "/projects",
-  "/saved",
-];
+
+/**
+ * Routes a visitor reaches by uploading a photo. Uploading grants an
+ * anonymous session, so landing here without one means starting over at home
+ * rather than being asked to sign in.
+ */
+const ROOM_ROUTES = ["/rooms", "/room"];
+
+/** Routes that genuinely need an account. */
+const ACCOUNT_ROUTES = ["/explore", "/saved"];
+
+const matchesRoute = (pathname: string, routes: readonly string[]) =>
+  routes.some((route) => pathname.startsWith(route));
 
 // THIS IS NOT SECURE!
 // This is the recommended approach to optimistically redirect users
 // We recommend handling auth checks in each page/route
 export async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
 
-  const token = await getToken();
-  const isAuthenticated = !!token;
-  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
+  const sessionKind = await getSessionKind();
 
-  // Redirect authenticated users away from auth pages
-  if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL("/chat", request.url));
+  // Only people who already have an account have nothing to do here.
+  // Anonymous visitors come to these pages precisely to get one.
+  if (matchesRoute(pathname, AUTH_ROUTES)) {
+    return sessionKind === "account"
+      ? NextResponse.redirect(new URL("/rooms", request.url))
+      : NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login from protected routes
-  if (isProtectedRoute && !isAuthenticated) {
+  if (sessionKind !== "none") {
+    return NextResponse.next();
+  }
+
+  // Without any session there is nothing to show here yet: start at home.
+  if (matchesRoute(pathname, ROOM_ROUTES)) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (matchesRoute(pathname, ACCOUNT_ROUTES)) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("from", pathname);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 

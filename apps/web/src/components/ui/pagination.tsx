@@ -53,8 +53,8 @@ function PaginationLink({
       aria-current={isActive ? "page" : undefined}
       className={cn(
         buttonVariants({
-          variant: isActive ? "outline" : "ghost",
           size,
+          variant: isActive ? "outline" : "ghost",
         }),
         className
       )}
@@ -120,9 +120,9 @@ function PaginationEllipsis({
 export {
   Pagination,
   PaginationContent,
-  PaginationLink,
-  PaginationItem,
-  PaginationPrevious,
-  PaginationNext,
   PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 };

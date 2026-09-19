@@ -9,59 +9,61 @@ import {
   OrganizationStructuredData,
   WebsiteStructuredData,
 } from "@/components/structured-data";
+import { getToken } from "@/lib/auth-server";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Chic - AI Interior Designer | Free AI-Powered Interior Design Tool",
   description:
-    "Transform your space with Chic, the free AI interior designer. Get instant professional design ideas, room layouts, and personalized recommendations. Chat with our AI design assistant to create your dream home in seconds.",
+    "Transform your space with Chic. Upload a photo of your room, comment on what you'd change, and shop the furniture on Amazon.",
   keywords: [
     "ai interior designer",
     "ai interior design",
     "free interior design ai",
     "ai room designer",
-    "interior design assistant",
+    "room makeover",
     "ai design tool",
   ],
   openGraph: {
-    title: "Chic - AI Interior Designer | Free AI-Powered Interior Design",
     description:
       "Transform your space with our free AI interior designer. Get instant professional design ideas and personalized recommendations.",
-    type: "website",
-    siteName: "Chic",
     images: [
       {
+        alt: "Chic AI Interior Designer - Transform your space with AI",
+        height: 630,
         url: "/images/ai-room-designer-hero.png",
         width: 1200,
-        height: 630,
-        alt: "Chic AI Interior Designer - Transform your space with AI",
       },
     ],
+    siteName: "Chic",
+    title: "Chic - AI Interior Designer | Free AI-Powered Interior Design",
+    type: "website",
   },
+  title: "Chic - AI Interior Designer | Free AI-Powered Interior Design Tool",
   twitter: {
     card: "summary_large_image",
-    title: "Chic - AI Interior Designer",
     description:
       "Free AI-powered interior design tool. Transform your space in seconds.",
     images: ["/images/ai-room-designer-hero.png"],
+    title: "Chic - AI Interior Designer",
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const isProduction = process.env.NODE_ENV === "production";
+  const initialToken = (await getToken()) ?? null;
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -100,7 +102,7 @@ export default function RootLayout({
           forcedTheme="light"
           storageKey="theme"
         >
-          <Providers>
+          <Providers initialToken={initialToken}>
             {children}
             <IdentifyUser />
           </Providers>

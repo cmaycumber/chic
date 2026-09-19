@@ -6,8 +6,6 @@ import { ExploreIdeasGallery } from "@/components/explore-ideas-gallery";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title:
-    "Interior Design Ideas: 500+ Inspiring Room Designs | Chic AI Designer",
   description:
     "Explore thousands of interior design ideas across all room types. Browse living rooms, bedrooms, kitchens, and more. Filter by style, room type, and budget. Get inspired and design your dream space with our free AI tool.",
   keywords: [
@@ -22,38 +20,40 @@ export const metadata: Metadata = {
     "interior decorating ideas",
   ],
   openGraph: {
-    title: "Interior Design Ideas - Explore 500+ Inspiring Room Designs",
     description:
       "Discover interior design ideas for every room in your home. Browse, filter, and get inspired by thousands of curated designs from modern to traditional styles.",
-    type: "website",
     images: [
       {
+        alt: "Interior Design Ideas - Explore 500+ inspiring room designs",
+        height: 630,
         url: "/images/ai-room-designer-styles.png",
         width: 1200,
-        height: 630,
-        alt: "Interior Design Ideas - Explore 500+ inspiring room designs",
       },
     ],
+    title: "Interior Design Ideas - Explore 500+ Inspiring Room Designs",
+    type: "website",
   },
+  title:
+    "Interior Design Ideas: 500+ Inspiring Room Designs | Chic AI Designer",
   twitter: {
     card: "summary_large_image",
-    title: "Interior Design Ideas - Explore 500+ Inspiring Room Designs",
     description:
       "Discover interior design ideas for every room in your home. Browse, filter, and get inspired by thousands of curated designs.",
     images: ["/images/ai-room-designer-styles.png"],
+    title: "Interior Design Ideas - Explore 500+ Inspiring Room Designs",
   },
 };
 
 const ROOM_TYPES = [
-  { value: "living-room", label: "Living Room" },
-  { value: "bedroom", label: "Bedroom" },
-  { value: "kitchen", label: "Kitchen" },
-  { value: "bathroom", label: "Bathroom" },
-  { value: "dining-room", label: "Dining Room" },
-  { value: "home-office", label: "Home Office" },
-  { value: "family-room", label: "Family Room" },
-  { value: "nursery", label: "Nursery" },
-  { value: "outdoor", label: "Outdoor Space" },
+  { label: "Living Room", value: "living-room" },
+  { label: "Bedroom", value: "bedroom" },
+  { label: "Kitchen", value: "kitchen" },
+  { label: "Bathroom", value: "bathroom" },
+  { label: "Dining Room", value: "dining-room" },
+  { label: "Home Office", value: "home-office" },
+  { label: "Family Room", value: "family-room" },
+  { label: "Nursery", value: "nursery" },
+  { label: "Outdoor Space", value: "outdoor" },
 ] as const;
 
 export default async function IdeasExplorePage() {
@@ -211,9 +211,6 @@ export default async function IdeasExplorePage() {
               <Link href="/design-tools/ai-room-designer">
                 Try AI Room Designer
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/chat">Chat with AI Designer</Link>
             </Button>
           </div>
           <p className="mt-4 text-muted-foreground text-sm">

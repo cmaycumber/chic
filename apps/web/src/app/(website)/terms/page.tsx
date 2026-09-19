@@ -1,29 +1,29 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Chic - AI Interior Designer",
   description:
     "Read the terms of service for using Chic, the free AI interior designer. Understand your rights and responsibilities when using our platform.",
   openGraph: {
-    title: "Terms of Service - Chic AI Interior Designer",
     description:
       "Read the terms of service for using Chic, the free AI interior designer.",
-    type: "website",
     images: [
       {
+        alt: "Chic AI Interior Designer - Terms of Service",
+        height: 630,
         url: "/images/ai-room-designer-hero.png",
         width: 1200,
-        height: 630,
-        alt: "Chic AI Interior Designer - Terms of Service",
       },
     ],
+    title: "Terms of Service - Chic AI Interior Designer",
+    type: "website",
   },
+  title: "Terms of Service | Chic - AI Interior Designer",
   twitter: {
     card: "summary_large_image",
-    title: "Terms of Service - Chic AI Interior Designer",
     description:
       "Read the terms of service for using Chic, the free AI interior designer.",
     images: ["/images/ai-room-designer-hero.png"],
+    title: "Terms of Service - Chic AI Interior Designer",
   },
 };
 

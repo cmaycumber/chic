@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Interior Design Blog | AI Interior Designer Tips & Guides - Chic",
   description:
     "Expert interior design tips, AI design guides, room transformation ideas, and home decor inspiration. Learn how to use AI for interior design from our free AI interior designer.",
   keywords: [
@@ -22,25 +21,26 @@ export const metadata: Metadata = {
     "ai designer tips",
   ],
   openGraph: {
-    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
     description:
       "Expert interior design tips and AI design guides to help you transform your space.",
-    type: "website",
     images: [
       {
+        alt: "Interior Design Blog - Expert tips and guides",
+        height: 630,
         url: "/images/interior-design-ai-basics.png",
         width: 1200,
-        height: 630,
-        alt: "Interior Design Blog - Expert tips and guides",
       },
     ],
+    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
+    type: "website",
   },
+  title: "Interior Design Blog | AI Interior Designer Tips & Guides - Chic",
   twitter: {
     card: "summary_large_image",
-    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
     description:
       "Expert interior design tips and AI design guides to help you transform your space.",
     images: ["/images/interior-design-ai-basics.png"],
+    title: "Interior Design Blog - AI Interior Designer Tips & Guides",
   },
 };
 
@@ -63,7 +63,7 @@ export default function BlogPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {sortedPosts.map((post) => (
           <Link className="group" href={`/blog/${post.slug}`} key={post.slug}>
-            <Card className="hover:-translate-y-1 h-full pt-0 transition-all hover:shadow-lg">
+            <Card className="h-full pt-0 transition-all hover:-translate-y-1 hover:shadow-lg">
               {post.image ? (
                 <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
                   <div
@@ -78,9 +78,9 @@ export default function BlogPage() {
                 <div className="mb-2 flex items-center gap-2 text-muted-foreground text-sm">
                   <time dateTime={post.date}>
                     {new Date(post.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
                       day: "numeric",
+                      month: "long",
+                      year: "numeric",
                     })}
                   </time>
                   {post.author ? (

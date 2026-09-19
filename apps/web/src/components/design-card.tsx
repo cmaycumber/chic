@@ -40,29 +40,29 @@ type DesignStyle =
   | "contemporary";
 
 const ROOM_TYPES: Array<{ value: RoomType; label: string }> = [
-  { value: "living-room", label: "Living Room" },
-  { value: "bedroom", label: "Bedroom" },
-  { value: "kitchen", label: "Kitchen" },
-  { value: "bathroom", label: "Bathroom" },
-  { value: "dining-room", label: "Dining Room" },
-  { value: "home-office", label: "Home Office" },
-  { value: "family-room", label: "Family Room" },
-  { value: "nursery", label: "Nursery" },
-  { value: "outdoor", label: "Outdoor" },
+  { label: "Living Room", value: "living-room" },
+  { label: "Bedroom", value: "bedroom" },
+  { label: "Kitchen", value: "kitchen" },
+  { label: "Bathroom", value: "bathroom" },
+  { label: "Dining Room", value: "dining-room" },
+  { label: "Home Office", value: "home-office" },
+  { label: "Family Room", value: "family-room" },
+  { label: "Nursery", value: "nursery" },
+  { label: "Outdoor", value: "outdoor" },
 ];
 
 const DESIGN_STYLES: Array<{ value: DesignStyle; label: string }> = [
-  { value: "modern", label: "Modern" },
-  { value: "minimalist", label: "Minimalist" },
-  { value: "scandinavian", label: "Scandinavian" },
-  { value: "industrial", label: "Industrial" },
-  { value: "bohemian", label: "Bohemian" },
-  { value: "coastal", label: "Coastal" },
-  { value: "traditional", label: "Traditional" },
-  { value: "contemporary", label: "Contemporary" },
+  { label: "Modern", value: "modern" },
+  { label: "Minimalist", value: "minimalist" },
+  { label: "Scandinavian", value: "scandinavian" },
+  { label: "Industrial", value: "industrial" },
+  { label: "Bohemian", value: "bohemian" },
+  { label: "Coastal", value: "coastal" },
+  { label: "Traditional", value: "traditional" },
+  { label: "Contemporary", value: "contemporary" },
 ];
 
-type DesignCardProps = {
+interface DesignCardProps {
   design: {
     _id: Id<"designs">;
     _creationTime: number;
@@ -77,9 +77,9 @@ type DesignCardProps = {
     tags?: string[];
     featured?: boolean;
   };
-  showLikeButton?: boolean;
   href?: string;
-};
+  showLikeButton?: boolean;
+}
 
 export function DesignCard({
   design,
@@ -141,8 +141,10 @@ export function DesignCard({
             src={design.imageUrl ?? ""}
           />
           <div className="absolute top-2 right-2 flex gap-2">
-            {design.featured && <Badge variant="secondary">Featured</Badge>}
-            {showLikeButton && (
+            {Boolean(design.featured) && (
+              <Badge variant="secondary">Featured</Badge>
+            )}
+            {Boolean(showLikeButton) && (
               <Button
                 className={cn(
                   "size-8 cursor-pointer rounded-full bg-background/80 p-0 backdrop-blur hover:bg-background/90",
@@ -175,13 +177,13 @@ export function DesignCard({
         </CardHeader>
         <CardContent className="space-y-2 p-3 pt-0">
           <div className="flex flex-wrap gap-1.5">
-            {design.roomType && (
+            {Boolean(design.roomType) && (
               <Badge className="text-xs" variant="outline">
                 {ROOM_TYPES.find((rt) => rt.value === design.roomType)?.label ||
                   design.roomType}
               </Badge>
             )}
-            {design.designStyle && (
+            {Boolean(design.designStyle) && (
               <Badge className="text-xs" variant="outline">
                 {DESIGN_STYLES.find((ds) => ds.value === design.designStyle)
                   ?.label || design.designStyle}
@@ -201,11 +203,11 @@ export function DesignCard({
               {displayLikesCount}
             </span>
           </div>
-          {design.budget && (
+          {design.budget ? (
             <div className="font-medium text-xs">
               ${design.budget.toLocaleString()}
             </div>
-          )}
+          ) : null}
         </CardFooter>
       </Card>
     </Link>

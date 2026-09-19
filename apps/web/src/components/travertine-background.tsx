@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-type TravertineBackgroundProps = {
+interface TravertineBackgroundProps {
   className?: string;
-};
+}
 
 export function TravertineBackground({
   className = "",
@@ -110,12 +110,12 @@ export function TravertineBackground({
 
   return (
     <div
-      className={`-z-10 fixed inset-0 ${className}`}
+      className={`fixed inset-0 -z-10 ${className}`}
       style={{
         backgroundImage: `url(data:image/svg+xml;base64,${base64Svg})`,
-        backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
       }}
     />
   );

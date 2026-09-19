@@ -36,26 +36,26 @@ type DesignStyle =
   | "contemporary";
 
 const ROOM_TYPES: Array<{ value: RoomType; label: string }> = [
-  { value: "living-room", label: "Living Room" },
-  { value: "bedroom", label: "Bedroom" },
-  { value: "kitchen", label: "Kitchen" },
-  { value: "bathroom", label: "Bathroom" },
-  { value: "dining-room", label: "Dining Room" },
-  { value: "home-office", label: "Home Office" },
-  { value: "family-room", label: "Family Room" },
-  { value: "nursery", label: "Nursery" },
-  { value: "outdoor", label: "Outdoor" },
+  { label: "Living Room", value: "living-room" },
+  { label: "Bedroom", value: "bedroom" },
+  { label: "Kitchen", value: "kitchen" },
+  { label: "Bathroom", value: "bathroom" },
+  { label: "Dining Room", value: "dining-room" },
+  { label: "Home Office", value: "home-office" },
+  { label: "Family Room", value: "family-room" },
+  { label: "Nursery", value: "nursery" },
+  { label: "Outdoor", value: "outdoor" },
 ];
 
 const DESIGN_STYLES: Array<{ value: DesignStyle; label: string }> = [
-  { value: "modern", label: "Modern" },
-  { value: "minimalist", label: "Minimalist" },
-  { value: "scandinavian", label: "Scandinavian" },
-  { value: "industrial", label: "Industrial" },
-  { value: "bohemian", label: "Bohemian" },
-  { value: "coastal", label: "Coastal" },
-  { value: "traditional", label: "Traditional" },
-  { value: "contemporary", label: "Contemporary" },
+  { label: "Modern", value: "modern" },
+  { label: "Minimalist", value: "minimalist" },
+  { label: "Scandinavian", value: "scandinavian" },
+  { label: "Industrial", value: "industrial" },
+  { label: "Bohemian", value: "bohemian" },
+  { label: "Coastal", value: "coastal" },
+  { label: "Traditional", value: "traditional" },
+  { label: "Contemporary", value: "contemporary" },
 ];
 
 export default function ExplorePage() {
@@ -108,82 +108,69 @@ export default function ExplorePage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header with filters */}
-        <div className="border-border/40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">
-            <div className="space-y-4">
-              <div>
-                <h1 className="font-bold text-2xl tracking-tight sm:text-3xl">
-                  Explore Designs
-                </h1>
-                <p className="mt-1 text-muted-foreground text-sm">
-                  Discover inspiring room designs and ideas
-                </p>
-              </div>
-
-              {/* Filters */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Select
-                  onValueChange={(value) =>
-                    setSelectedRoomType(value as RoomType)
-                  }
-                  value={selectedRoomType}
-                >
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Room Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ROOM_TYPES.map((roomType) => (
-                      <SelectItem key={roomType.value} value={roomType.value}>
-                        {roomType.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  onValueChange={(value) =>
-                    setSelectedStyle(value as DesignStyle)
-                  }
-                  value={selectedStyle}
-                >
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Design Style" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DESIGN_STYLES.map((style) => (
-                      <SelectItem key={style.value} value={style.value}>
-                        {style.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {(selectedRoomType || selectedStyle) && (
-                  <Button
-                    onClick={() => {
-                      setSelectedRoomType(undefined);
-                      setSelectedStyle(undefined);
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    Clear filters
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="space-y-4">
+        <div>
+          <h1 className="font-bold text-2xl tracking-tight sm:text-3xl">
+            Explore Designs
+          </h1>
+          <p className="mt-1 text-muted-foreground text-sm">
+            Discover inspiring room designs and ideas
+          </p>
         </div>
 
-        {/* Designs Grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">{renderDesigns()}</div>
+        {/* Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Select
+            onValueChange={(value) => setSelectedRoomType(value as RoomType)}
+            value={selectedRoomType}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Room Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ROOM_TYPES.map((roomType) => (
+                <SelectItem key={roomType.value} value={roomType.value}>
+                  {roomType.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            onValueChange={(value) => setSelectedStyle(value as DesignStyle)}
+            value={selectedStyle}
+          >
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder="Design Style" />
+            </SelectTrigger>
+            <SelectContent>
+              {DESIGN_STYLES.map((style) => (
+                <SelectItem key={style.value} value={style.value}>
+                  {style.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {Boolean(selectedRoomType || selectedStyle) && (
+            <Button
+              onClick={() => {
+                setSelectedRoomType(undefined);
+                setSelectedStyle(undefined);
+              }}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Designs Grid */}
+      <div className="mt-6">{renderDesigns()}</div>
     </div>
   );
 }

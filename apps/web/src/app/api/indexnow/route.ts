@@ -8,11 +8,11 @@ const HTTP_OK = 200;
 const HTTP_ACCEPTED = 202;
 const batchSize = 10_000;
 
-type IndexNowResponse = {
-  success: boolean;
-  statusCode: number;
+interface IndexNowResponse {
   message: string;
-};
+  statusCode: number;
+  success: boolean;
+}
 
 async function submitToIndexNow(urls: string[]): Promise<IndexNowResponse> {
   const payload = {
@@ -24,34 +24,34 @@ async function submitToIndexNow(urls: string[]): Promise<IndexNowResponse> {
 
   try {
     const response = await fetch(INDEXNOW_ENDPOINT, {
-      method: "POST",
+      body: JSON.stringify(payload),
       headers: {
         "Content-Type": "application/json; charset=utf-8",
       },
-      body: JSON.stringify(payload),
+      method: "POST",
     });
 
     const statusCode = response.status;
 
     if (statusCode === HTTP_OK || statusCode === HTTP_ACCEPTED) {
       return {
-        success: true,
-        statusCode,
         message: `Successfully submitted ${urls.length} URLs to IndexNow`,
+        statusCode,
+        success: true,
       };
     }
 
     const errorText = await response.text();
     return {
-      success: false,
-      statusCode,
       message: `IndexNow API returned ${statusCode}: ${errorText}`,
+      statusCode,
+      success: false,
     };
   } catch (error) {
     return {
-      success: false,
-      statusCode: 0,
       message: `Error submitting to IndexNow: ${error instanceof Error ? error.message : "Unknown error"}`,
+      statusCode: 0,
+      success: false,
     };
   }
 }
@@ -120,10 +120,10 @@ export async function POST(request: Request) {
     if (allSuccessful) {
       return NextResponse.json(
         {
-          success: true,
-          message: `Successfully submitted ${totalUrls} URLs to IndexNow`,
           batches: results.length,
+          message: `Successfully submitted ${totalUrls} URLs to IndexNow`,
           results,
+          success: true,
         },
         { status: 200 }
       );
@@ -131,9 +131,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        success: false,
         message: "Some submissions failed",
         results,
+        success: false,
       },
       { status: 207 } // Multi-Status
     );

@@ -39,32 +39,32 @@ type DesignStyle =
   | "traditional"
   | "contemporary";
 
-type Design = {
-  _id: Id<"designs">;
+interface Design {
   _creationTime: number;
-  title: string;
-  description: string;
-  imageUrl: string | null;
-  roomType?: RoomType;
-  designStyle?: DesignStyle;
-  likesCount?: number;
+  _id: Id<"designs">;
   budget?: number;
-  tags?: string[];
+  description: string;
+  designStyle?: DesignStyle;
   featured?: boolean;
-};
+  imageUrl: string | null;
+  likesCount?: number;
+  roomType?: RoomType;
+  tags?: string[];
+  title: string;
+}
 
-type ExploreIdeasGalleryProps = {
+interface ExploreIdeasGalleryProps {
   initialTrending: Design[];
-};
+}
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
-  "living-room": "Living Room",
-  bedroom: "Bedroom",
-  kitchen: "Kitchen",
   bathroom: "Bathroom",
+  bedroom: "Bedroom",
   "dining-room": "Dining Room",
-  "home-office": "Home Office",
   "family-room": "Family Room",
+  "home-office": "Home Office",
+  kitchen: "Kitchen",
+  "living-room": "Living Room",
   nursery: "Nursery",
   outdoor: "Outdoor Space",
 };
@@ -88,10 +88,10 @@ export function ExploreIdeasGallery({
 
   // Fetch all designs with current filters
   const allDesigns = useQuery(api.ideas.exploreAllDesigns, {
+    limit: 100,
     roomType: selectedRoomType === "all" ? undefined : selectedRoomType,
     style: selectedStyle === "all" ? undefined : selectedStyle,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
-    limit: 100,
   });
 
   const handleTagToggle = (tag: string) => {
@@ -109,7 +109,7 @@ export function ExploreIdeasGallery({
     <div className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-7xl">
         {/* Trending Section */}
-        {trendingDesigns && trendingDesigns.length > 0 ? (
+        {trendingDesigns.length > 0 ? (
           <section className="mb-16">
             <div className="mb-8 flex items-center justify-between">
               <div>

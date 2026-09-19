@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 export const LOGO_WIDTH = 49;
 export const LOGO_HEIGHT = 20;
 
-type LogoProps = {
+interface LogoProps {
   className?: string;
-  width?: number;
   height?: number;
-};
+  width?: number;
+}
 
 export function Logo({
   className,

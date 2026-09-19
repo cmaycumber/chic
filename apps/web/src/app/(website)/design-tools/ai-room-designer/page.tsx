@@ -18,7 +18,6 @@ import {
 import { RoomDesignerTool } from "./room-designer-tool";
 
 export const metadata: Metadata = {
-  title: "Free AI Room Designer Tool - Transform Your Space in Seconds | Chic",
   description:
     "Transform any room with our free AI room designer. Upload a photo, describe your vision, and get professional interior design ideas instantly. Free forever, no credit card required.",
   keywords: [
@@ -30,25 +29,26 @@ export const metadata: Metadata = {
     "ai interior design",
   ],
   openGraph: {
-    title: "Free AI Room Designer Tool - Transform Your Space in Seconds",
     description:
       "Transform any room with our free AI room designer. Upload a photo, describe your vision, and get professional interior design ideas instantly.",
-    type: "website",
     images: [
       {
+        alt: "Free AI Room Designer Tool - Transform your space in seconds",
+        height: 630,
         url: "/images/ai-room-designer-hero.png",
         width: 1200,
-        height: 630,
-        alt: "Free AI Room Designer Tool - Transform your space in seconds",
       },
     ],
+    title: "Free AI Room Designer Tool - Transform Your Space in Seconds",
+    type: "website",
   },
+  title: "Free AI Room Designer Tool - Transform Your Space in Seconds | Chic",
   twitter: {
     card: "summary_large_image",
-    title: "Free AI Room Designer Tool - Transform Your Space in Seconds",
     description:
       "Transform any room with our free AI room designer. Upload a photo, describe your vision, and get professional interior design ideas instantly.",
     images: ["/images/ai-room-designer-hero.png"],
+    title: "Free AI Room Designer Tool - Transform Your Space in Seconds",
   },
 };
 

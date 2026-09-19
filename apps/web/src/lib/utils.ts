@@ -7,41 +7,41 @@ export function cn(...inputs: ClassValue[]) {
 
 // EXIF orientation values (1-8)
 const exifOrientation = {
-  normal: 1,
-  flipHorizontal: 2,
-  rotate180: 3,
-  flipVertical: 4,
-  flipHorizontalRotate270: 5,
-  rotate90: 6,
-  flipHorizontalRotate90: 7,
-  rotate270: 8,
-  min: 1,
-  max: 8,
   dimensionSwapThreshold: 5,
+  flipHorizontal: 2,
+  flipHorizontalRotate90: 7,
+  flipHorizontalRotate270: 5,
+  flipVertical: 4,
+  max: 8,
+  min: 1,
+  normal: 1,
+  rotate90: 6,
+  rotate180: 3,
+  rotate270: 8,
 } as const;
 
 // JPEG/EXIF binary format markers
 const jpegMarkers = {
-  magic: 0xff_d8,
   app1Marker: 0xff_e1,
   endOfImage: 0xff_d9,
+  magic: 0xff_d8,
   startOfScan: 0xff_da,
 } as const;
 
 const exifHeader = {
-  littleEndian: 0x49_49,
   headerSize: 6,
-  orientationTag: 0x01_12,
   ifdEntrySize: 12,
+  littleEndian: 0x49_49,
+  orientationTag: 0x01_12,
   orientationValueOffset: 8,
   stringLength: 4,
 } as const;
 
-type ExifSegmentData = {
-  tiffOffset: number;
-  littleEndian: boolean;
+interface ExifSegmentData {
   ifdOffset: number;
-};
+  littleEndian: boolean;
+  tiffOffset: number;
+}
 
 /**
  * Apply canvas transform based on EXIF orientation
@@ -81,8 +81,7 @@ function createCorrectedFile(
   originalFile: File
 ): Promise<File> {
   return new Promise((resolve) => {
-    let width = img.width;
-    let height = img.height;
+    let { width, height } = img;
 
     // Orientations 5-8 swap width and height
     if (orientation >= exifOrientation.dimensionSwapThreshold) {
@@ -107,8 +106,8 @@ function createCorrectedFile(
       (resultBlob) => {
         if (resultBlob) {
           const correctedFile = new File([resultBlob], originalFile.name, {
-            type: originalFile.type || "image/jpeg",
             lastModified: originalFile.lastModified,
+            type: originalFile.type || "image/jpeg",
           });
           resolve(correctedFile);
         } else {
@@ -250,7 +249,7 @@ function parseExifHeaderData(
   let currentOffset = startOffset + segmentLengthSize; // Skip segment length
 
   const exifHeaderBytes: number[] = [];
-  for (let i = 0; i < exifHeader.stringLength; i++) {
+  for (let i = 0; i < exifHeader.stringLength; i += 1) {
     exifHeaderBytes.push(view.getUint8(currentOffset + i));
   }
 
@@ -280,7 +279,7 @@ function parseExifHeaderData(
 
   const ifdOffset = view.getUint32(currentOffset, littleEndian);
 
-  return { tiffOffset, littleEndian, ifdOffset };
+  return { ifdOffset, littleEndian, tiffOffset };
 }
 
 function parseOrientationFromExif(
@@ -298,7 +297,7 @@ function parseOrientationFromExif(
   const numEntries = view.getUint16(offset, littleEndian);
   offset += 2;
 
-  for (let i = 0; i < numEntries; i++) {
+  for (let i = 0; i < numEntries; i += 1) {
     if (offset + exifHeader.ifdEntrySize > length) {
       return exifOrientation.normal;
     }
