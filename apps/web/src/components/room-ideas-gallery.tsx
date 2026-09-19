@@ -37,21 +37,21 @@ type DesignStyle =
   | "traditional"
   | "contemporary";
 
-type Design = {
-  _id: Id<"designs">;
+interface Design {
   _creationTime: number;
-  title: string;
-  description: string;
-  imageUrl: string | null;
-  roomType?: RoomType;
-  designStyle?: DesignStyle;
-  likesCount?: number;
+  _id: Id<"designs">;
   budget?: number;
-  tags?: string[];
+  description: string;
+  designStyle?: DesignStyle;
   featured?: boolean;
-};
+  imageUrl: string | null;
+  likesCount?: number;
+  roomType?: RoomType;
+  tags?: string[];
+  title: string;
+}
 
-type FilterOptions = {
+interface FilterOptions {
   styles: {
     style: string;
     count: number;
@@ -60,14 +60,14 @@ type FilterOptions = {
     tag: string;
     count: number;
   }[];
-};
+}
 
-type RoomIdeasGalleryProps = {
-  roomType: RoomType;
-  roomLabel: string;
+interface RoomIdeasGalleryProps {
   initialFeatured: Design[];
   initialFilters: FilterOptions;
-};
+  roomLabel: string;
+  roomType: RoomType;
+}
 
 export function RoomIdeasGallery({
   roomType,
@@ -86,10 +86,10 @@ export function RoomIdeasGallery({
 
   // Fetch all designs with current filters
   const allDesigns = useQuery(api.ideas.getRoomIdeas, {
+    limit: 50,
     roomType,
     style: selectedStyle === "all" ? undefined : selectedStyle,
     tags: selectedTags.length > 0 ? selectedTags : undefined,
-    limit: 50,
   });
 
   const handleTagToggle = (tag: string) => {
@@ -102,7 +102,7 @@ export function RoomIdeasGallery({
     <div className="container mx-auto px-4 py-12">
       <div className="mx-auto max-w-7xl">
         {/* Featured Section */}
-        {featuredDesigns && featuredDesigns.length > 0 ? (
+        {featuredDesigns.length > 0 ? (
           <section className="mb-16">
             <div className="mb-8 flex items-center justify-between">
               <div>
@@ -139,7 +139,7 @@ export function RoomIdeasGallery({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Styles</SelectItem>
-                  {filterOptions?.styles.map(
+                  {filterOptions.styles.map(
                     (style: { style: string; count: number }) => (
                       <SelectItem key={style.style} value={style.style}>
                         {style.style.charAt(0).toUpperCase() +

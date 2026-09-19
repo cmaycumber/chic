@@ -4,11 +4,11 @@ import type { ReactNode } from "react";
 import { PublicHeader } from "@/components/public-header";
 import { TravertineBackground } from "@/components/travertine-background";
 
-type AuthLayoutProps = {
+interface AuthLayoutProps {
   children: ReactNode;
-  title: string;
   subtitle?: string;
-};
+  title: string;
+}
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
@@ -23,7 +23,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <h1 className="font-bold text-3xl tracking-tight">{title}</h1>
-            {subtitle && (
+            {Boolean(subtitle) && (
               <p className="mt-2 text-muted-foreground">{subtitle}</p>
             )}
           </div>

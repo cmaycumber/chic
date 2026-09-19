@@ -33,7 +33,7 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="-mt-20 relative z-20 bg-white py-24">
+      <section className="relative z-20 -mt-20 bg-white py-24">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-lg rounded-2xl border bg-white p-8 shadow-xl">
             <div className="mb-8 text-center">

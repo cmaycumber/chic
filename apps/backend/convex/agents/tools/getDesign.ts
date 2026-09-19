@@ -17,10 +17,7 @@ import type { Doc, Id } from "../../_generated/dataModel";
 export const get_design = createTool({
   description:
     "Fetch current design state before modifications. Returns all details including imageStorageId and products.",
-  args: z.object({
-    designId: z.string().describe("Design ID to retrieve"),
-  }),
-  handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
+  execute: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     const design = await ctx.runQuery(internal.designs.read, {
       id: args.designId as Id<"designs">,
     });
@@ -31,4 +28,7 @@ export const get_design = createTool({
 
     return design;
   },
+  inputSchema: z.object({
+    designId: z.string().describe("Design ID to retrieve"),
+  }),
 });

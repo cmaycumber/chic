@@ -42,6 +42,40 @@ Open [http://localhost:3001](http://localhost:3001) in your browser to see the w
 Use the Expo Go app to run the mobile application.
 Your app will connect to the Convex cloud backend automatically.
 
+### Environment variables
+
+Web (`apps/web/.env.local`, and the Vercel project):
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex deployment URL (`https://<name>.convex.cloud`) |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | Convex HTTP actions URL (`https://<name>.convex.site`), used by auth |
+| `CONVEX_DEPLOY_KEY` | Lets the Vercel build push Convex functions |
+| `NEXT_PUBLIC_POSTHOG_KEY` | Optional analytics |
+
+Convex (`bunx convex env set NAME value` from `apps/backend`):
+
+| Variable | Purpose |
+| --- | --- |
+| `SITE_URL` | Public web origin, e.g. `https://www.usechic.com` |
+| `BETTER_AUTH_SECRET` | Session signing secret |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway: room edits (`meta/muse-image-1.0`) and furniture detection (`google/gemini-3.1-flash-lite`) |
+| `ROOM_EDIT_MODEL`, `ROOM_DETECT_MODEL` | Optional gateway model ids to swap either step (e.g. `openai/gpt-image-2.5-flare`) |
+| `OPENAI_API_KEY` | Only when `ROOM_EDIT_MODEL` is an `openai/` model; edits then go direct so WebP output works |
+| `SERPAPI_API_KEY` | Amazon product search for shoppable items |
+| `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER` | Billing (optional; sign-up works without them) |
+| `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Optional Pinterest OAuth |
+
+### Local development without a Convex account
+
+`CONVEX_AGENT_MODE=anonymous bunx convex dev` in `apps/backend` starts a local Convex at `http://127.0.0.1:3210`; point `NEXT_PUBLIC_CONVEX_URL` at it and `NEXT_PUBLIC_CONVEX_SITE_URL` at port `3211`.
+
+### Deploying
+
+1. `bun run check-types` and `bun run build` must pass (the pre-push hook runs the type-check).
+2. Deploy Convex first (`bunx convex deploy` from `apps/backend`, or let the Vercel build do it via `CONVEX_DEPLOY_KEY`), then the web app.
+3. Set the Convex environment variables above on the production deployment before the first deploy; image edits and shopping fail without the gateway and SerpAPI keys.
+
 
 
 

@@ -9,8 +9,6 @@ authComponent.registerRoutes(http, createAuth);
 
 // Serve files from storage
 http.route({
-  path: "/storage",
-  method: "GET",
   handler: httpAction(async (ctx, request) => {
     const { searchParams } = new URL(request.url);
     const storageId = searchParams.get("id");
@@ -27,6 +25,8 @@ http.route({
 
     return new Response(blob);
   }),
+  method: "GET",
+  path: "/storage",
 });
 
 export default http;

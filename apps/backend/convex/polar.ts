@@ -45,7 +45,10 @@ export const createCreditCheckout = action({
 
     // Create checkout session with ad-hoc pricing
     const checkout = await polar.checkouts.create({
-      products: [POLAR_CREDIT_PRODUCT_ID],
+      metadata: {
+        amountCents,
+        credits: normalizedCredits,
+      },
       prices: {
         [POLAR_CREDIT_PRODUCT_ID]: [
           {
@@ -55,16 +58,13 @@ export const createCreditCheckout = action({
           },
         ],
       },
+      products: [POLAR_CREDIT_PRODUCT_ID],
       successUrl,
-      metadata: {
-        credits: normalizedCredits,
-        amountCents,
-      },
     });
 
     return {
-      url: checkout.url,
       id: checkout.id,
+      url: checkout.url,
     };
   },
 });

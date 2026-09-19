@@ -21,26 +21,27 @@ const MIN_PRODUCTS_PER_QUERY = 1;
 const MAX_QUERIES_PER_CALL = 10;
 const ERROR_TEXT_MAX_LENGTH = 200;
 
-type AmazonProduct = {
-  position?: number;
-  title?: string;
+interface AmazonProduct {
   asin?: string;
+  // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
+  extracted_old_price?: number;
+  // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
+  extracted_price?: number;
   link?: string;
   // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
   link_clean?: string;
-  thumbnail?: string;
-  rating?: number;
-  reviews?: number;
-  price?: string;
-  // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
-  extracted_price?: number;
   // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
   old_price?: string;
-  // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
-  extracted_old_price?: number;
-};
+  position?: number;
+  price?: string;
+  rating?: number;
+  reviews?: number;
+  thumbnail?: string;
+  title?: string;
+}
 
-type SerpApiResponse = {
+interface SerpApiResponse {
+  error?: string;
   // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
   organic_results?: AmazonProduct[];
   // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
@@ -48,8 +49,7 @@ type SerpApiResponse = {
     // biome-ignore lint/style/useNamingConvention: SerpAPI uses snake_case
     query_displayed?: string;
   };
-  error?: string;
-};
+}
 
 /**
  * Parse price from Amazon product data
@@ -79,12 +79,12 @@ async function fetchAmazonProducts(
 
   // Build the query parameters exactly like the curl command
   const params = new URLSearchParams({
-    engine: "amazon",
-    k: enhancedQuery, // Amazon uses 'k' for keyword search
     // biome-ignore lint/style/useNamingConvention: SerpAPI parameter
     amazon_domain: "amazon.com",
     // biome-ignore lint/style/useNamingConvention: SerpAPI parameter
     api_key: apiKey,
+    engine: "amazon",
+    k: enhancedQuery, // Amazon uses 'k' for keyword search
   });
 
   // Add rh filters if provided (e.g., "p_72:1248897011,p_76:1249146011")
@@ -100,7 +100,7 @@ async function fetchAmazonProducts(
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `SerpAPI HTTP ${response.status}: ${errorText.substring(0, ERROR_TEXT_MAX_LENGTH)}`
+        `SerpAPI HTTP ${response.status}: ${errorText.slice(0, ERROR_TEXT_MAX_LENGTH)}`
       );
     }
 
@@ -122,9 +122,13 @@ async function fetchAmazonProducts(
     return organicResults;
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`SerpAPI request failed: ${error.message}`);
+      throw new Error(`SerpAPI request failed: ${error.message}`, {
+        cause: error,
+      });
     }
-    throw new Error("SerpAPI request failed with unknown error");
+    throw new Error("SerpAPI request failed with unknown error", {
+      cause: error,
+    });
   }
 }
 
@@ -135,35 +139,7 @@ async function fetchAmazonProducts(
 export const search_products = createTool({
   description:
     "Find real furniture and decor on Amazon. Returns products with images, prices, ratings, and purchase links. Always use the 4+ star filter for quality.",
-  args: z.object({
-    queries: z
-      .array(
-        z.object({
-          query: z
-            .string()
-            .describe(
-              "Detailed search: include style, color, material, size. Example: 'modern grey velvet sectional sofa 90 inch'"
-            ),
-          filters: z
-            .string()
-            .optional()
-            .describe(
-              `Amazon rh filters. Common: "p_72:1248897011" (4+ stars, RECOMMENDED), "p_36:1253506011" ($100-200). Combine with commas.`
-            ),
-          maxResults: z
-            .number()
-            .optional()
-            .default(DEFAULT_PRODUCTS_PER_QUERY)
-            .describe(
-              `Products per query (default: ${DEFAULT_PRODUCTS_PER_QUERY}, max: ${MAX_PRODUCTS_PER_QUERY})`
-            ),
-        })
-      )
-      .min(1)
-      .max(MAX_QUERIES_PER_CALL)
-      .describe("Search queries with specific product details"),
-  }),
-  handler: async (_ctx, args) => {
+  execute: async (_ctx, args) => {
     const apiKey = process.env.SERPAPI_API_KEY;
     if (!apiKey) {
       throw new Error(
@@ -206,6 +182,34 @@ export const search_products = createTool({
 
     return allProducts;
   },
+  inputSchema: z.object({
+    queries: z
+      .array(
+        z.object({
+          filters: z
+            .string()
+            .optional()
+            .describe(
+              `Amazon rh filters. Common: "p_72:1248897011" (4+ stars, RECOMMENDED), "p_36:1253506011" ($100-200). Combine with commas.`
+            ),
+          maxResults: z
+            .number()
+            .optional()
+            .default(DEFAULT_PRODUCTS_PER_QUERY)
+            .describe(
+              `Products per query (default: ${DEFAULT_PRODUCTS_PER_QUERY}, max: ${MAX_PRODUCTS_PER_QUERY})`
+            ),
+          query: z
+            .string()
+            .describe(
+              "Detailed search: include style, color, material, size. Example: 'modern grey velvet sectional sofa 90 inch'"
+            ),
+        })
+      )
+      .min(1)
+      .max(MAX_QUERIES_PER_CALL)
+      .describe("Search queries with specific product details"),
+  }),
 });
 
 /**
@@ -250,13 +254,13 @@ function parseProductsFromResults(
     const productUrl = addAffiliateTag(rawProductUrl);
 
     products.push({
+      description: item.title,
+      imageUrl: item.thumbnail,
       name: item.title,
       price,
-      imageUrl: item.thumbnail,
       productUrl,
       rating: item.rating,
       reviewCount: item.reviews,
-      description: item.title,
     });
   }
 

@@ -4,11 +4,11 @@ import { useSession } from "@/lib/auth-client";
 import { PublicFooter } from "./public-footer";
 import { PublicHeader } from "./public-header";
 
-type PublicLayoutProps = {
+interface PublicLayoutProps {
   children: React.ReactNode;
-  showHeader?: boolean;
   showFooter?: boolean;
-};
+  showHeader?: boolean;
+}
 
 export function PublicLayout({
   children,
@@ -34,9 +34,9 @@ export function PublicLayout({
 
   return (
     <div className="min-h-screen">
-      {showHeader && <PublicHeader />}
+      {Boolean(showHeader) && <PublicHeader />}
       <main className={showHeader ? "pt-16" : ""}>{children}</main>
-      {showFooter && <PublicFooter />}
+      {Boolean(showFooter) && <PublicFooter />}
     </div>
   );
 }

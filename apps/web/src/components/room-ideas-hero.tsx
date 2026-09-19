@@ -1,7 +1,7 @@
-type RoomIdeasHeroProps = {
-  roomLabel: string;
+interface RoomIdeasHeroProps {
   description: string;
-};
+  roomLabel: string;
+}
 
 export function RoomIdeasHero({ roomLabel, description }: RoomIdeasHeroProps) {
   return (

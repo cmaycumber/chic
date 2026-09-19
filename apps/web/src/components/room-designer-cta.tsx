@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-type RoomDesignerCtaProps = {
+interface RoomDesignerCtaProps {
   roomType: string;
-};
+}
 
 export function RoomDesignerCta({ roomType }: RoomDesignerCtaProps) {
   const roomLabel = roomType
@@ -29,9 +29,6 @@ export function RoomDesignerCta({ roomType }: RoomDesignerCtaProps) {
               <Link href="/design-tools/ai-room-designer">
                 Try AI Room Designer
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/chat">Chat with AI Designer</Link>
             </Button>
           </div>
           <p className="text-muted-foreground text-sm">

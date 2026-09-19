@@ -18,8 +18,8 @@ import { Agent, listUIMessages } from "@convex-dev/agent";
 import {
   defaultSettingsMiddleware,
   gateway,
+  isStepCount,
   type ModelMessage,
-  stepCountIs,
   wrapLanguageModel,
 } from "ai";
 import { components, internal } from "../_generated/api";
@@ -35,15 +35,27 @@ const MAX_AGENT_STEPS = 15;
 const MAX_DESIGNS_IN_CONTEXT = 5;
 const MAX_MESSAGES_TO_SCAN = 50;
 
-/** Content part types used throughout context building */
-type TextPart = { type: "text"; text: string };
-type ImagePart = { type: "image"; image: string };
-type ContentPart = TextPart | ImagePart;
+/**
+ * Content part types used throughout context building.
+ * AI SDK 7 deprecated `{ type: "image", image }` in favour of file parts, where
+ * `data` accepts the same URL / data-URL strings and `mediaType` may be the
+ * bare top-level IANA segment when the concrete subtype is unknown.
+ */
+interface TextPart {
+  text: string;
+  type: "text";
+}
+interface ImageFilePart {
+  data: string;
+  mediaType: string;
+  type: "file";
+}
+type ContentPart = TextPart | ImageFilePart;
 
 // Use Claude 4.5 Haiku for the main agent
 const primaryModel = wrapLanguageModel({
-  model: gateway.languageModel("deepseek/deepseek-v3.2-exp-thinking"),
   middleware: defaultSettingsMiddleware({ settings: {} }),
+  model: gateway.languageModel("deepseek/deepseek-v3.2-exp-thinking"),
 });
 
 /**
@@ -78,7 +90,7 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
   // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop for TypeScript compatibility
-  for (let i = 0; i < bytes.length; i++) {
+  for (let i = 0; i < bytes.length; i += 1) {
     binary += String.fromCharCode(bytes[i]);
   }
   const base64 = btoa(binary);
@@ -87,25 +99,25 @@ async function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 /** Design data shape for context formatting */
-type DesignData = {
-  _id: { toString(): string };
-  title: string;
+interface DesignData {
+  _id: { toString: () => string };
+  budget?: number;
   description: string;
   designPlan?: string;
-  budget?: number;
+  imageStorageId?: string;
   products?: Array<{
     name: string;
     price: number;
     description?: string;
     productUrl?: string;
   }>;
-  imageStorageId?: string;
-};
+  title: string;
+}
 
 /** Storage context for fetching images */
-type StorageContext = {
+interface StorageContext {
   storage: { get: (id: string) => Promise<Blob | null> };
-};
+}
 
 /**
  * Format a single design for context with structured message parts
@@ -121,7 +133,6 @@ async function formatDesignContext(
   const productsList = formatProductsList(design.products);
 
   const textPart: TextPart = {
-    type: "text",
     text: `
 Design: ${design.title}
 ID: ${design._id}
@@ -131,6 +142,7 @@ ${budget}
 Products:
 ${productsList}
 ---`,
+    type: "text",
   };
 
   // If there's an image, fetch it and convert to base64 data URL
@@ -138,7 +150,14 @@ ${productsList}
     const imageBlob = await ctx.storage.get(design.imageStorageId);
     if (imageBlob) {
       const dataUrl = await blobToDataUrl(imageBlob);
-      return [textPart, { type: "image", image: dataUrl }];
+      return [
+        textPart,
+        {
+          data: dataUrl,
+          mediaType: "image",
+          type: "file",
+        },
+      ];
     }
   }
 
@@ -154,34 +173,36 @@ async function buildDesignsContextParts(
 ): Promise<ContentPart[]> {
   const contentParts: ContentPart[] = [
     {
-      type: "text",
       text: `
 === EXISTING DESIGNS IN THIS CONVERSATION ===
 The following designs have been created in this conversation. Reference these when the user asks about existing designs or wants to modify them:
 `,
+      type: "text",
     },
   ];
 
   // Add each design's structured content (text + optional image)
-  for (const design of designs) {
-    const designParts = await formatDesignContext(ctx, design);
+  const designPartsList = await Promise.all(
+    designs.map((design) => formatDesignContext(ctx, design))
+  );
+  for (const designParts of designPartsList) {
     contentParts.push(...designParts);
   }
 
   contentParts.push({
-    type: "text",
     text: "\n=== END OF EXISTING DESIGNS ===",
+    type: "text",
   });
 
   return contentParts;
 }
 
 /** UIMessage file part structure from @convex-dev/agent */
-type UIFilePart = {
+interface UIFilePart {
+  mediaType?: string;
   type: "file";
   url?: string;
-  mediaType?: string;
-};
+}
 
 /**
  * Check if a part is an image file part with a valid URL
@@ -189,7 +210,7 @@ type UIFilePart = {
 function isImageFilePart(part: unknown): part is UIFilePart {
   const filePart = part as UIFilePart;
   return (
-    filePart?.type === "file" &&
+    filePart.type === "file" &&
     typeof filePart.url === "string" &&
     typeof filePart.mediaType === "string" &&
     filePart.mediaType.startsWith("image/")
@@ -206,8 +227,8 @@ async function getUserUploadedImages(
 ): Promise<string[]> {
   try {
     const uiMessages = await listUIMessages(ctx, components.agent, {
+      paginationOpts: { cursor: null, numItems: MAX_MESSAGES_TO_SCAN },
       threadId,
-      paginationOpts: { numItems: MAX_MESSAGES_TO_SCAN, cursor: null },
     });
 
     // Find the last user message with image parts
@@ -218,7 +239,7 @@ async function getUserUploadedImages(
         if (m.role !== "user") {
           return false;
         }
-        return (m.parts as unknown[])?.some(isImageFilePart);
+        return (m.parts as unknown[]).some(isImageFilePart);
       });
 
     if (!lastUserMessageWithImages) {
@@ -231,15 +252,15 @@ async function getUserUploadedImages(
 
     // Extract image URLs directly from parts
     const imageUrls = (lastUserMessageWithImages.parts as unknown[])
-      ?.filter(isImageFilePart)
+      .filter(isImageFilePart)
       .map((part) => part.url)
       .filter((url): url is string => Boolean(url));
 
     // biome-ignore lint/suspicious/noConsole: Debug logging for troubleshooting
     console.log(
-      `[getUserUploadedImages] Found ${imageUrls?.length ?? 0} image(s) in thread`
+      `[getUserUploadedImages] Found ${imageUrls.length} image(s) in thread`
     );
-    return imageUrls ?? [];
+    return imageUrls;
   } catch (error) {
     // biome-ignore lint/suspicious/noConsole: Error logging for debugging
     console.error("[getUserUploadedImages] Error fetching images:", error);
@@ -263,8 +284,7 @@ function isValidImageUrl(url: string): boolean {
  * Returns content array with text instructions and image parts
  */
 function buildUserImageContextParts(imageUrls: string[]): ContentPart[] {
-  const primaryImageUrl = imageUrls[0];
-  const additionalUrls = imageUrls.slice(1);
+  const [primaryImageUrl, ...additionalUrls] = imageUrls;
 
   const contentParts: ContentPart[] = [];
 
@@ -288,12 +308,16 @@ CRITICAL: Do NOT generate a random room from scratch when the user has uploaded 
 
 Below are the actual uploaded images for your visual reference:`;
 
-  contentParts.push({ type: "text", text: instruction });
+  contentParts.push({ text: instruction, type: "text" });
 
   // Add valid image URLs as visual content
   for (const imageUrl of imageUrls) {
     if (isValidImageUrl(imageUrl)) {
-      contentParts.push({ type: "image", image: imageUrl });
+      contentParts.push({
+        data: imageUrl,
+        mediaType: "image",
+        type: "file",
+      });
     }
   }
 
@@ -316,8 +340,8 @@ async function addUserImagesContext(
 
   const contentParts = buildUserImageContextParts(imageUrls);
   const imageContextMessage = {
-    role: "user" as const,
     content: contentParts,
+    role: "user" as const,
   };
   messages.push(imageContextMessage);
 }
@@ -344,7 +368,7 @@ async function addDesignsContext(
 
   // Find the last user message index
   let lastUserMessageIndex = -1;
-  for (let i = messages.length - 1; i >= 0; i--) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
     if (messages[i].role === "user") {
       lastUserMessageIndex = i;
       break;
@@ -354,8 +378,8 @@ async function addDesignsContext(
   // Insert the designs context with structured parts before the last user message
   // Use "user" role since system messages don't support multimodal content
   const designsMessage = {
-    role: "user" as const,
     content: contentParts,
+    role: "user" as const,
   };
 
   if (lastUserMessageIndex > 0) {
@@ -367,8 +391,8 @@ async function addDesignsContext(
   // Add truncation notice if there are more designs
   if (designs.length > MAX_DESIGNS_IN_CONTEXT) {
     messages.push({
-      role: "user" as const,
       content: `[Note: Showing ${MAX_DESIGNS_IN_CONTEXT} of ${designs.length} designs. Use get_design to retrieve specific designs by ID.]`,
+      role: "user" as const,
     });
   }
 }
@@ -410,17 +434,6 @@ async function enrichContextWithThreadData(
  * Specialized AI agent for interior design consultation and advice
  */
 export const designAgent = new Agent(components.agent, {
-  name: "Interior Design Consultant",
-  languageModel: primaryModel,
-  tools: {
-    create_design,
-    update_design,
-    search_products,
-    generate_design_image,
-    add_products_to_design,
-    get_design,
-  },
-  stopWhen: stepCountIs(MAX_AGENT_STEPS),
   contextHandler: async (ctx, args) => {
     // Build the context messages
     const messages = [
@@ -609,4 +622,15 @@ Position sectional to face the main window, coffee table centered 18" away, rug 
 Stay natural and adaptive. You don't need to save every design—sometimes clients just want to brainstorm or see options. Create designs when they're ready to commit to a direction or want to save something for reference.
 
 Let the conversation guide tool usage rather than forcing a rigid sequence. Trust your judgment on when to search, visualize, or save.`,
+  languageModel: primaryModel,
+  name: "Interior Design Consultant",
+  stopWhen: isStepCount(MAX_AGENT_STEPS),
+  tools: {
+    add_products_to_design,
+    create_design,
+    generate_design_image,
+    get_design,
+    search_products,
+    update_design,
+  },
 });

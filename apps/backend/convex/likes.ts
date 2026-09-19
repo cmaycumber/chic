@@ -18,10 +18,6 @@ export const toggleDesignLike = privateMutation({
   args: {
     designId: v.id("designs"),
   },
-  returns: v.object({
-    liked: v.boolean(),
-    likesCount: v.number(),
-  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -54,8 +50,8 @@ export const toggleDesignLike = privateMutation({
       // Get the new count from the aggregate
       newCount = await likesCountAggregate.count(ctx, {
         bounds: {
-          lower: { key: args.designId, inclusive: true },
-          upper: { key: args.designId, inclusive: true },
+          lower: { inclusive: true, key: args.designId },
+          upper: { inclusive: true, key: args.designId },
         },
       });
 
@@ -67,11 +63,11 @@ export const toggleDesignLike = privateMutation({
 
     // Like: add the like to database
     await ctx.db.insert("likes", {
-      userId,
       likedItem: {
-        type: "design" as const,
         designId: args.designId,
+        type: "design" as const,
       },
+      userId,
     });
 
     // Add to aggregate (key = designId, value = "" since we only count)
@@ -81,8 +77,8 @@ export const toggleDesignLike = privateMutation({
     // Get the new count from the aggregate
     newCount = await likesCountAggregate.count(ctx, {
       bounds: {
-        lower: { key: args.designId, inclusive: true },
-        upper: { key: args.designId, inclusive: true },
+        lower: { inclusive: true, key: args.designId },
+        upper: { inclusive: true, key: args.designId },
       },
     });
 
@@ -91,6 +87,10 @@ export const toggleDesignLike = privateMutation({
 
     return { liked: true, likesCount: newCount };
   },
+  returns: v.object({
+    liked: v.boolean(),
+    likesCount: v.number(),
+  }),
 });
 
 /**
@@ -101,16 +101,16 @@ export const getDesignLikesCount = publicQuery({
   args: {
     designId: v.id("designs"),
   },
-  returns: v.number(),
   handler: async (ctx, args) => {
     const count: number = await likesCountAggregate.count(ctx, {
       bounds: {
-        lower: { key: args.designId, inclusive: true },
-        upper: { key: args.designId, inclusive: true },
+        lower: { inclusive: true, key: args.designId },
+        upper: { inclusive: true, key: args.designId },
       },
     });
     return count;
   },
+  returns: v.number(),
 });
 
 /**
@@ -121,7 +121,6 @@ export const getDesignLikesCountBatch = publicQuery({
   args: {
     designIds: v.array(v.id("designs")),
   },
-  returns: v.record(v.id("designs"), v.number()),
   handler: async (ctx, args) => {
     const counts: Record<string, number> = {};
 
@@ -129,20 +128,21 @@ export const getDesignLikesCountBatch = publicQuery({
     const countPromises: Promise<number>[] = args.designIds.map((designId) =>
       likesCountAggregate.count(ctx, {
         bounds: {
-          lower: { key: designId, inclusive: true },
-          upper: { key: designId, inclusive: true },
+          lower: { inclusive: true, key: designId },
+          upper: { inclusive: true, key: designId },
         },
       })
     );
 
     const results: number[] = await Promise.all(countPromises);
 
-    for (let i = 0; i < args.designIds.length; i++) {
+    for (let i = 0; i < args.designIds.length; i += 1) {
       counts[args.designIds[i]] = results[i];
     }
 
     return counts;
   },
+  returns: v.record(v.id("designs"), v.number()),
 });
 
 /**
@@ -152,7 +152,6 @@ export const isDesignLiked = privateQuery({
   args: {
     designId: v.id("designs"),
   },
-  returns: v.boolean(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -167,6 +166,7 @@ export const isDesignLiked = privateQuery({
 
     return like !== null;
   },
+  returns: v.boolean(),
 });
 
 /**
@@ -178,10 +178,6 @@ export const isDesignLiked = privateQuery({
  */
 export const syncLikesAggregate = privateMutation({
   args: {},
-  returns: v.object({
-    processed: v.number(),
-    synced: v.number(),
-  }),
   handler: async (ctx) => {
     // Get all likes from the database
     const allLikes = await ctx.db.query("likes").collect();
@@ -196,7 +192,7 @@ export const syncLikesAggregate = privateMutation({
       if (like.likedItem.type === "design") {
         const designId: string = like.likedItem.designId;
         likesPerDesign[designId] = (likesPerDesign[designId] ?? 0) + 1;
-        processed++;
+        processed += 1;
       }
     }
 
@@ -206,17 +202,22 @@ export const syncLikesAggregate = privateMutation({
     // Update each design with its like count and sync to aggregate
     for (const [designId, count] of Object.entries(likesPerDesign)) {
       // Insert each like into the aggregate
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < count; i += 1) {
+        // biome-ignore lint/performance/noAwaitInLoops: inserts for the same key must happen sequentially to keep the aggregate's internal ordering consistent
         await likesCountAggregate._insert(ctx, undefined, designId, "");
       }
 
       // Update the denormalized count in the design document
       await ctx.db.patch(designId as Id<"designs">, { likesCount: count });
-      synced++;
+      synced += 1;
     }
 
     return { processed, synced };
   },
+  returns: v.object({
+    processed: v.number(),
+    synced: v.number(),
+  }),
 });
 
 /**
@@ -224,46 +225,6 @@ export const syncLikesAggregate = privateMutation({
  */
 export const getUserLikedDesigns = privateQuery({
   args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("designs"),
-      _creationTime: v.number(),
-      title: v.string(),
-      description: v.string(),
-      imageUrl: v.union(v.string(), v.null()),
-      roomType: v.optional(
-        v.union(
-          v.literal("living-room"),
-          v.literal("bedroom"),
-          v.literal("kitchen"),
-          v.literal("bathroom"),
-          v.literal("dining-room"),
-          v.literal("home-office"),
-          v.literal("family-room"),
-          v.literal("nursery"),
-          v.literal("outdoor")
-        )
-      ),
-      designStyle: v.optional(
-        v.union(
-          v.literal("modern"),
-          v.literal("minimalist"),
-          v.literal("scandinavian"),
-          v.literal("industrial"),
-          v.literal("bohemian"),
-          v.literal("coastal"),
-          v.literal("traditional"),
-          v.literal("contemporary")
-        )
-      ),
-      likesCount: v.optional(v.number()),
-      views: v.optional(v.number()),
-      budget: v.optional(v.number()),
-      tags: v.optional(v.array(v.string())),
-      featured: v.optional(v.boolean()),
-      likedAt: v.number(),
-    })
-  ),
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -293,19 +254,19 @@ export const getUserLikedDesigns = privateQuery({
           }
 
           return {
-            _id: design._id,
             _creationTime: design._creationTime,
-            title: design.title,
-            description: design.description,
-            imageUrl,
-            roomType: design.roomType,
-            designStyle: design.designStyle,
-            likesCount: design.likesCount,
-            views: design.views,
+            _id: design._id,
             budget: design.budget,
-            tags: design.tags,
+            description: design.description,
+            designStyle: design.designStyle,
             featured: design.featured,
+            imageUrl,
             likedAt: like._creationTime,
+            likesCount: design.likesCount,
+            roomType: design.roomType,
+            tags: design.tags,
+            title: design.title,
+            views: design.views,
           };
         })
     );
@@ -314,4 +275,44 @@ export const getUserLikedDesigns = privateQuery({
     const filtered = designsWithImages.filter((design) => design !== null);
     return filtered;
   },
+  returns: v.array(
+    v.object({
+      _creationTime: v.number(),
+      _id: v.id("designs"),
+      budget: v.optional(v.number()),
+      description: v.string(),
+      designStyle: v.optional(
+        v.union(
+          v.literal("modern"),
+          v.literal("minimalist"),
+          v.literal("scandinavian"),
+          v.literal("industrial"),
+          v.literal("bohemian"),
+          v.literal("coastal"),
+          v.literal("traditional"),
+          v.literal("contemporary")
+        )
+      ),
+      featured: v.optional(v.boolean()),
+      imageUrl: v.union(v.string(), v.null()),
+      likedAt: v.number(),
+      likesCount: v.optional(v.number()),
+      roomType: v.optional(
+        v.union(
+          v.literal("living-room"),
+          v.literal("bedroom"),
+          v.literal("kitchen"),
+          v.literal("bathroom"),
+          v.literal("dining-room"),
+          v.literal("home-office"),
+          v.literal("family-room"),
+          v.literal("nursery"),
+          v.literal("outdoor")
+        )
+      ),
+      tags: v.optional(v.array(v.string())),
+      title: v.string(),
+      views: v.optional(v.number()),
+    })
+  ),
 });

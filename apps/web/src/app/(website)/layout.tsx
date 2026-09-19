@@ -1,19 +1,18 @@
-import { cookies } from "next/headers";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicHeader } from "@/components/public-header";
+import { getSessionKind } from "@/lib/auth-server";
 
 export default async function WebsiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("better-auth.session_token");
-  const isAuthenticated = !!sessionCookie?.value;
+  // Anonymous visitors keep seeing the sign-up invitation.
+  const authenticated = (await getSessionKind()) === "account";
 
   return (
     <div className="min-h-screen">
-      <PublicHeader isAuthenticated={isAuthenticated} />
+      <PublicHeader isAuthenticated={authenticated} />
       <main className="pt-14 sm:pt-16">{children}</main>
       <PublicFooter />
     </div>

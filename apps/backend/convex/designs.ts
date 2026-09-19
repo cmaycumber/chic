@@ -10,7 +10,6 @@ export const { create, read, update, destroy } = crud(schema, "designs");
  */
 export const togglePublic = privateMutation({
   args: { designId: v.id("designs") },
-  returns: v.boolean(),
   handler: async (ctx, args) => {
     const design = await ctx.db.get(args.designId);
     if (!design) {
@@ -21,6 +20,7 @@ export const togglePublic = privateMutation({
     await ctx.db.patch(args.designId, { isPublic: newIsPublic });
     return newIsPublic;
   },
+  returns: v.boolean(),
 });
 
 /**
@@ -28,30 +28,6 @@ export const togglePublic = privateMutation({
  */
 export const getWithImage = privateQuery({
   args: { designId: v.id("designs") },
-  returns: v.union(
-    v.object({
-      _id: v.id("designs"),
-      _creationTime: v.number(),
-      title: v.string(),
-      description: v.string(),
-      imageUrl: v.union(v.string(), v.null()),
-      products: v.optional(
-        v.array(
-          v.object({
-            name: v.string(),
-            price: v.number(),
-            imageUrl: v.string(),
-            productUrl: v.optional(v.string()),
-            description: v.optional(v.string()),
-          })
-        )
-      ),
-      budget: v.optional(v.number()),
-      designPlan: v.optional(v.string()),
-      isPublic: v.boolean(),
-    }),
-    v.null()
-  ),
   handler: async (ctx, args) => {
     const design = await ctx.db.get(args.designId);
     if (!design) {
@@ -64,17 +40,41 @@ export const getWithImage = privateQuery({
     }
 
     return {
-      _id: design._id,
       _creationTime: design._creationTime,
-      title: design.title,
-      description: design.description,
-      imageUrl,
-      products: design.products,
+      _id: design._id,
       budget: design.budget,
+      description: design.description,
       designPlan: design.designPlan,
+      imageUrl,
       isPublic: design.isPublic ?? false,
+      products: design.products,
+      title: design.title,
     };
   },
+  returns: v.union(
+    v.object({
+      _creationTime: v.number(),
+      _id: v.id("designs"),
+      budget: v.optional(v.number()),
+      description: v.string(),
+      designPlan: v.optional(v.string()),
+      imageUrl: v.union(v.string(), v.null()),
+      isPublic: v.boolean(),
+      products: v.optional(
+        v.array(
+          v.object({
+            description: v.optional(v.string()),
+            imageUrl: v.string(),
+            name: v.string(),
+            price: v.number(),
+            productUrl: v.optional(v.string()),
+          })
+        )
+      ),
+      title: v.string(),
+    }),
+    v.null()
+  ),
 });
 
 /**
@@ -83,26 +83,61 @@ export const getWithImage = privateQuery({
  */
 export const getPublicDesign = publicQuery({
   args: { designId: v.id("designs") },
+  handler: async (ctx, args) => {
+    const design = await ctx.db.get(args.designId);
+    if (!design?.isPublic) {
+      return null;
+    }
+
+    let imageUrl: string | null = null;
+    if (design.imageStorageId) {
+      imageUrl = await ctx.storage.getUrl(design.imageStorageId);
+    }
+
+    return {
+      _creationTime: design._creationTime,
+      _id: design._id,
+      budget: design.budget,
+      description: design.description,
+      designPlan: design.designPlan,
+      designStyle: design.designStyle,
+      imageUrl,
+      products: design.products,
+      roomType: design.roomType,
+      title: design.title,
+    };
+  },
   returns: v.union(
     v.object({
-      _id: v.id("designs"),
       _creationTime: v.number(),
-      title: v.string(),
+      _id: v.id("designs"),
+      budget: v.optional(v.number()),
       description: v.string(),
+      designPlan: v.optional(v.string()),
+      designStyle: v.optional(
+        v.union(
+          v.literal("modern"),
+          v.literal("minimalist"),
+          v.literal("scandinavian"),
+          v.literal("industrial"),
+          v.literal("bohemian"),
+          v.literal("coastal"),
+          v.literal("traditional"),
+          v.literal("contemporary")
+        )
+      ),
       imageUrl: v.union(v.string(), v.null()),
       products: v.optional(
         v.array(
           v.object({
+            description: v.optional(v.string()),
+            imageUrl: v.string(),
             name: v.string(),
             price: v.number(),
-            imageUrl: v.string(),
             productUrl: v.optional(v.string()),
-            description: v.optional(v.string()),
           })
         )
       ),
-      budget: v.optional(v.number()),
-      designPlan: v.optional(v.string()),
       roomType: v.optional(
         v.union(
           v.literal("living-room"),
@@ -116,43 +151,8 @@ export const getPublicDesign = publicQuery({
           v.literal("outdoor")
         )
       ),
-      designStyle: v.optional(
-        v.union(
-          v.literal("modern"),
-          v.literal("minimalist"),
-          v.literal("scandinavian"),
-          v.literal("industrial"),
-          v.literal("bohemian"),
-          v.literal("coastal"),
-          v.literal("traditional"),
-          v.literal("contemporary")
-        )
-      ),
+      title: v.string(),
     }),
     v.null()
   ),
-  handler: async (ctx, args) => {
-    const design = await ctx.db.get(args.designId);
-    if (!design?.isPublic) {
-      return null;
-    }
-
-    let imageUrl: string | null = null;
-    if (design.imageStorageId) {
-      imageUrl = await ctx.storage.getUrl(design.imageStorageId);
-    }
-
-    return {
-      _id: design._id,
-      _creationTime: design._creationTime,
-      title: design.title,
-      description: design.description,
-      imageUrl,
-      products: design.products,
-      budget: design.budget,
-      designPlan: design.designPlan,
-      roomType: design.roomType,
-      designStyle: design.designStyle,
-    };
-  },
 });

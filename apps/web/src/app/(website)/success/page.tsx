@@ -39,7 +39,7 @@ function SuccessContent() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Link href="/chat">
+          <Link href="/rooms">
             <Button className="w-full bg-amber-700 hover:bg-amber-800">
               Start Designing
             </Button>

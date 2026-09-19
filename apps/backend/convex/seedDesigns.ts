@@ -124,60 +124,60 @@ const budgetKitchenIndustrialMax = 13_000;
 
 // Design inspiration templates
 const DESIGN_TEMPLATES = {
-  "living-room": {
-    modern: {
-      tags: ["clean-lines", "neutral-colors", "minimalist"],
-      budgetRange: [budgetLivingModernMin, budgetLivingModernMax],
-    },
-    scandinavian: {
-      tags: ["cozy", "light-wood", "neutral-tones"],
-      budgetRange: [budgetLivingScandinavianMin, budgetLivingScandinavianMax],
-    },
-    bohemian: {
-      tags: ["eclectic", "colorful", "textured"],
-      budgetRange: [budgetLivingBohemianMin, budgetLivingBohemianMax],
-    },
-  },
   bedroom: {
+    bohemian: {
+      budgetRange: [budgetBedroomBohemianMin, budgetBedroomBohemianMax],
+      tags: ["layered", "textured", "earthy"],
+    },
     modern: {
-      tags: ["serene", "minimal", "calming"],
       budgetRange: [budgetBedroomModernMin, budgetBedroomModernMax],
+      tags: ["serene", "minimal", "calming"],
     },
     scandinavian: {
-      tags: ["cozy", "hygge", "natural"],
       budgetRange: [budgetBedroomScandinavianMin, budgetBedroomScandinavianMax],
-    },
-    bohemian: {
-      tags: ["layered", "textured", "earthy"],
-      budgetRange: [budgetBedroomBohemianMin, budgetBedroomBohemianMax],
+      tags: ["cozy", "hygge", "natural"],
     },
   },
   "family-room": {
+    coastal: {
+      budgetRange: [budgetFamilyCoastalMin, budgetFamilyCoastalMax],
+      tags: ["bright", "airy", "relaxed"],
+    },
     modern: {
-      tags: ["family-friendly", "durable", "comfortable"],
       budgetRange: [budgetFamilyModernMin, budgetFamilyModernMax],
+      tags: ["family-friendly", "durable", "comfortable"],
     },
     traditional: {
-      tags: ["warm", "inviting", "classic"],
       budgetRange: [budgetFamilyTraditionalMin, budgetFamilyTraditionalMax],
-    },
-    coastal: {
-      tags: ["bright", "airy", "relaxed"],
-      budgetRange: [budgetFamilyCoastalMin, budgetFamilyCoastalMax],
+      tags: ["warm", "inviting", "classic"],
     },
   },
   kitchen: {
+    industrial: {
+      budgetRange: [budgetKitchenIndustrialMin, budgetKitchenIndustrialMax],
+      tags: ["exposed", "metal", "concrete"],
+    },
     modern: {
-      tags: ["sleek", "functional", "clean"],
       budgetRange: [budgetKitchenModernMin, budgetKitchenModernMax],
+      tags: ["sleek", "functional", "clean"],
     },
     scandinavian: {
-      tags: ["light", "efficient", "warm-wood"],
       budgetRange: [budgetKitchenScandinavianMin, budgetKitchenScandinavianMax],
+      tags: ["light", "efficient", "warm-wood"],
     },
-    industrial: {
-      tags: ["exposed", "metal", "concrete"],
-      budgetRange: [budgetKitchenIndustrialMin, budgetKitchenIndustrialMax],
+  },
+  "living-room": {
+    bohemian: {
+      budgetRange: [budgetLivingBohemianMin, budgetLivingBohemianMax],
+      tags: ["eclectic", "colorful", "textured"],
+    },
+    modern: {
+      budgetRange: [budgetLivingModernMin, budgetLivingModernMax],
+      tags: ["clean-lines", "neutral-colors", "minimalist"],
+    },
+    scandinavian: {
+      budgetRange: [budgetLivingScandinavianMin, budgetLivingScandinavianMax],
+      tags: ["cozy", "light-wood", "neutral-tones"],
     },
   },
 };
@@ -247,11 +247,10 @@ After you create the design, respond with the design ID. Don't ask any questions
  */
 export const generateSeedDesign = internalAction({
   args: {
-    roomType: roomTypeValidator,
     designStyle: styleValidator,
     featured: v.optional(v.boolean()),
+    roomType: roomTypeValidator,
   },
-  returns: v.id("designs"),
   handler: async (ctx, args) => {
     // Get template data
     const defaultBudgetMin = 2000;
@@ -263,8 +262,8 @@ export const generateSeedDesign = internalAction({
     const template = roomTemplates?.[
       args.designStyle as keyof typeof roomTemplates
     ] ?? {
-      tags: ["stylish", "functional"],
       budgetRange: [defaultBudgetMin, defaultBudgetMax],
+      tags: ["stylish", "functional"],
     };
 
     // Generate random budget in range
@@ -276,10 +275,10 @@ export const generateSeedDesign = internalAction({
     // Let the design agent generate a complete design with products and image
     const designId = await retryWithBackoff(() =>
       generateCompleteDesign(ctx, {
-        roomType: args.roomType,
-        designStyle: args.designStyle,
-        tags: template.tags,
         budget,
+        designStyle: args.designStyle,
+        roomType: args.roomType,
+        tags: template.tags,
       })
     );
 
@@ -295,6 +294,7 @@ export const generateSeedDesign = internalAction({
 
     return designId;
   },
+  returns: v.id("designs"),
 });
 
 /**
@@ -303,11 +303,10 @@ export const generateSeedDesign = internalAction({
 
 export const seedRoomDesigns = internalAction({
   args: {
-    roomType: roomTypeValidator,
     count: v.optional(v.number()),
     featured: v.optional(v.boolean()),
+    roomType: roomTypeValidator,
   },
-  returns: v.array(v.id("designs")),
   handler: async (ctx, args) => {
     const defaultCount = 6;
     const featuredCount = 3;
@@ -323,15 +322,16 @@ export const seedRoomDesigns = internalAction({
     ] as const;
 
     const designIds: Id<"designs">[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i += 1) {
       const style = styles[i % styles.length];
 
+      // biome-ignore lint/performance/noAwaitInLoops: sequential by design to respect the rate-limit delay between generation calls
       const designId: Id<"designs"> = await ctx.runAction(
         internal.seedDesigns.generateSeedDesign,
         {
-          roomType: args.roomType,
           designStyle: style,
           featured: args.featured ?? i < featuredCount,
+          roomType: args.roomType,
         }
       );
       designIds.push(designId);
@@ -344,6 +344,7 @@ export const seedRoomDesigns = internalAction({
 
     return designIds;
   },
+  returns: v.array(v.id("designs")),
 });
 
 /**
@@ -354,10 +355,6 @@ export const seedAllRooms = internalAction({
   args: {
     designsPerRoom: v.optional(v.number()),
   },
-  returns: v.object({
-    totalDesigns: v.number(),
-    roomsSeeded: v.number(),
-  }),
   handler: async (ctx, args) => {
     const defaultDesignsPerRoom = 6;
 
@@ -373,15 +370,16 @@ export const seedAllRooms = internalAction({
     const designsPerRoom = args.designsPerRoom ?? defaultDesignsPerRoom;
     let totalDesigns = 0;
 
-    for (let i = 0; i < roomTypes.length; i++) {
+    for (let i = 0; i < roomTypes.length; i += 1) {
       const roomType = roomTypes[i];
 
+      // biome-ignore lint/performance/noAwaitInLoops: sequential by design to respect the rate-limit delay between room seeding calls
       const designs = await ctx.runAction(
         internal.seedDesigns.seedRoomDesigns,
         {
-          roomType,
           count: designsPerRoom,
           featured: true,
+          roomType,
         }
       );
       totalDesigns += designs.length;
@@ -393,10 +391,14 @@ export const seedAllRooms = internalAction({
     }
 
     return {
-      totalDesigns,
       roomsSeeded: roomTypes.length,
+      totalDesigns,
     };
   },
+  returns: v.object({
+    roomsSeeded: v.number(),
+    totalDesigns: v.number(),
+  }),
 });
 
 /**
@@ -407,23 +409,17 @@ export const seedAllRooms = internalAction({
  */
 export const generateSingleDesign = internalAction({
   args: {
-    roomType: roomTypeValidator,
-    style: styleValidator,
     featured: v.optional(v.boolean()),
-  },
-  returns: v.object({
-    designId: v.id("designs"),
-    title: v.string(),
     roomType: roomTypeValidator,
     style: styleValidator,
-  }),
+  },
   handler: async (ctx, args) => {
     const designId: Id<"designs"> = await ctx.runAction(
       internal.seedDesigns.generateSeedDesign,
       {
-        roomType: args.roomType,
         designStyle: args.style,
         featured: args.featured ?? false,
+        roomType: args.roomType,
       }
     );
 
@@ -436,11 +432,17 @@ export const generateSingleDesign = internalAction({
 
     return {
       designId,
-      title,
       roomType: args.roomType,
       style: args.style,
+      title,
     };
   },
+  returns: v.object({
+    designId: v.id("designs"),
+    roomType: roomTypeValidator,
+    style: styleValidator,
+    title: v.string(),
+  }),
 });
 
 /**

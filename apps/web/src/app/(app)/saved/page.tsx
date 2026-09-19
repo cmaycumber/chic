@@ -55,30 +55,21 @@ export default function SavedDesignsPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <div className="border-border/40 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Heart className="size-6 text-red-500" />
-                <h1 className="font-bold text-2xl tracking-tight sm:text-3xl">
-                  Saved Designs
-                </h1>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Your collection of liked and saved designs
-              </p>
-            </div>
-          </div>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Heart className="size-6 text-red-500" />
+          <h1 className="font-bold text-2xl tracking-tight sm:text-3xl">
+            Saved Designs
+          </h1>
         </div>
-
-        {/* Designs Grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">{renderContent()}</div>
-        </div>
+        <p className="text-muted-foreground text-sm">
+          Your collection of liked and saved designs
+        </p>
       </div>
+
+      {/* Designs Grid */}
+      <div className="mt-6">{renderContent()}</div>
     </div>
   );
 }

@@ -38,24 +38,24 @@ import { Switch } from "@/components/ui/switch";
 import { CreditPurchaseModal } from "./credit-purchase-modal";
 
 const TABS = [
-  { id: "general", label: "General", icon: Settings },
-  { id: "billing", label: "Billing & Credits", icon: CreditCard },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "personalization", label: "Personalization", icon: Palette },
-  { id: "apps", label: "Apps & Connectors", icon: Grid3x3 },
-  { id: "schedules", label: "Schedules", icon: Calendar },
-  { id: "orders", label: "Orders", icon: ShoppingBag },
-  { id: "data", label: "Data controls", icon: Database },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "parental", label: "Parental controls", icon: UserCog },
-  { id: "account", label: "Account", icon: User },
+  { icon: Settings, id: "general", label: "General" },
+  { icon: CreditCard, id: "billing", label: "Billing & Credits" },
+  { icon: Bell, id: "notifications", label: "Notifications" },
+  { icon: Palette, id: "personalization", label: "Personalization" },
+  { icon: Grid3x3, id: "apps", label: "Apps & Connectors" },
+  { icon: Calendar, id: "schedules", label: "Schedules" },
+  { icon: ShoppingBag, id: "orders", label: "Orders" },
+  { icon: Database, id: "data", label: "Data controls" },
+  { icon: Shield, id: "security", label: "Security" },
+  { icon: UserCog, id: "parental", label: "Parental controls" },
+  { icon: User, id: "account", label: "Account" },
 ];
 
-type SettingsModalProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface SettingsModalProps {
   defaultTab?: string;
-};
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}
 
 export function SettingsModal({
   open,

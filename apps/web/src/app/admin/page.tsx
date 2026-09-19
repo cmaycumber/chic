@@ -14,13 +14,13 @@ import {
 } from "@/components/ui/table";
 import { authClient } from "@/lib/auth-client";
 
-type User = {
+interface User {
+  createdAt: string | number | Date;
+  email: string;
   id: string;
   name: string;
-  email: string;
   role?: string;
-  createdAt: string | number | Date;
-};
+}
 
 export default function AdminPage() {
   const { data: session, isPending } = authClient.useSession();
@@ -62,7 +62,7 @@ export default function AdminPage() {
     return <div>Loading...</div>;
   }
 
-  if (!session || session.user.role !== "admin") {
+  if (session?.user.role !== "admin") {
     return (
       <div className="container mx-auto py-10">
         <h1 className="mb-5 font-bold text-2xl">Access Denied</h1>
@@ -86,8 +86,8 @@ export default function AdminPage() {
           <Button
             onClick={async () => {
               await authClient.signIn.social({
-                provider: "pinterest",
                 callbackURL: "/admin",
+                provider: "pinterest",
               });
             }}
           >

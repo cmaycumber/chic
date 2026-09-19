@@ -14,7 +14,7 @@ export const privateQuery = customQuery(query, {
   args: {},
   input: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    return { ctx: { ...ctx, userId }, args: {} };
+    return { args: {}, ctx: { ...ctx, userId } };
   },
 });
 
@@ -22,7 +22,7 @@ export const privateMutation = customMutation(mutation, {
   args: {},
   input: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    return { ctx: { ...ctx, userId }, args: {} };
+    return { args: {}, ctx: { ...ctx, userId } };
   },
 });
 
@@ -30,6 +30,6 @@ export const privateAction = customAction(action, {
   args: {},
   input: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    return { ctx: { ...ctx, userId }, args: {} };
+    return { args: {}, ctx: { ...ctx, userId } };
   },
 });

@@ -23,7 +23,7 @@ export const runPinterestAgent = internalAction({
 
     // Check if token is expired and refresh if needed (simplified for now)
     // In a real app, you'd check account.accessTokenExpiresAt and use refreshToken
-    const accessToken = account.accessToken;
+    const { accessToken } = account;
 
     if (!accessToken) {
       // console.log("No access token found for Pinterest account.");
@@ -40,57 +40,59 @@ export const runPinterestAgent = internalAction({
     }
 
     // 3. Process designs
-    for (const design of designs) {
-      try {
-        // Create or find board (simplified: using a default board for now)
-        // You might want to create boards based on roomType or style
-        // const boardName = "Furnish Designs";
-        // This is a placeholder. You'd need to list boards and find/create one.
-        // For this example, we'll assume we have a board ID or just log it.
+    await Promise.all(
+      designs.map(async (design) => {
+        try {
+          // Create or find board (simplified: using a default board for now)
+          // You might want to create boards based on roomType or style
+          // const boardName = "Furnish Designs";
+          // This is a placeholder. You'd need to list boards and find/create one.
+          // For this example, we'll assume we have a board ID or just log it.
 
-        // Create Pin
-        // POST https://api.pinterest.com/v5/pins
-        // const pinData = {
-        //   title: design.title,
-        //   description: design.description,
-        //   link: `https://furnish.app/designs/${design._id}`, // Replace with actual URL
-        //   // biome-ignore lint/style/useNamingConvention: Pinterest API requires snake_case
-        //   media_source: {
-        //     // biome-ignore lint/style/useNamingConvention: Pinterest API requires snake_case
-        //     source_type: "image_url",
-        //     url:
-        //       design.products?.[0]?.imageUrl ||
-        //       "https://placeholder.com/image.jpg", // Use first product image or design image
-        //   },
-        //   // board_id: "...", // Need a board ID
-        // };
+          // Create Pin
+          // POST https://api.pinterest.com/v5/pins
+          // const pinData = {
+          //   title: design.title,
+          //   description: design.description,
+          //   link: `https://furnish.app/designs/${design._id}`, // Replace with actual URL
+          //   // biome-ignore lint/style/useNamingConvention: Pinterest API requires snake_case
+          //   media_source: {
+          //     // biome-ignore lint/style/useNamingConvention: Pinterest API requires snake_case
+          //     source_type: "image_url",
+          //     url:
+          //       design.products?.[0]?.imageUrl ||
+          //       "https://placeholder.com/image.jpg", // Use first product image or design image
+          //   },
+          //   // board_id: "...", // Need a board ID
+          // };
 
-        // console.log(`Creating pin for design ${design._id}`, pinData);
-        // void pinData;
+          // console.log(`Creating pin for design ${design._id}`, pinData);
+          // void pinData;
 
-        // Actual API call would go here
-        // const response = await fetch("https://api.pinterest.com/v5/pins", {
-        //   method: "POST",
-        //   headers: {
-        //     Authorization: `Bearer ${accessToken}`,
-        //     "Content-Type": "application/json",
-        //   },
-        //   body: JSON.stringify(pinData),
-        // });
-        // const data = await response.json();
+          // Actual API call would go here
+          // const response = await fetch("https://api.pinterest.com/v5/pins", {
+          //   method: "POST",
+          //   headers: {
+          //     Authorization: `Bearer ${accessToken}`,
+          //     "Content-Type": "application/json",
+          //   },
+          //   body: JSON.stringify(pinData),
+          // });
+          // const data = await response.json();
 
-        // Mock success
-        const mockPinId = `pin_${Date.now()}`;
+          // Mock success
+          const mockPinId = `pin_${Date.now()}`;
 
-        // 4. Update design with pin ID
-        await ctx.runMutation(internal.agents.pinterest.markDesignAsPinned, {
-          designId: design._id,
-          pinId: mockPinId,
-        });
-      } catch {
-        // console.error(`Failed to pin design ${design._id}:`, error);
-      }
-    }
+          // 4. Update design with pin ID
+          await ctx.runMutation(internal.agents.pinterest.markDesignAsPinned, {
+            designId: design._id,
+            pinId: mockPinId,
+          });
+        } catch {
+          // console.error(`Failed to pin design ${design._id}:`, error);
+        }
+      })
+    );
   },
 });
 

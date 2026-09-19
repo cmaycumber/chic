@@ -36,10 +36,10 @@ const formSchema = z.object({
   credits: z.array(z.number().min(MIN_CREDITS).max(MAX_CREDITS)).length(1),
 });
 
-type CreditPurchaseModalProps = {
-  open: boolean;
+interface CreditPurchaseModalProps {
   onOpenChange: (open: boolean) => void;
-};
+  open: boolean;
+}
 
 const CreditSliderField = memo(
   ({ control }: { control: Control<z.infer<typeof formSchema>> }) => (
@@ -85,8 +85,8 @@ const CreditDisplay = ({
   const formattedPrice = useMemo(
     () =>
       new Intl.NumberFormat("en-US", {
-        style: "currency",
         currency: "USD",
+        style: "currency",
       }).format(
         ((credits?.[0] || DEFAULT_CREDITS) * CREDIT_PRICE_CENTS) /
           CENT_MULTIPLIER
@@ -110,10 +110,10 @@ export function CreditPurchaseModal({
   const createCreditCheckout = useAction(api.polar.createCreditCheckout);
 
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
     defaultValues: {
       credits: [DEFAULT_CREDITS],
     },
+    resolver: zodResolver(formSchema),
   });
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export function CreditPurchaseModal({
         successUrl: `${siteConfig.baseUrl}/success`,
       });
       window.location.href = url;
-    } catch (_error) {
+    } catch {
       // Ideally show a toast error here
       setIsProcessing(false);
     }

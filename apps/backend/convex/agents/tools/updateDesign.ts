@@ -18,50 +18,7 @@ import { productSchema } from "./index";
 export const update_design = createTool({
   description:
     "Modify an existing design. Replaces only the fields you provide. Use add_products_to_design to append products without replacing.",
-  args: z.object({
-    designId: z.string().describe("Design ID from existing designs context"),
-    title: z.string().optional().describe("New title"),
-    description: z.string().optional().describe("Updated description"),
-    designPlan: z.string().optional().describe("Updated design plan"),
-    budget: z.number().optional().describe("Updated budget in dollars"),
-    products: z
-      .array(productSchema)
-      .optional()
-      .describe("Replaces all existing products"),
-    imageStorageId: z
-      .string()
-      .optional()
-      .describe("New storageId from generate_design_image"),
-    roomType: z
-      .enum([
-        "living-room",
-        "bedroom",
-        "kitchen",
-        "bathroom",
-        "dining-room",
-        "home-office",
-        "family-room",
-        "nursery",
-        "outdoor",
-      ])
-      .optional()
-      .describe("Updated room type"),
-    designStyle: z
-      .enum([
-        "modern",
-        "minimalist",
-        "scandinavian",
-        "industrial",
-        "bohemian",
-        "coastal",
-        "traditional",
-        "contemporary",
-      ])
-      .optional()
-      .describe("Updated design style"),
-    tags: z.array(z.string()).optional().describe("Updated tags"),
-  }),
-  handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
+  execute: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     // Get the existing design
     const existingDesign = await ctx.runQuery(internal.designs.read, {
       id: args.designId as Id<"designs">,
@@ -146,4 +103,47 @@ export const update_design = createTool({
 
     return updatedDesign;
   },
+  inputSchema: z.object({
+    budget: z.number().optional().describe("Updated budget in dollars"),
+    description: z.string().optional().describe("Updated description"),
+    designId: z.string().describe("Design ID from existing designs context"),
+    designPlan: z.string().optional().describe("Updated design plan"),
+    designStyle: z
+      .enum([
+        "modern",
+        "minimalist",
+        "scandinavian",
+        "industrial",
+        "bohemian",
+        "coastal",
+        "traditional",
+        "contemporary",
+      ])
+      .optional()
+      .describe("Updated design style"),
+    imageStorageId: z
+      .string()
+      .optional()
+      .describe("New storageId from generate_design_image"),
+    products: z
+      .array(productSchema)
+      .optional()
+      .describe("Replaces all existing products"),
+    roomType: z
+      .enum([
+        "living-room",
+        "bedroom",
+        "kitchen",
+        "bathroom",
+        "dining-room",
+        "home-office",
+        "family-room",
+        "nursery",
+        "outdoor",
+      ])
+      .optional()
+      .describe("Updated room type"),
+    tags: z.array(z.string()).optional().describe("Updated tags"),
+    title: z.string().optional().describe("New title"),
+  }),
 });

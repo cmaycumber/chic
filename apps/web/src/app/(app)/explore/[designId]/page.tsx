@@ -44,41 +44,41 @@ type DesignStyle =
   | "contemporary";
 
 const ROOM_TYPES: Record<RoomType, string> = {
-  "living-room": "Living Room",
-  bedroom: "Bedroom",
-  kitchen: "Kitchen",
   bathroom: "Bathroom",
+  bedroom: "Bedroom",
   "dining-room": "Dining Room",
-  "home-office": "Home Office",
   "family-room": "Family Room",
+  "home-office": "Home Office",
+  kitchen: "Kitchen",
+  "living-room": "Living Room",
   nursery: "Nursery",
   outdoor: "Outdoor",
 };
 
 const DESIGN_STYLES: Record<DesignStyle, string> = {
-  modern: "Modern",
-  minimalist: "Minimalist",
-  scandinavian: "Scandinavian",
-  industrial: "Industrial",
   bohemian: "Bohemian",
   coastal: "Coastal",
-  traditional: "Traditional",
   contemporary: "Contemporary",
+  industrial: "Industrial",
+  minimalist: "Minimalist",
+  modern: "Modern",
+  scandinavian: "Scandinavian",
+  traditional: "Traditional",
 };
 
-type DesignSidebarProps = {
+interface DesignSidebarProps {
+  cartUrl: string | null;
   design: {
     budget?: number;
     products?: Array<{ productUrl?: string; price: number }>;
   };
-  totalCost: number;
-  isOverBudget: boolean;
   hasProducts: boolean;
-  cartUrl: string | null;
   isLiked: boolean | undefined;
+  isOverBudget: boolean;
   likesCount: number | undefined;
   onLikeClick: () => void;
-};
+  totalCost: number;
+}
 
 function DesignSidebar({
   design,
@@ -130,7 +130,7 @@ function DesignSidebar({
         </div>
 
         {/* Budget Section */}
-        {design.budget && hasProducts && (
+        {design.budget && hasProducts ? (
           <>
             <Separator className="my-6" />
             <div className="space-y-4">
@@ -180,7 +180,7 @@ function DesignSidebar({
               </div>
             </div>
           </>
-        )}
+        ) : null}
 
         {/* No Budget Section */}
         {!design.budget && hasProducts && (
@@ -211,7 +211,7 @@ function DesignSidebar({
         )}
 
         {/* Add to Cart Button */}
-        {cartUrl && hasProducts && (
+        {cartUrl && hasProducts ? (
           <>
             <Separator className="my-6" />
             <Button
@@ -228,7 +228,7 @@ function DesignSidebar({
               Purchases support this platform
             </p>
           </>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -236,12 +236,10 @@ function DesignSidebar({
 
 function LoadingState() {
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground text-sm">Loading design...</p>
-        </div>
+    <div className="mx-auto flex min-h-[400px] max-w-6xl items-center justify-center px-4 py-8">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">Loading design...</p>
       </div>
     </div>
   );
@@ -249,20 +247,18 @@ function LoadingState() {
 
 function NotFoundState() {
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg text-muted-foreground">Design not found</p>
-          <p className="mt-2 text-muted-foreground text-sm">
-            This design may have been removed or is not publicly available
-          </p>
-          <Button asChild className="mt-4" type="button" variant="outline">
-            <Link as="/explore" href="/explore">
-              <ArrowLeft className="mr-2 size-4" />
-              Back to Explore
-            </Link>
-          </Button>
-        </div>
+    <div className="mx-auto flex min-h-[400px] max-w-6xl items-center justify-center px-4 py-8">
+      <div className="text-center">
+        <p className="text-lg text-muted-foreground">Design not found</p>
+        <p className="mt-2 text-muted-foreground text-sm">
+          This design may have been removed or is not publicly available
+        </p>
+        <Button asChild className="mt-4" type="button" variant="outline">
+          <Link as="/explore" href="/explore">
+            <ArrowLeft className="mr-2 size-4" />
+            Back to Explore
+          </Link>
+        </Button>
       </div>
     </div>
   );
@@ -270,13 +266,13 @@ function NotFoundState() {
 
 function InvalidIdState() {
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="mx-auto flex min-h-[400px] max-w-6xl items-center justify-center px-4 py-8">
       <p className="text-muted-foreground">Invalid design ID</p>
     </div>
   );
 }
 
-type DesignContentProps = {
+interface DesignContentProps {
   design: {
     _id: Id<"designs">;
     _creationTime: number;
@@ -298,7 +294,7 @@ type DesignContentProps = {
   isLiked: boolean | undefined;
   likesCount: number | undefined;
   onLikeClick: () => void;
-};
+}
 
 function DesignContent({
   design,
@@ -318,10 +314,10 @@ function DesignContent({
     : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div>
       {/* Header with Back Button */}
-      <header className="shrink-0 border-b bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 max-w-7xl items-center px-4 lg:px-8">
+      <header className="border-b bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-6xl items-center px-4">
           <Button asChild size="sm" type="button" variant="ghost">
             <Link as="/explore" href="/explore">
               <ArrowLeft className="mr-2 size-4" />
@@ -331,11 +327,10 @@ function DesignContent({
         </div>
       </header>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto max-w-7xl px-4 py-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div>
           {/* Hero Image Section - Airbnb Style */}
-          {design.imageUrl && (
+          {design.imageUrl ? (
             <section className="mb-8">
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-muted md:aspect-2/1">
                 <Image
@@ -348,7 +343,7 @@ function DesignContent({
                 />
               </div>
             </section>
-          )}
+          ) : null}
 
           {/* Title and Key Info Section - Airbnb Style */}
           <div className="mb-8">
@@ -358,12 +353,12 @@ function DesignContent({
                   {design.title}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
-                  {design.roomType && (
+                  {Boolean(design.roomType) && (
                     <Badge variant="secondary">
                       {ROOM_TYPES[design.roomType as RoomType]}
                     </Badge>
                   )}
-                  {design.designStyle && (
+                  {Boolean(design.designStyle) && (
                     <Badge variant="secondary">
                       {DESIGN_STYLES[design.designStyle as DesignStyle]}
                     </Badge>
@@ -397,7 +392,7 @@ function DesignContent({
               </section>
 
               {/* Design Plan */}
-              {design.designPlan && (
+              {Boolean(design.designPlan) && (
                 <section>
                   <h2 className="mb-4 border-b pb-6 font-semibold text-2xl">
                     Design Plan
@@ -418,19 +413,16 @@ function DesignContent({
                   </h2>
                   <div className="grid gap-8 pt-2 sm:grid-cols-2">
                     {design.products?.map(
-                      (
-                        product: {
-                          name: string;
-                          price: number;
-                          imageUrl: string;
-                          productUrl?: string;
-                          description?: string;
-                        },
-                        index: number
-                      ) => (
+                      (product: {
+                        name: string;
+                        price: number;
+                        imageUrl: string;
+                        productUrl?: string;
+                        description?: string;
+                      }) => (
                         <div
                           className="group space-y-3"
-                          key={`${product.name}-${index}`}
+                          key={`${product.name}-${product.imageUrl}`}
                         >
                           <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
                             <Image
@@ -450,12 +442,12 @@ function DesignContent({
                                 ${product.price.toLocaleString()}
                               </span>
                             </div>
-                            {product.description && (
+                            {Boolean(product.description) && (
                               <Response className="line-clamp-2 text-muted-foreground text-sm leading-relaxed">
                                 {product.description}
                               </Response>
                             )}
-                            {product.productUrl && (
+                            {Boolean(product.productUrl) && (
                               <Button
                                 asChild
                                 className="w-full gap-2"
@@ -502,7 +494,7 @@ function DesignContent({
 
 export default function DesignDetailPage() {
   const params = useParams();
-  const designId = params?.designId as Id<"designs"> | undefined;
+  const designId = params.designId as Id<"designs"> | undefined;
 
   const toggleLike = useMutation(
     api.likes.toggleDesignLike

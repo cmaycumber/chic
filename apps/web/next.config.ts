@@ -2,18 +2,10 @@ import { withContentCollections } from "@content-collections/next";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typedRoutes: true,
-  images: {
-    remotePatterns: [
-      new URL(`${process.env.NEXT_PUBLIC_CONVEX_URL}/**`),
-      new URL("https://m.media-amazon.com/**"),
-    ],
-  },
   // SEO optimizations
   headers() {
     return [
       {
-        source: "/:path*",
         headers: [
           {
             key: "X-DNS-Prefetch-Control",
@@ -24,23 +16,33 @@ const nextConfig: NextConfig = {
             value: "SAMEORIGIN",
           },
         ],
+        source: "/:path*",
       },
     ];
+  },
+  images: {
+    // Local anonymous Convex serves images from 127.0.0.1 during development.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
+    remotePatterns: [
+      new URL(`${process.env.NEXT_PUBLIC_CONVEX_URL}/**`),
+      new URL("https://m.media-amazon.com/**"),
+    ],
   },
   rewrites() {
     return [
       {
-        source: "/users/static/:path*",
         destination: "https://us-assets.i.posthog.com/static/:path*",
+        source: "/users/static/:path*",
       },
       {
-        source: "/users/:path*",
         destination: "https://us.i.posthog.com/:path*",
+        source: "/users/:path*",
       },
     ];
   },
   // This is required to support PostHog trailing slash API requests
   skipTrailingSlashRedirect: true,
+  typedRoutes: true,
 };
 
 export default withContentCollections(nextConfig);

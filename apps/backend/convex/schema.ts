@@ -2,50 +2,77 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const design = v.object({
-  type: v.literal("design"),
   // For now we only have one type of artifact, but we could add more later.
   designId: v.id("designs"),
+  type: v.literal("design"),
 });
 
 const likedDesign = v.object({
-  type: v.literal("design"),
   designId: v.id("designs"),
+  type: v.literal("design"),
 });
 
+/** A shoppable product found on Amazon for a detected item. */
+export const vProduct = v.object({
+  imageUrl: v.string(),
+  name: v.string(),
+  price: v.number(),
+  productUrl: v.string(),
+  rating: v.optional(v.number()),
+  reviewCount: v.optional(v.number()),
+});
+
+/** Normalized (0..1) bounding box relative to the image. */
+export const vBox = v.object({
+  height: v.number(),
+  width: v.number(),
+  x: v.number(),
+  y: v.number(),
+});
+
+/** A piece of furniture / decor detected in a room image. */
+export const vRoomItem = v.object({
+  box: vBox,
+  description: v.string(),
+  id: v.string(),
+  label: v.string(),
+  products: v.optional(v.array(vProduct)),
+  productsStatus: v.optional(
+    v.union(v.literal("pending"), v.literal("ready"), v.literal("error"))
+  ),
+  searchQuery: v.string(),
+});
+
+export const vRoomStatus = v.union(
+  v.literal("ready"),
+  v.literal("generating"),
+  v.literal("error")
+);
+
+export const vItemsStatus = v.union(
+  v.literal("pending"),
+  v.literal("ready"),
+  v.literal("error")
+);
+
+export const vCommentStatus = v.union(
+  v.literal("pending"),
+  v.literal("applied"),
+  v.literal("failed")
+);
+
+export const vAnchor = v.object({ x: v.number(), y: v.number() });
+
 export default defineSchema({
+  artifacts: defineTable({
+    // Do we want to make this a union of different artifact types?
+    artifact: v.union(design),
+    threadId: v.string(),
+  }).index("by_threadId", ["threadId"]),
   designs: defineTable({
-    title: v.string(),
-    description: v.string(),
-    imageStorageId: v.optional(v.id("_storage")),
-    products: v.optional(
-      v.array(
-        v.object({
-          name: v.string(),
-          price: v.number(),
-          imageUrl: v.string(),
-          productUrl: v.optional(v.string()),
-          description: v.optional(v.string()),
-        })
-      )
-    ),
     budget: v.optional(v.number()),
+    description: v.string(),
     designPlan: v.optional(v.string()),
-    isPublic: v.optional(v.boolean()),
-    userId: v.optional(v.string()),
-    // Room categorization
-    roomType: v.optional(
-      v.union(
-        v.literal("living-room"),
-        v.literal("bedroom"),
-        v.literal("kitchen"),
-        v.literal("bathroom"),
-        v.literal("dining-room"),
-        v.literal("home-office"),
-        v.literal("family-room"),
-        v.literal("nursery"),
-        v.literal("outdoor")
-      )
-    ),
     // Style categorization
     designStyle: v.optional(
       v.union(
@@ -61,13 +88,42 @@ export default defineSchema({
     ),
     // Curation & engagement
     featured: v.optional(v.boolean()),
+    imageStorageId: v.optional(v.id("_storage")),
+    isPublic: v.optional(v.boolean()),
     // Deprecated: managed by aggregate component
     likes: v.optional(v.number()),
 
     likesCount: v.optional(v.number()), // Managed by aggregate component
-    views: v.optional(v.number()),
-    tags: v.optional(v.array(v.string())),
     pinterestPinId: v.optional(v.string()),
+    products: v.optional(
+      v.array(
+        v.object({
+          description: v.optional(v.string()),
+          imageUrl: v.string(),
+          name: v.string(),
+          price: v.number(),
+          productUrl: v.optional(v.string()),
+        })
+      )
+    ),
+    // Room categorization
+    roomType: v.optional(
+      v.union(
+        v.literal("living-room"),
+        v.literal("bedroom"),
+        v.literal("kitchen"),
+        v.literal("bathroom"),
+        v.literal("dining-room"),
+        v.literal("home-office"),
+        v.literal("family-room"),
+        v.literal("nursery"),
+        v.literal("outdoor")
+      )
+    ),
+    tags: v.optional(v.array(v.string())),
+    title: v.string(),
+    userId: v.optional(v.string()),
+    views: v.optional(v.number()),
   })
     .index("by_public", ["isPublic"])
     .index("by_room_type", ["roomType", "isPublic"])
@@ -75,17 +131,50 @@ export default defineSchema({
     .index("by_featured", ["featured", "isPublic"])
     .index("by_user", ["userId"]),
 
-  artifacts: defineTable({
-    threadId: v.string(),
-    // Do we want to make this a union of different artifact types?
-    artifact: v.union(design),
-  }).index("by_threadId", ["threadId"]),
-
   likes: defineTable({
-    userId: v.string(),
     // Union of different types that can be liked
     likedItem: v.union(likedDesign),
+    userId: v.string(),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_design", ["userId", "likedItem.designId"]),
+
+  /** A user comment on a room requesting a change. */
+  roomComments: defineTable({
+    /** Optional normalized (0..1) point on the image the comment refers to. */
+    anchor: v.optional(vAnchor),
+    /** The version that was displayed when the comment was made. */
+    baseVersionId: v.id("roomVersions"),
+    error: v.optional(v.string()),
+    resultVersionId: v.optional(v.id("roomVersions")),
+    roomId: v.id("rooms"),
+    status: vCommentStatus,
+    text: v.string(),
+    userId: v.string(),
+  }).index("by_room", ["roomId"]),
+
+  /**
+   * A room is an uploaded photo the user iterates on by leaving comments.
+   * Every applied comment produces a new roomVersion.
+   */
+  rooms: defineTable({
+    currentVersionId: v.optional(v.id("roomVersions")),
+    error: v.optional(v.string()),
+    originalImageStorageId: v.id("_storage"),
+    status: vRoomStatus,
+    title: v.optional(v.string()),
+    userId: v.string(),
+  }).index("by_user", ["userId"]),
+
+  /** One rendered image of a room (the original upload is version 0). */
+  roomVersions: defineTable({
+    /** The comment that produced this version; undefined for the original. */
+    commentId: v.optional(v.id("roomComments")),
+    imageStorageId: v.id("_storage"),
+    items: v.optional(v.array(vRoomItem)),
+    itemsStatus: vItemsStatus,
+    roomId: v.id("rooms"),
+    /** Short description of what changed. */
+    summary: v.optional(v.string()),
+  }).index("by_room", ["roomId"]),
 });

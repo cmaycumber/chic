@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 import { authClient } from "@/lib/auth-client";
@@ -8,45 +8,54 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 const MIN_PASSWORD_LENGTH = 8;
+const DEFAULT_CALLBACK_URL = "/rooms";
+
+/**
+ * Full navigation rather than a client-side push: signing in or signing up
+ * from an anonymous session replaces the identity the Convex client is
+ * holding (the anonymous user is deleted once their rooms are linked), so
+ * the destination has to load against the new session.
+ */
+const leaveFor = (callbackUrl: string) => {
+  window.location.assign(callbackUrl);
+};
 
 export default function SignUpForm({
   onSwitchToSignIn,
 }: {
   onSwitchToSignIn: () => void;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = (searchParams.get("callbackUrl") ?? "/chat") as string;
+  const callbackUrl = searchParams.get("callbackUrl") ?? DEFAULT_CALLBACK_URL;
 
   const form = useForm({
     defaultValues: {
       email: "",
-      password: "",
       name: "",
+      password: "",
     },
     onSubmit: async ({ value }) => {
       await authClient.signUp.email(
         {
           email: value.email,
-          password: value.password,
           name: value.name,
+          password: value.password,
         },
         {
-          onSuccess: () => {
-            // biome-ignore lint/suspicious/noExplicitAny: Next.js router type requires RouteImpl
-            router.push(callbackUrl as any);
-            toast.success("Sign up successful");
-          },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
+          },
+          onSuccess: () => {
+            toast.success("Sign up successful");
+            leaveFor(callbackUrl);
           },
         }
       );
     },
     validators: {
       onSubmit: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
         email: z.email("Invalid email address"),
+        name: z.string().min(2, "Name must be at least 2 characters"),
         password: z
           .string()
           .min(

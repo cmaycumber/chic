@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { Container } from "@/components/container";
 import { ScrollView } from "@/components/scroll-view";
@@ -16,6 +17,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 
 export default function ProfileScreen() {
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [emailNewsletter, setEmailNewsletter] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(true);
+
   return (
     <Container>
       <ScrollView
@@ -89,7 +94,10 @@ export default function ProfileScreen() {
                   Receive updates about your saved rooms
                 </Text>
               </View>
-              <Switch checked={true} />
+              <Switch
+                checked={pushNotifications}
+                onCheckedChange={setPushNotifications}
+              />
             </View>
 
             <Separator />
@@ -103,7 +111,10 @@ export default function ProfileScreen() {
                   Get design tips and inspiration weekly
                 </Text>
               </View>
-              <Switch checked={false} />
+              <Switch
+                checked={emailNewsletter}
+                onCheckedChange={setEmailNewsletter}
+              />
             </View>
 
             <Separator />
@@ -117,7 +128,10 @@ export default function ProfileScreen() {
                   Enable personalized design recommendations
                 </Text>
               </View>
-              <Switch checked={true} />
+              <Switch
+                checked={aiSuggestions}
+                onCheckedChange={setAiSuggestions}
+              />
             </View>
           </CardContent>
         </Card>

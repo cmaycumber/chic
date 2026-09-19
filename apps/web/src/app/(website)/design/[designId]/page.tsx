@@ -7,7 +7,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Response } from "@/components/ai-elements/response";
 import { BackButton } from "@/components/back-button";
-import { DesignChatInput } from "@/components/design-chat-input";
+import { TryOnYourRoomCta } from "@/components/try-on-your-room-cta";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,11 +15,11 @@ import { Separator } from "@/components/ui/separator";
 import { buildCartUrlFromProducts } from "@/lib/amazon-affiliate";
 import { cn } from "@/lib/utils";
 
-type DesignPageProps = {
+interface DesignPageProps {
   params: Promise<{
     designId: string;
   }>;
-};
+}
 
 export async function generateMetadata({
   params,
@@ -38,13 +38,13 @@ export async function generateMetadata({
     }
 
     return {
-      title: design?.title ? `${design.title} | chic` : "Design | chic",
       description: design?.description ?? undefined,
       openGraph: {
-        title: design?.title ?? "Design",
         description: design?.description ?? undefined,
         images: design?.imageUrl ? [design.imageUrl] : [],
+        title: design?.title ?? "Design",
       },
+      title: design?.title ? `${design.title} | chic` : "Design | chic",
     };
   } catch {
     return {
@@ -53,16 +53,16 @@ export async function generateMetadata({
   }
 }
 
-type DesignSidebarProps = {
+interface DesignSidebarProps {
+  cartUrl: string | null;
   design: {
     budget: number | undefined;
     products: Array<{ productUrl?: string; price: number }> | undefined;
   };
-  totalCost: number;
-  isOverBudget: boolean;
   hasProducts: boolean;
-  cartUrl: string | null;
-};
+  isOverBudget: boolean;
+  totalCost: number;
+}
 
 function DesignSidebar({
   design,
@@ -113,7 +113,7 @@ function DesignSidebar({
             )}
           </div>
 
-          {cartUrl && (
+          {cartUrl ? (
             <>
               <Separator className="my-4" />
               <Button asChild className="w-full gap-2" size="lg">
@@ -123,7 +123,7 @@ function DesignSidebar({
                 </a>
               </Button>
             </>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     );
@@ -194,7 +194,7 @@ export default async function DesignPage({ params }: DesignPageProps) {
       {/* <ScrollArea className="h-full flex-1"> */}
       <div className="container mx-auto max-w-7xl px-4 py-6 lg:px-8">
         {/* Hero Image Section - Airbnb Style */}
-        {design.imageUrl && (
+        {design.imageUrl ? (
           <section className="mb-8">
             <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-muted md:aspect-2/1">
               <Image
@@ -207,7 +207,7 @@ export default async function DesignPage({ params }: DesignPageProps) {
               />
             </div>
           </section>
-        )}
+        ) : null}
 
         {/* Title and Key Info Section - Airbnb Style */}
         <div className="mb-8">
@@ -247,7 +247,7 @@ export default async function DesignPage({ params }: DesignPageProps) {
             </section>
 
             {/* Design Plan */}
-            {design.designPlan && (
+            {Boolean(design.designPlan) && (
               <section>
                 <h2 className="mb-4 border-b pb-6 font-semibold text-2xl">
                   Design Plan
@@ -267,10 +267,10 @@ export default async function DesignPage({ params }: DesignPageProps) {
                   Featured Products
                 </h2>
                 <div className="grid gap-8 pt-2 sm:grid-cols-2">
-                  {design.products?.map((product, index) => (
+                  {design.products?.map((product) => (
                     <div
                       className="group space-y-3"
-                      key={`${product.name}-${index}`}
+                      key={`${product.name}-${product.imageUrl}`}
                     >
                       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted">
                         <Image
@@ -290,12 +290,12 @@ export default async function DesignPage({ params }: DesignPageProps) {
                             ${product.price.toLocaleString()}
                           </span>
                         </div>
-                        {product.description && (
+                        {Boolean(product.description) && (
                           <Response className="line-clamp-2 text-muted-foreground text-sm leading-relaxed">
                             {product.description}
                           </Response>
                         )}
-                        {product.productUrl && (
+                        {Boolean(product.productUrl) && (
                           <Button
                             asChild
                             className="w-full gap-2"
@@ -336,11 +336,8 @@ export default async function DesignPage({ params }: DesignPageProps) {
       </div>
       {/* </ScrollArea> */}
 
-      {/* Floating Chat Input */}
-      <DesignChatInput
-        designId={designId as Id<"designs">}
-        designTitle={design.title}
-      />
+      {/* Floating CTA */}
+      <TryOnYourRoomCta />
     </div>
   );
 }

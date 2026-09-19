@@ -1,8 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "streamdown/styles.css";
 @plugin "@tailwindcss/typography";
-@source "../node_modules/streamdown/dist/index.js";
+@source "../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -239,17 +240,17 @@ body {
 
 @layer base {
   * {
-    border-color: var(--color-border);
     outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
+    border-color: var(--color-border);
   }
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
     font-feature-settings:
       "rlig" 1,
       "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color: var(--color-foreground);
+    background-color: var(--color-background);
   }
 
   /* Prevent layout shift on theme change */
@@ -259,10 +260,10 @@ body {
 
   /* Smooth transitions for theme changes (only after initial load) */
   html:not(.no-transitions) * {
-    transition-property:
-      color, background-color, border-color, text-decoration-color, fill, stroke;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill, stroke;
   }
 
   /* Reduce border emphasis throughout */
@@ -318,18 +319,190 @@ body {
 
 /* Glassmorphism utility classes */
 @layer utilities {
+  /*
+   * Liquid glass (Apple iOS 26 style) surfaces.
+   * `.liquid-glass` is the CSS-only material used for buttons and small chrome.
+   * Larger floating surfaces use <LiquidGlass> (liquid-glass-react) which adds
+   * real refraction in Chromium and falls back to this material elsewhere.
+   */
+  .liquid-glass {
+    --lg-bg: rgba(255, 255, 255, 0.22);
+    --lg-border: rgba(255, 255, 255, 0.45);
+    --lg-highlight: rgba(255, 255, 255, 0.55);
+    --lg-shadow: rgba(16, 16, 18, 0.18);
+    background: var(--lg-bg);
+    border: 1px solid var(--lg-border);
+    box-shadow:
+      inset 0 1px 0 var(--lg-highlight),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+      inset 1px 0 0 rgba(255, 255, 255, 0.18),
+      0 10px 30px var(--lg-shadow);
+    isolation: isolate;
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    backdrop-filter: blur(20px) saturate(170%);
+  }
+
+  /* The highlight needs a positioned box; keep explicit positioning intact. */
+  .liquid-glass:not(.absolute, .fixed, .sticky) {
+    position: relative;
+  }
+
+  .liquid-glass::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(
+        118deg,
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.08) 38%,
+        rgba(255, 255, 255, 0) 60%
+      ),
+      radial-gradient(
+        120% 80% at 50% 120%,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0) 60%
+      );
+    border-radius: inherit;
+  }
+
+  .liquid-glass-dark {
+    --lg-bg: rgba(22, 22, 23, 0.42);
+    --lg-border: rgba(255, 255, 255, 0.16);
+    --lg-highlight: rgba(255, 255, 255, 0.22);
+    --lg-shadow: rgba(0, 0, 0, 0.35);
+    color: white;
+  }
+
+  .liquid-glass-frost {
+    --lg-bg: rgba(24, 24, 26, 0.38);
+    --lg-border: rgba(255, 255, 255, 0.34);
+    --lg-highlight: rgba(255, 255, 255, 0.45);
+    --lg-shadow: rgba(0, 0, 0, 0.4);
+    color: white;
+  }
+
+  /* Heavier material for text-dense panels (product sheet, comments). */
+  .liquid-glass-panel {
+    --lg-bg: rgba(22, 22, 23, 0.78);
+    --lg-border: rgba(255, 255, 255, 0.14);
+    --lg-highlight: rgba(255, 255, 255, 0.22);
+    --lg-shadow: rgba(0, 0, 0, 0.45);
+    color: white;
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    backdrop-filter: blur(28px) saturate(140%);
+  }
+
+  .liquid-glass-brass {
+    --lg-bg: oklch(0.664 0.083 77.403 / 0.55);
+    --lg-border: rgba(255, 255, 255, 0.4);
+    --lg-highlight: rgba(255, 255, 255, 0.6);
+    color: white;
+  }
+
+  /* Springy press feedback shared by all glass interactions */
+  .glass-press {
+    transition:
+      transform 420ms cubic-bezier(0.2, 1.6, 0.35, 1),
+      box-shadow 300ms ease,
+      background-color 300ms ease;
+    will-change: transform;
+  }
+
+  .glass-press:hover {
+    transform: translateY(-1px) scale(1.025);
+  }
+
+  .glass-press:active {
+    transform: scale(0.95);
+    transition-duration: 120ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glass-press,
+    .glass-press:hover,
+    .glass-press:active {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /*
+   * liquid-glass-react sets inline layout/typography on its inner nodes.
+   * Neutralise them so the surface inherits the surrounding design.
+   */
+  /* The library's helper layers (dimmer, border highlights) assume centred
+     absolute positioning; pin them to the glass box instead. */
+  .lg-host > :not(.lg-root) {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    pointer-events: none;
+    transform: none !important;
+  }
+
+  .lg-root {
+    transform: none !important;
+  }
+
+  .lg-root .glass {
+    display: block !important;
+    gap: 0 !important;
+    /* Always tint the surface so it never reads as fully transparent. */
+    background: var(--lg-bg, rgba(255, 255, 255, 0.18)) !important;
+    box-shadow:
+      inset 0 1px 0 var(--lg-highlight, rgba(255, 255, 255, 0.45)),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+      0 10px 30px var(--lg-shadow, rgba(0, 0, 0, 0.3)) !important;
+  }
+
+  /* The library only blurs a few pixels; match the CSS material. Its SVG
+     refraction (`filter: url()`) stays untouched where supported. */
+  .lg-root .glass__warp {
+    -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+    backdrop-filter: blur(22px) saturate(160%) !important;
+  }
+
+  .lg-root .glass > div {
+    font: inherit !important;
+    color: inherit !important;
+    text-shadow: none !important;
+  }
+
+  /* Shimmer used while a comment is being applied */
+  .glass-shimmer {
+    background: linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(255, 255, 255, 0.35) 50%,
+      rgba(255, 255, 255, 0) 70%
+    );
+    background-size: 200% 100%;
+    animation: glass-shimmer 1.8s ease-in-out infinite;
+  }
+
+  @keyframes glass-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
   .glass-light {
     background: var(--glass-light-bg);
     border: 1px solid var(--glass-light-border);
-    backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(180%);
   }
 
   .glass-dark {
     background: var(--glass-dark-bg);
     border: 1px solid var(--glass-dark-border);
-    backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(180%);
   }
 
   .gradient-hero-warm {
@@ -342,6 +515,7 @@ body {
 
   /* Text gradient utilities */
   .text-gradient-brass {
+    -webkit-text-fill-color: transparent;
     background: linear-gradient(
       135deg,
       oklch(0.764 0.083 77.403),
@@ -349,14 +523,13 @@ body {
     );
     -webkit-background-clip: text;
     background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
 
   .text-gradient-warm {
+    -webkit-text-fill-color: transparent;
     background: linear-gradient(135deg, oklch(0.8 0.1 40), oklch(0.65 0.15 35));
     -webkit-background-clip: text;
     background-clip: text;
-    -webkit-text-fill-color: transparent;
   }
 
   /* Chic design utilities */
@@ -408,13 +581,56 @@ body {
   }
 
   .divider-elegant::after {
-    content: "";
     position: absolute;
     bottom: 0;
     left: 50%;
-    transform: translateX(-50%);
     width: 60px;
     height: 1px;
+    content: "";
     background: var(--color-brass);
+    transform: translateX(-50%);
+  }
+
+  /* Home showcase — slow Ken Burns drift on the hero photo */
+  @keyframes showcase-ken-burns {
+    from {
+      transform: scale(1);
+    }
+
+    to {
+      transform: scale(1.05);
+    }
+  }
+
+  .showcase-ken-burns {
+    animation: showcase-ken-burns 40s ease-in-out infinite alternate;
+  }
+
+  /* Soft expanding ring behind each shoppable hotspot dot */
+  @keyframes showcase-hotspot-pulse {
+    0% {
+      opacity: 0.45;
+      transform: scale(0.85);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scale(1.9);
+    }
+  }
+
+  .showcase-hotspot-pulse {
+    animation: showcase-hotspot-pulse 2.4s ease-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .showcase-ken-burns {
+      animation: none;
+    }
+
+    .showcase-hotspot-pulse {
+      display: none;
+      animation: none;
+    }
   }
 }

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { SettingsModal } from "./settings-modal";
+import { SignUpToSaveButton } from "./sign-up-to-save";
 import { Button } from "./ui/button";
 
 export default function UserMenu() {
@@ -35,6 +36,11 @@ export default function UserMenu() {
   function openSettings(tab = "general") {
     setSettingsTab(tab);
     setSettingsOpen(true);
+  }
+
+  // Anonymous visitors have no account to manage yet — offer them one.
+  if (user?.isAnonymous) {
+    return <SignUpToSaveButton className="h-9 px-4 text-sm" />;
   }
 
   return (

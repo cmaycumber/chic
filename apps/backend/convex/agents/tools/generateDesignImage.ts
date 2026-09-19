@@ -25,7 +25,16 @@ const IMAGE_MODEL = "google/gemini-3-pro-image-preview";
 const MAX_REFERENCE_IMAGES = 10;
 const ERROR_PREVIEW_LENGTH = 200;
 
-type ImagePart = { type: "image"; image: string };
+/**
+ * AI SDK 7 file part. Image parts (`{ type: "image", image }`) are deprecated;
+ * `data` accepts the same URL / data-URL strings and `mediaType` may be the
+ * bare top-level IANA segment when the concrete subtype is unknown.
+ */
+interface ImageFilePart {
+  data: string;
+  mediaType: string;
+  type: "file";
+}
 
 /**
  * Convert a Convex storage blob to a base64 data URL
@@ -43,7 +52,7 @@ async function storageIdToDataUrl(
   const bytes = new Uint8Array(arrayBuffer);
   let binary = "";
   // biome-ignore lint/style/useForOf: Uint8Array iteration requires index-based loop
-  for (let i = 0; i < bytes.length; i++) {
+  for (let i = 0; i < bytes.length; i += 1) {
     binary += String.fromCharCode(bytes[i]);
   }
   const base64 = btoa(binary);
@@ -64,13 +73,17 @@ async function collectReferenceImages(
     products?: Array<{ imageUrl?: string }>;
     referenceImageUrls?: string[];
   }
-): Promise<ImagePart[]> {
-  const referenceImages: ImagePart[] = [];
+): Promise<ImageFilePart[]> {
+  const referenceImages: ImageFilePart[] = [];
   const seenUrls = new Set<string>();
 
   // 1. Add room image if provided (user's uploaded space) - highest priority
   if (args.roomImageUrl) {
-    referenceImages.push({ type: "image", image: args.roomImageUrl });
+    referenceImages.push({
+      data: args.roomImageUrl,
+      mediaType: "image",
+      type: "file",
+    });
     seenUrls.add(args.roomImageUrl);
   }
 
@@ -80,9 +93,14 @@ async function collectReferenceImages(
       if (referenceImages.length >= MAX_REFERENCE_IMAGES) {
         break;
       }
+      // biome-ignore lint/performance/noAwaitInLoops: must stay sequential to respect the MAX_REFERENCE_IMAGES early-exit and de-dup against images already collected
       const dataUrl = await storageIdToDataUrl(ctx, storageId);
       if (dataUrl && !seenUrls.has(dataUrl)) {
-        referenceImages.push({ type: "image", image: dataUrl });
+        referenceImages.push({
+          data: dataUrl,
+          mediaType: "image",
+          type: "file",
+        });
         seenUrls.add(dataUrl);
       }
     }
@@ -96,7 +114,11 @@ async function collectReferenceImages(
         !seenUrls.has(product.imageUrl) &&
         referenceImages.length < MAX_REFERENCE_IMAGES
       ) {
-        referenceImages.push({ type: "image", image: product.imageUrl });
+        referenceImages.push({
+          data: product.imageUrl,
+          mediaType: "image",
+          type: "file",
+        });
         seenUrls.add(product.imageUrl);
       }
     }
@@ -106,7 +128,11 @@ async function collectReferenceImages(
   if (args.referenceImageUrls) {
     for (const url of args.referenceImageUrls) {
       if (!seenUrls.has(url) && referenceImages.length < MAX_REFERENCE_IMAGES) {
-        referenceImages.push({ type: "image", image: url });
+        referenceImages.push({
+          data: url,
+          mediaType: "image",
+          type: "file",
+        });
         seenUrls.add(url);
       }
     }
@@ -122,51 +148,13 @@ async function collectReferenceImages(
 export const generate_design_image = createTool({
   description:
     "Create a composite interior design image from multiple references. Combines user's room photo, product images, and style references into one cohesive visualization. Use baseImageStorageIds to iterate on previous designs. Returns storageIds for generated images.",
-  args: z.object({
-    roomType: z
-      .string()
-      .describe("Room type: living room, bedroom, kitchen, etc."),
-    style: z
-      .string()
-      .describe("Design aesthetic: modern, scandinavian, bohemian, etc."),
-    designPlan: z
-      .string()
-      .describe(
-        "Detailed vision: color palette, furniture arrangement, materials, lighting mood, and spatial layout"
-      ),
-    roomImageUrl: z
-      .string()
-      .optional()
-      .describe(
-        "URL to user's uploaded room photo - the actual space to redesign. This is the PRIMARY reference."
-      ),
-    baseImageStorageIds: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "Convex storage IDs of previous design images to iterate on. Use when refining an existing design."
-      ),
-    products: z
-      .array(imageGenProductSchema)
-      .optional()
-      .describe(
-        "Products to place in the visualization. Include imageUrl for each - these will be composited into the scene."
-      ),
-    referenceImageUrls: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "Additional reference URLs: inspiration photos, style references, mood boards. These guide the overall aesthetic."
-      ),
-  }),
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Image generation requires complex multimodal handling
-  handler: async (ctx: ToolCtx, args) => {
+  execute: async (ctx: ToolCtx, args) => {
     // Collect all reference images (handles both URLs and storage IDs)
     const referenceImages = await collectReferenceImages(ctx, {
-      roomImageUrl: args.roomImageUrl,
       baseImageStorageIds: args.baseImageStorageIds,
       products: args.products,
       referenceImageUrls: args.referenceImageUrls,
+      roomImageUrl: args.roomImageUrl,
     });
 
     const hasReferences =
@@ -220,22 +208,23 @@ RENDERING REQUIREMENTS:
 - Seamless integration of all referenced elements`;
 
     // Build multimodal messages with images and text
-    const messages: Array<
-      { type: "text"; text: string } | { type: "image"; image: string }
-    > = [...referenceImages, { type: "text", text: imagePrompt }];
+    const messages: Array<{ type: "text"; text: string } | ImageFilePart> = [
+      ...referenceImages,
+      { text: imagePrompt, type: "text" },
+    ];
 
     // Use Google Gemini 3 Pro for high-quality image generation
     const imageResult = await generateText({
+      messages: [
+        {
+          content: messages,
+          role: "user",
+        },
+      ],
       model: gateway.languageModel(IMAGE_MODEL),
       providerOptions: {
         google: { responseModalities: ["TEXT", "IMAGE"] },
       },
-      messages: [
-        {
-          role: "user",
-          content: messages,
-        },
-      ],
     });
 
     // Extract all generated images from the steps content
@@ -260,38 +249,50 @@ RENDERING REQUIREMENTS:
         .map((item) => (item.type === "text" ? item.text : ""))
         .join("\n");
       throw new Error(
-        `Image generation did not produce images. The model returned: ${textContent.substring(0, ERROR_PREVIEW_LENGTH) || "no explanation"}`
+        `Image generation did not produce images. The model returned: ${textContent.slice(0, ERROR_PREVIEW_LENGTH) || "no explanation"}`
       );
     }
 
     // Store all generated images
+    type StoreResult =
+      | { ok: true; storageId: string }
+      | { ok: false; error: string };
+
+    const storeResults: StoreResult[] = await Promise.all(
+      imageFiles.map(async (generatedImage): Promise<StoreResult> => {
+        if (!generatedImage?.uint8Array) {
+          return { error: "Skipped image with missing data", ok: false };
+        }
+
+        try {
+          // Convert Uint8Array to Blob for storage
+          const imageData = new Uint8Array(generatedImage.uint8Array);
+          const blob = new Blob([imageData], {
+            type: generatedImage.mediaType,
+          });
+
+          const imageStorageId = await ctx.storage.store(blob);
+
+          if (imageStorageId) {
+            return { ok: true, storageId: imageStorageId };
+          }
+          return { error: "Storage returned null for an image", ok: false };
+        } catch (storeError) {
+          return {
+            error: `Failed to store image: ${storeError instanceof Error ? storeError.message : "unknown error"}`,
+            ok: false,
+          };
+        }
+      })
+    );
+
     const storageIds: string[] = [];
     const errors: string[] = [];
-
-    for (const generatedImage of imageFiles) {
-      if (!generatedImage?.uint8Array) {
-        errors.push("Skipped image with missing data");
-        continue;
-      }
-
-      try {
-        // Convert Uint8Array to Blob for storage
-        const imageData = new Uint8Array(generatedImage.uint8Array);
-        const blob = new Blob([imageData], {
-          type: generatedImage.mediaType,
-        });
-
-        const imageStorageId = await ctx.storage.store(blob);
-
-        if (imageStorageId) {
-          storageIds.push(imageStorageId);
-        } else {
-          errors.push("Storage returned null for an image");
-        }
-      } catch (storeError) {
-        errors.push(
-          `Failed to store image: ${storeError instanceof Error ? storeError.message : "unknown error"}`
-        );
+    for (const result of storeResults) {
+      if (result.ok) {
+        storageIds.push(result.storageId);
+      } else {
+        errors.push(result.error);
       }
     }
 
@@ -302,11 +303,48 @@ RENDERING REQUIREMENTS:
     }
 
     const result = {
-      storageIds,
       message: `Successfully generated ${storageIds.length} design image${storageIds.length > 1 ? "s" : ""}`,
+      storageIds,
       ...(errors.length > 0 && { warnings: errors }),
     };
 
     return result;
   },
+  inputSchema: z.object({
+    baseImageStorageIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Convex storage IDs of previous design images to iterate on. Use when refining an existing design."
+      ),
+    designPlan: z
+      .string()
+      .describe(
+        "Detailed vision: color palette, furniture arrangement, materials, lighting mood, and spatial layout"
+      ),
+    products: z
+      .array(imageGenProductSchema)
+      .optional()
+      .describe(
+        "Products to place in the visualization. Include imageUrl for each - these will be composited into the scene."
+      ),
+    referenceImageUrls: z
+      .array(z.string())
+      .optional()
+      .describe(
+        "Additional reference URLs: inspiration photos, style references, mood boards. These guide the overall aesthetic."
+      ),
+    roomImageUrl: z
+      .string()
+      .optional()
+      .describe(
+        "URL to user's uploaded room photo - the actual space to redesign. This is the PRIMARY reference."
+      ),
+    roomType: z
+      .string()
+      .describe("Room type: living room, bedroom, kitchen, etc."),
+    style: z
+      .string()
+      .describe("Design aesthetic: modern, scandinavian, bohemian, etc."),
+  }),
 });

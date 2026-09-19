@@ -10,7 +10,7 @@ import { POSTHOG_PROPERTIES } from "@/lib/posthog";
 function IdentifyUserComponent() {
   const { data: session } = useSession();
   const user = useQuery(api.auth.getCurrentUser);
-  const identifiedRef = useRef(false);
+  const identifiedRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Only proceed if PostHog is initialized
