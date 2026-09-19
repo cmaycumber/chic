@@ -1,6 +1,6 @@
 "use client";
 
-import { Tag } from "lucide-react";
+import { Loader2, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RoomItem, RoomMode, RoomVersion } from "./types";
@@ -30,7 +30,8 @@ export function RoomHotspots({
 }: RoomHotspotsProps) {
   if (itemsStatus === "pending") {
     return (
-      <output className="liquid-glass liquid-glass-dark absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full px-3 py-1.5 text-white text-xs">
+      <output className="liquid-glass liquid-glass-frost absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full py-1.5 pr-3 pl-2.5 text-white text-xs">
+        <Loader2 className="size-3.5 animate-spin text-[var(--accent-brass)]" />
         Finding furniture…
       </output>
     );

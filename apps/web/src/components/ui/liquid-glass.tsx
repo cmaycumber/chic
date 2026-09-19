@@ -16,12 +16,17 @@ interface LiquidGlassProps {
   /** Classes for the outer host element (sizing and positioning in flow). */
   hostClassName?: string;
   onClick?: () => void;
+  /**
+   * Use the refracting library surface. Turn off for scrolling or
+   * text-dense panels, which keep the CSS material only.
+   */
+  refract?: boolean;
   style?: React.CSSProperties;
   /**
    * light: over light backgrounds; dark: smoked glass over photos;
    * frost: bright translucent glass over photos (iOS style).
    */
-  tone?: "light" | "dark" | "frost";
+  tone?: "light" | "dark" | "frost" | "panel";
 }
 
 const PILL_RADIUS = 999;
@@ -48,6 +53,7 @@ export function LiquidGlass({
   blurAmount = DEFAULT_BLUR,
   onClick,
   style,
+  refract = true,
 }: LiquidGlassProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -55,13 +61,15 @@ export function LiquidGlass({
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!(mounted && refract)) {
     return (
       <div
         className={cn(
           "liquid-glass",
           tone === "dark" && "liquid-glass-dark",
           tone === "frost" && "liquid-glass-frost",
+          tone === "panel" && "liquid-glass-panel",
+          "overflow-hidden",
           hostClassName,
           className
         )}

@@ -221,7 +221,8 @@ export function CommentsPanel({
         className={`w-full ${GLASS_RESET}`}
         cornerRadius={PANEL_RADIUS}
         displacementScale={PANEL_DISPLACEMENT}
-        tone="dark"
+        refract={false}
+        tone="panel"
       >
         <div className="flex max-h-[70vh] w-full flex-col overflow-hidden font-sans">
           <div className="flex shrink-0 items-center justify-between gap-3 p-4 pb-2">

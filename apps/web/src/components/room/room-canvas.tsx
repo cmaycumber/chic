@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { type SyntheticEvent, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -59,7 +60,7 @@ function imageOpacityClass(isReady: boolean, isGenerating: boolean): string {
     return "opacity-0";
   }
   if (isGenerating) {
-    return "opacity-50";
+    return "opacity-70";
   }
   return "opacity-100";
 }
@@ -200,14 +201,9 @@ export function RoomCanvas({
       )}
 
       {Boolean(isGenerating) && (
-        <output className="liquid-glass liquid-glass-dark absolute top-24 left-1/2 -translate-x-1/2 overflow-hidden rounded-full px-4 py-2">
-          <span
-            aria-hidden="true"
-            className="glass-shimmer pointer-events-none absolute inset-0"
-          />
-          <span className="relative font-sans text-sm text-white">
-            Applying your comment…
-          </span>
+        <output className="liquid-glass liquid-glass-frost absolute top-24 left-1/2 flex -translate-x-1/2 items-center gap-2.5 rounded-full py-2 pr-4 pl-3 font-sans text-sm text-white shadow-lg">
+          <Loader2 className="size-4 animate-spin text-[var(--accent-brass)]" />
+          Rendering your change…
         </output>
       )}
     </div>
