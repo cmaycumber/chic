@@ -18,8 +18,43 @@ import { productSchema } from "./index";
 export const create_design = createTool({
   description:
     "Save a new design to the database. Creates the artifact users can view and reference. Call this early in the design process, then update with products/images later.",
-  args: z.object({
-    title: z.string().describe("Descriptive title for the design"),
+  execute: async (ctx: ToolCtx, args) => {
+    // Create the design
+    const design: Doc<"designs"> = await ctx.runMutation(
+      internal.designs.create,
+      {
+        budget: args.budget,
+        description: args.description,
+        designPlan: args.designPlan,
+        designStyle: args.designStyle,
+        imageStorageId: args.imageStorageId
+          ? (args.imageStorageId as Id<"_storage">)
+          : undefined,
+        isPublic: false,
+        likesCount: 0,
+        products: args.products,
+        roomType: args.roomType,
+        tags: args.tags,
+        title: args.title,
+        views: 0,
+      }
+    );
+
+    // Create artifact if in a thread
+    if (ctx.threadId) {
+      await ctx.runMutation(internal.artifacts.create, {
+        artifact: {
+          designId: design._id,
+          type: "design",
+        },
+        threadId: ctx.threadId,
+      });
+    }
+
+    return design;
+  },
+  inputSchema: z.object({
+    budget: z.number().optional().describe("Budget in dollars"),
     description: z
       .string()
       .describe("Design concept overview and key features"),
@@ -29,15 +64,27 @@ export const create_design = createTool({
       .describe(
         "Detailed plan: color palette, furniture layout, materials, lighting"
       ),
-    budget: z.number().optional().describe("Budget in dollars"),
-    products: z
-      .array(productSchema)
+    designStyle: z
+      .enum([
+        "modern",
+        "minimalist",
+        "scandinavian",
+        "industrial",
+        "bohemian",
+        "coastal",
+        "traditional",
+        "contemporary",
+      ])
       .optional()
-      .describe("Products from search_products to include"),
+      .describe("Design aesthetic - always set based on style"),
     imageStorageId: z
       .string()
       .optional()
       .describe("storageId from generate_design_image"),
+    products: z
+      .array(productSchema)
+      .optional()
+      .describe("Products from search_products to include"),
     roomType: z
       .enum([
         "living-room",
@@ -52,57 +99,10 @@ export const create_design = createTool({
       ])
       .optional()
       .describe("Room type - always set based on context"),
-    designStyle: z
-      .enum([
-        "modern",
-        "minimalist",
-        "scandinavian",
-        "industrial",
-        "bohemian",
-        "coastal",
-        "traditional",
-        "contemporary",
-      ])
-      .optional()
-      .describe("Design aesthetic - always set based on style"),
     tags: z
       .array(z.string())
       .optional()
       .describe("Descriptive tags: cozy, small-space, budget-friendly, etc."),
+    title: z.string().describe("Descriptive title for the design"),
   }),
-  handler: async (ctx: ToolCtx, args) => {
-    // Create the design
-    const design: Doc<"designs"> = await ctx.runMutation(
-      internal.designs.create,
-      {
-        title: args.title,
-        description: args.description,
-        imageStorageId: args.imageStorageId
-          ? (args.imageStorageId as Id<"_storage">)
-          : undefined,
-        products: args.products,
-        budget: args.budget,
-        designPlan: args.designPlan,
-        isPublic: false,
-        roomType: args.roomType,
-        designStyle: args.designStyle,
-        tags: args.tags,
-        likesCount: 0,
-        views: 0,
-      }
-    );
-
-    // Create artifact if in a thread
-    if (ctx.threadId) {
-      await ctx.runMutation(internal.artifacts.create, {
-        threadId: ctx.threadId,
-        artifact: {
-          type: "design",
-          designId: design._id,
-        },
-      });
-    }
-
-    return design;
-  },
 });

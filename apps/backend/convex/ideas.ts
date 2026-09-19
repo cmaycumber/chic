@@ -38,11 +38,25 @@ const designStyleValidator = v.union(
 );
 
 const designWithImageValidator = v.object({
-  _id: v.id("designs"),
   _creationTime: v.number(),
-  title: v.string(),
+  _id: v.id("designs"),
+  budget: v.optional(v.number()),
   description: v.string(),
+  designStyle: v.optional(
+    v.union(
+      v.literal("modern"),
+      v.literal("minimalist"),
+      v.literal("scandinavian"),
+      v.literal("industrial"),
+      v.literal("bohemian"),
+      v.literal("coastal"),
+      v.literal("traditional"),
+      v.literal("contemporary")
+    )
+  ),
+  featured: v.optional(v.boolean()),
   imageUrl: v.union(v.string(), v.null()),
+  likesCount: v.optional(v.number()),
   roomType: v.optional(
     v.union(
       v.literal("living-room"),
@@ -56,23 +70,9 @@ const designWithImageValidator = v.object({
       v.literal("outdoor")
     )
   ),
-  designStyle: v.optional(
-    v.union(
-      v.literal("modern"),
-      v.literal("minimalist"),
-      v.literal("scandinavian"),
-      v.literal("industrial"),
-      v.literal("bohemian"),
-      v.literal("coastal"),
-      v.literal("traditional"),
-      v.literal("contemporary")
-    )
-  ),
-  likesCount: v.optional(v.number()),
-  views: v.optional(v.number()),
-  budget: v.optional(v.number()),
   tags: v.optional(v.array(v.string())),
-  featured: v.optional(v.boolean()),
+  title: v.string(),
+  views: v.optional(v.number()),
 });
 
 /**
@@ -81,10 +81,9 @@ const designWithImageValidator = v.object({
  */
 export const getFeaturedRoomDesigns = publicQuery({
   args: {
-    roomType: roomTypeValidator,
     limit: v.optional(v.number()),
+    roomType: roomTypeValidator,
   },
-  returns: v.array(designWithImageValidator),
   handler: async (ctx, args) => {
     const designs = await ctx.db
       .query("designs")
@@ -103,24 +102,25 @@ export const getFeaturedRoomDesigns = publicQuery({
         }
 
         return {
-          _id: design._id,
           _creationTime: design._creationTime,
-          title: design.title,
-          description: design.description,
-          imageUrl,
-          roomType: design.roomType,
-          designStyle: design.designStyle,
-          likesCount: design.likesCount,
-          views: design.views,
+          _id: design._id,
           budget: design.budget,
-          tags: design.tags,
+          description: design.description,
+          designStyle: design.designStyle,
           featured: design.featured,
+          imageUrl,
+          likesCount: design.likesCount,
+          roomType: design.roomType,
+          tags: design.tags,
+          title: design.title,
+          views: design.views,
         };
       })
     );
 
     return designsWithImages;
   },
+  returns: v.array(designWithImageValidator),
 });
 
 /**
@@ -128,12 +128,11 @@ export const getFeaturedRoomDesigns = publicQuery({
  */
 export const getRoomIdeas = publicQuery({
   args: {
+    limit: v.optional(v.number()),
     roomType: roomTypeValidator,
     style: v.optional(designStyleValidator),
     tags: v.optional(v.array(v.string())),
-    limit: v.optional(v.number()),
   },
-  returns: v.array(designWithImageValidator),
   handler: async (ctx, args) => {
     const limit = args.limit ?? DEFAULT_ROOM_IDEAS_LIMIT;
 
@@ -198,24 +197,25 @@ export const getRoomIdeas = publicQuery({
         }
 
         return {
-          _id: design._id,
           _creationTime: design._creationTime,
-          title: design.title,
-          description: design.description,
-          imageUrl,
-          roomType: design.roomType,
-          designStyle: design.designStyle,
-          likesCount: design.likesCount,
-          views: design.views,
+          _id: design._id,
           budget: design.budget,
-          tags: design.tags,
+          description: design.description,
+          designStyle: design.designStyle,
           featured: design.featured,
+          imageUrl,
+          likesCount: design.likesCount,
+          roomType: design.roomType,
+          tags: design.tags,
+          title: design.title,
+          views: design.views,
         };
       })
     );
 
     return designsWithImages;
   },
+  returns: v.array(designWithImageValidator),
 });
 
 /**
@@ -225,7 +225,6 @@ export const getTrendingDesigns = publicQuery({
   args: {
     limit: v.optional(v.number()),
   },
-  returns: v.array(designWithImageValidator),
   handler: async (ctx, args) => {
     const designs = await ctx.db
       .query("designs")
@@ -265,24 +264,25 @@ export const getTrendingDesigns = publicQuery({
         }
 
         return {
-          _id: design._id,
           _creationTime: design._creationTime,
-          title: design.title,
-          description: design.description,
-          imageUrl,
-          roomType: design.roomType,
-          designStyle: design.designStyle,
-          likesCount: design.likesCount,
-          views: design.views,
+          _id: design._id,
           budget: design.budget,
-          tags: design.tags,
+          description: design.description,
+          designStyle: design.designStyle,
           featured: design.featured,
+          imageUrl,
+          likesCount: design.likesCount,
+          roomType: design.roomType,
+          tags: design.tags,
+          title: design.title,
+          views: design.views,
         };
       })
     );
 
     return designsWithImages;
   },
+  returns: v.array(designWithImageValidator),
 });
 
 /**
@@ -290,12 +290,11 @@ export const getTrendingDesigns = publicQuery({
  */
 export const exploreAllDesigns = publicQuery({
   args: {
+    limit: v.optional(v.number()),
     roomType: v.optional(roomTypeValidator),
     style: v.optional(designStyleValidator),
     tags: v.optional(v.array(v.string())),
-    limit: v.optional(v.number()),
   },
-  returns: v.array(designWithImageValidator),
   handler: async (ctx, args) => {
     const limit = args.limit ?? DEFAULT_EXPLORE_LIMIT;
 
@@ -360,24 +359,25 @@ export const exploreAllDesigns = publicQuery({
         }
 
         return {
-          _id: design._id,
           _creationTime: design._creationTime,
-          title: design.title,
-          description: design.description,
-          imageUrl,
-          roomType: design.roomType,
-          designStyle: design.designStyle,
-          likesCount: design.likesCount,
-          views: design.views,
+          _id: design._id,
           budget: design.budget,
-          tags: design.tags,
+          description: design.description,
+          designStyle: design.designStyle,
           featured: design.featured,
+          imageUrl,
+          likesCount: design.likesCount,
+          roomType: design.roomType,
+          tags: design.tags,
+          title: design.title,
+          views: design.views,
         };
       })
     );
 
     return designsWithImages;
   },
+  returns: v.array(designWithImageValidator),
 });
 
 /**
@@ -386,26 +386,6 @@ export const exploreAllDesigns = publicQuery({
  */
 export const getExploreFilterOptions = publicQuery({
   args: {},
-  returns: v.object({
-    roomTypes: v.array(
-      v.object({
-        roomType: v.string(),
-        count: v.number(),
-      })
-    ),
-    styles: v.array(
-      v.object({
-        style: v.string(),
-        count: v.number(),
-      })
-    ),
-    tags: v.array(
-      v.object({
-        tag: v.string(),
-        count: v.number(),
-      })
-    ),
-  }),
   handler: async (ctx) => {
     const designs = await ctx.db
       .query("designs")
@@ -447,17 +427,37 @@ export const getExploreFilterOptions = publicQuery({
 
     return {
       roomTypes: Array.from(roomTypeCounts.entries())
-        .map(([roomType, count]) => ({ roomType, count }))
+        .map(([roomType, count]) => ({ count, roomType }))
         .sort((a, b) => b.count - a.count),
       styles: Array.from(styleCounts.entries())
-        .map(([style, count]) => ({ style, count }))
+        .map(([style, count]) => ({ count, style }))
         .sort((a, b) => b.count - a.count),
       tags: Array.from(tagCounts.entries())
-        .map(([tag, count]) => ({ tag, count }))
+        .map(([tag, count]) => ({ count, tag }))
         .sort((a, b) => b.count - a.count)
         .slice(0, DEFAULT_TOP_TAGS_LIMIT),
     };
   },
+  returns: v.object({
+    roomTypes: v.array(
+      v.object({
+        count: v.number(),
+        roomType: v.string(),
+      })
+    ),
+    styles: v.array(
+      v.object({
+        count: v.number(),
+        style: v.string(),
+      })
+    ),
+    tags: v.array(
+      v.object({
+        count: v.number(),
+        tag: v.string(),
+      })
+    ),
+  }),
 });
 
 /**
@@ -468,20 +468,6 @@ export const getRoomFilterOptions = publicQuery({
   args: {
     roomType: roomTypeValidator,
   },
-  returns: v.object({
-    styles: v.array(
-      v.object({
-        style: v.string(),
-        count: v.number(),
-      })
-    ),
-    tags: v.array(
-      v.object({
-        tag: v.string(),
-        count: v.number(),
-      })
-    ),
-  }),
   handler: async (ctx, args) => {
     const designs = await ctx.db
       .query("designs")
@@ -514,14 +500,28 @@ export const getRoomFilterOptions = publicQuery({
 
     return {
       styles: Array.from(styleCounts.entries())
-        .map(([style, count]) => ({ style, count }))
+        .map(([style, count]) => ({ count, style }))
         .sort((a, b) => b.count - a.count),
       tags: Array.from(tagCounts.entries())
-        .map(([tag, count]) => ({ tag, count }))
+        .map(([tag, count]) => ({ count, tag }))
         .sort((a, b) => b.count - a.count)
         .slice(0, DEFAULT_TOP_TAGS_LIMIT),
     };
   },
+  returns: v.object({
+    styles: v.array(
+      v.object({
+        count: v.number(),
+        style: v.string(),
+      })
+    ),
+    tags: v.array(
+      v.object({
+        count: v.number(),
+        tag: v.string(),
+      })
+    ),
+  }),
 });
 
 /**
@@ -532,7 +532,6 @@ export const getHeroDesigns = publicQuery({
   args: {
     limit: v.optional(v.number()),
   },
-  returns: v.array(designWithImageValidator),
   handler: async (ctx, args) => {
     const limit = args.limit ?? DEFAULT_HERO_DESIGNS_LIMIT;
 
@@ -575,22 +574,23 @@ export const getHeroDesigns = publicQuery({
         }
 
         return {
-          _id: design._id,
           _creationTime: design._creationTime,
-          title: design.title,
-          description: design.description,
-          imageUrl,
-          roomType: design.roomType,
-          designStyle: design.designStyle,
-          likesCount: design.likesCount,
-          views: design.views,
+          _id: design._id,
           budget: design.budget,
-          tags: design.tags,
+          description: design.description,
+          designStyle: design.designStyle,
           featured: design.featured,
+          imageUrl,
+          likesCount: design.likesCount,
+          roomType: design.roomType,
+          tags: design.tags,
+          title: design.title,
+          views: design.views,
         };
       })
     );
 
     return designsWithImages;
   },
+  returns: v.array(designWithImageValidator),
 });

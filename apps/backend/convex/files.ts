@@ -15,19 +15,19 @@ import { privateAction, privateMutation, privateQuery } from "./lib/utils";
 export const uploadFile = privateAction({
   args: {
     data: v.bytes(), // File data as bytes
-    mimeType: v.string(),
     filename: v.optional(v.string()),
+    mimeType: v.string(),
   },
-  returns: v.string(), // Returns the fileId
   handler: async (ctx, args): Promise<string> =>
     await ctx.runAction(internal.files.internalUploadFile, args),
+  returns: v.string(), // Returns the fileId
 });
 
 export const internalUploadFile = internalAction({
   args: {
     data: v.bytes(), // File data as bytes
-    mimeType: v.string(),
     filename: v.optional(v.string()),
+    mimeType: v.string(),
   },
   handler: async (ctx, args) => {
     // Validate and normalize mime type
@@ -57,11 +57,6 @@ export const getFileMetadata = privateAction({
   args: {
     fileId: v.string(),
   },
-  returns: v.object({
-    url: v.union(v.string(), v.null()),
-    storageId: v.string(),
-    filename: v.optional(v.string()),
-  }),
   handler: async (
     ctx,
     args
@@ -70,6 +65,11 @@ export const getFileMetadata = privateAction({
     storageId: string;
     filename?: string;
   }> => await ctx.runAction(internal.files.internalGetFileMetadata, args),
+  returns: v.object({
+    filename: v.optional(v.string()),
+    storageId: v.string(),
+    url: v.union(v.string(), v.null()),
+  }),
 });
 
 export const internalGetFileMetadata = internalAction({
@@ -79,9 +79,9 @@ export const internalGetFileMetadata = internalAction({
   handler: async (ctx, args) => {
     const { file } = await getFile(ctx, components.agent, args.fileId);
     return {
-      url: file.url,
-      storageId: file.storageId,
       filename: file.filename,
+      storageId: file.storageId,
+      url: file.url,
     };
   },
 });
@@ -91,9 +91,9 @@ export const internalGetFileMetadata = internalAction({
  */
 export const generateUploadUrl = privateMutation({
   args: {},
-  returns: v.string(),
   handler: async (ctx): Promise<string> =>
     await ctx.runMutation(internal.files.internalGenerateUploadUrl, {}),
+  returns: v.string(),
 });
 
 export const internalGenerateUploadUrl = internalMutation({
@@ -108,9 +108,9 @@ export const getStorageUrl = privateQuery({
   args: {
     storageId: v.string(),
   },
-  returns: v.union(v.string(), v.null()),
   handler: async (ctx, args): Promise<string | null> =>
     await ctx.runQuery(internal.files.internalGetStorageUrl, args),
+  returns: v.union(v.string(), v.null()),
 });
 
 export const internalGetStorageUrl = internalQuery({

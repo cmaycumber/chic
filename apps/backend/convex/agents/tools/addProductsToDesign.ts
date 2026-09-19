@@ -18,13 +18,7 @@ import { productSchema } from "./index";
 export const add_products_to_design = createTool({
   description:
     "Append products to a design without replacing existing ones. Use for expanding product lists incrementally.",
-  args: z.object({
-    designId: z.string().describe("Design ID from existing designs"),
-    products: z
-      .array(productSchema)
-      .describe("Products to add from search_products"),
-  }),
-  handler: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
+  execute: async (ctx: ToolCtx, args): Promise<Doc<"designs"> | null> => {
     // Get the existing design
     const existingDesign = await ctx.runQuery(internal.designs.read, {
       id: args.designId as Id<"designs">,
@@ -51,4 +45,10 @@ export const add_products_to_design = createTool({
 
     return updatedDesign;
   },
+  inputSchema: z.object({
+    designId: z.string().describe("Design ID from existing designs"),
+    products: z
+      .array(productSchema)
+      .describe("Products to add from search_products"),
+  }),
 });

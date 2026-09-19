@@ -5,15 +5,15 @@ import { mutation } from "./_generated/server";
 import { authorizeThreadAccess } from "./threads";
 
 export const abortStreamByOrder = mutation({
-  args: { threadId: v.string(), order: v.number() },
-  returns: v.null(),
+  args: { order: v.number(), threadId: v.string() },
   handler: async (ctx, { threadId, order }) => {
     await authorizeThreadAccess(ctx, threadId);
     await abortStream(ctx, components.agent, {
-      threadId,
       order,
       reason: "User requested to stop the stream",
+      threadId,
     });
     return null;
   },
+  returns: v.null(),
 });

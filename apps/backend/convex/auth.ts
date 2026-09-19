@@ -8,12 +8,15 @@ import {
   webhooks,
 } from "@polar-sh/better-auth";
 import { Polar } from "@polar-sh/sdk";
-import { betterAuth, type OAuth2Tokens } from "better-auth";
+import type { OAuth2Tokens } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
-import { admin, genericOAuth } from "better-auth/plugins";
-import { components } from "./_generated/api";
+import { admin, anonymous, genericOAuth } from "better-auth/plugins";
+import type { GenericActionCtx } from "convex/server";
+import { components, internal } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
+import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 
 const siteUrl = process.env.SITE_URL || "http://localhost:3001";
@@ -23,13 +26,11 @@ const polarClient = new Polar({
   server: process.env.POLAR_SERVER === "production" ? "production" : "sandbox",
 });
 
-// biome-ignore lint/suspicious/noExplicitAny: Schema compatibility issue
-export const authComponent = createClient<DataModel, any>(
+export const authComponent = createClient<DataModel, typeof authSchema>(
   components.betterAuth,
   {
     local: {
-      // biome-ignore lint/suspicious/noExplicitAny: Schema compatibility issue
-      schema: authSchema as any,
+      schema: authSchema,
     },
   }
 );
@@ -52,41 +53,65 @@ const SESSION_UPDATE_AGE =
 const COOKIE_CACHE_MINUTES = 5;
 const COOKIE_CACHE_MAX_AGE = SECONDS_PER_MINUTE * COOKIE_CACHE_MINUTES;
 
-export const createAuth = (
-  ctx: GenericCtx<DataModel>,
-  { optionsOnly } = { optionsOnly: false }
-) =>
-  betterAuth({
-    logger: {
-      disabled: optionsOnly,
-    },
+type RunMutationCtx = Pick<GenericActionCtx<DataModel>, "runMutation">;
+
+/**
+ * Better Auth hooks run inside the Convex HTTP action that serves
+ * `/api/auth/*`, so the ctx handed to `createAuthOptions` there can run
+ * mutations. Query contexts (adapter reads, CLI schema generation) cannot.
+ */
+const canRunMutation = (
+  ctx: GenericCtx<DataModel>
+): ctx is GenericCtx<DataModel> & RunMutationCtx =>
+  typeof (ctx as Partial<RunMutationCtx>).runMutation === "function";
+
+/**
+ * Better Auth options, split out from `createAuth` so:
+ * - `betterAuth/adapter.ts` can pass this straight to `createApi` without
+ *   constructing a full `betterAuth()` instance.
+ * - `betterAuth/auth.ts` can call `createAuth` with a fake context for the
+ *   Better Auth CLI schema generator without needing a real Convex ctx.
+ */
+export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
+  ({
     // biome-ignore lint/style/useNamingConvention: Better auth naming convention
     baseURL: siteUrl,
-    trustedOrigins: [siteUrl],
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
     },
-    session: {
-      expiresIn: SESSION_EXPIRES_IN,
-      updateAge: SESSION_UPDATE_AGE,
-      cookieCache: {
-        enabled: true,
-        maxAge: COOKIE_CACHE_MAX_AGE,
-      },
-    },
     plugins: [
-      convex(),
+      convex({
+        authConfig,
+        // Signing keys created by Better Auth 1.3 use an algorithm the
+        // current library rejects; rotate them instead of failing token
+        // generation for every session.
+        jwksRotateOnTokenGenerationError: true,
+      }),
+      // Visitors get a real session on their first upload, so nothing is
+      // gated behind sign-up. Signing up later keeps everything they made.
+      anonymous({
+        onLinkAccount: async ({ anonymousUser, newUser }) => {
+          if (!canRunMutation(ctx)) {
+            return;
+          }
+          await ctx.runMutation(internal.rooms.internalTransferOwnership, {
+            fromUserId: anonymousUser.user.id,
+            toUserId: newUser.user.id,
+          });
+        },
+      }),
       polar({
         client: polarClient,
-        createCustomerOnSignUp: true,
+        // Local deployments without a Polar token can still create accounts.
+        createCustomerOnSignUp: Boolean(process.env.POLAR_ACCESS_TOKEN),
         use: [
           checkout({
+            authenticatedUsersOnly: true,
             successUrl:
               process.env.POLAR_SUCCESS_URL ||
               `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
-            authenticatedUsersOnly: true,
           }),
           portal(),
           usage(),
@@ -95,24 +120,13 @@ export const createAuth = (
           }),
         ],
       }),
-      nextCookies(),
       admin(),
       genericOAuth({
         config: [
           {
-            providerId: "pinterest",
+            authorizationUrl: "https://www.pinterest.com/oauth/",
             clientId: process.env.PINTEREST_CLIENT_ID as string,
             clientSecret: process.env.PINTEREST_CLIENT_SECRET as string,
-            authorizationUrl: "https://www.pinterest.com/oauth/",
-            tokenUrl: "https://api.pinterest.com/v5/oauth/token",
-            userInfoUrl: "https://api.pinterest.com/v5/user_account",
-            scopes: [
-              "boards:read",
-              "boards:write",
-              "pins:read",
-              "pins:write",
-              "user_accounts:read",
-            ],
 
             getUserInfo: async (tokens: OAuth2Tokens) => {
               const response = await fetch(
@@ -127,18 +141,42 @@ export const createAuth = (
 
               const profile = await response.json();
               return {
-                emailVerified: true,
-                name: profile.username || profile.business_name,
                 email: profile.email, // Note: Email might not be available
-                image: profile.profile_image,
+                emailVerified: true,
                 id: profile.id,
+                image: profile.profile_image,
+                name: profile.username || profile.business_name,
               };
             },
+            providerId: "pinterest",
+            scopes: [
+              "boards:read",
+              "boards:write",
+              "pins:read",
+              "pins:write",
+              "user_accounts:read",
+            ],
+            tokenUrl: "https://api.pinterest.com/v5/oauth/token",
+            userInfoUrl: "https://api.pinterest.com/v5/user_account",
           },
         ],
       }),
+      // Must stay last so cookies set by other plugins reach Next.js.
+      nextCookies(),
     ],
-  });
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: COOKIE_CACHE_MAX_AGE,
+      },
+      expiresIn: SESSION_EXPIRES_IN,
+      updateAge: SESSION_UPDATE_AGE,
+    },
+    trustedOrigins: [siteUrl],
+  }) satisfies BetterAuthOptions;
+
+export const createAuth = (ctx: GenericCtx<DataModel>) =>
+  betterAuth(createAuthOptions(ctx));
 
 export const getCurrentUser = query({
   args: {},

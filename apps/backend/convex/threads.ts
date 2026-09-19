@@ -30,7 +30,7 @@ export const listThreads = privateQuery({
     const userId = await getAuthUserId(ctx);
     const threads = await ctx.runQuery(
       components.agent.threads.listThreadsByUserId,
-      { userId: userId || undefined, paginationOpts: args.paginationOpts }
+      { paginationOpts: args.paginationOpts, userId: userId || undefined }
     );
     return threads;
   },
@@ -38,15 +38,15 @@ export const listThreads = privateQuery({
 
 export const createNewThread = privateMutation({
   args: {
-    title: v.optional(v.string()),
-    initialMessage: v.optional(vMessage),
     fileIds: v.optional(v.array(v.string())),
+    initialMessage: v.optional(vMessage),
+    title: v.optional(v.string()),
   },
   handler: async (ctx, { title, initialMessage, fileIds }) => {
     const userId = await getAuthUserId(ctx);
     const threadId = await createThread(ctx, components.agent, {
-      userId,
       title,
+      userId,
     });
     if (initialMessage) {
       // If there are fileIds, we need to modify the message content to include them
@@ -63,35 +63,38 @@ export const createNewThread = privateMutation({
         // biome-ignore lint/suspicious/noExplicitAny: getFile returns FilePart/ImagePart which are compatible with content
         const content: any[] = [];
 
-        for (const fileId of fileIds) {
-          const { filePart, imagePart } = await getFile(
-            ctx,
-            components.agent,
-            fileId
-          );
-          // Prefer imagePart for images, otherwise use filePart
-          content.push(imagePart ?? filePart);
-        }
+        const fileParts = await Promise.all(
+          fileIds.map(async (fileId) => {
+            const { filePart, imagePart } = await getFile(
+              ctx,
+              components.agent,
+              fileId
+            );
+            // Prefer imagePart for images, otherwise use filePart
+            return imagePart ?? filePart;
+          })
+        );
+        content.push(...fileParts);
 
-        content.push({ type: "text" as const, text: textContent });
+        content.push({ text: textContent, type: "text" as const });
 
         messageToSave = {
-          role: "user",
           // biome-ignore lint/suspicious/noExplicitAny: FilePart/ImagePart types are compatible but don't match exactly
           content: content as any,
+          role: "user",
         };
       }
 
       const { messageId } = await saveMessage(ctx, components.agent, {
-        threadId,
         message: messageToSave,
         metadata: fileIds && fileIds.length > 0 ? { fileIds } : undefined,
+        threadId,
       });
 
       // Schedule the AI response to stream asynchronously
       await ctx.scheduler.runAfter(0, internal.messages.streamAsync, {
-        threadId,
         promptMessageId: messageId,
+        threadId,
       });
     }
     return threadId;
@@ -105,7 +108,7 @@ export const getThreadDetails = privateQuery({
     const { title, summary } = await getThreadMetadata(ctx, components.agent, {
       threadId,
     });
-    return { title, summary };
+    return { summary, title };
   },
 });
 
@@ -118,34 +121,33 @@ export const updateThreadTitle = privateAction({
       object: { title, summary },
     } = await thread.generateObject(
       {
-        schema: z.object({
-          title: z.string().describe("The new title for the thread"),
-          summary: z.string().describe("The new summary for the thread"),
-        }),
         prompt: "Generate a title and summary for this thread.",
+        schema: z.object({
+          summary: z.string().describe("The new summary for the thread"),
+          title: z.string().describe("The new title for the thread"),
+        }),
       },
       { storageOptions: { saveMessages: "none" } }
     );
-    await thread.updateMetadata({ title, summary });
+    await thread.updateMetadata({ summary, title });
   },
 });
 
 export const updateThreadTitleManually = privateMutation({
   args: { threadId: v.string(), title: v.string() },
-  returns: v.null(),
   handler: async (ctx, { threadId, title }) => {
     await authorizeThreadAccess(ctx, threadId);
     await ctx.runMutation(components.agent.threads.updateThread, {
-      threadId,
       patch: { title },
+      threadId,
     });
     return null;
   },
+  returns: v.null(),
 });
 
 export const deleteThread = privateAction({
   args: { threadId: v.string() },
-  returns: v.null(),
   handler: async (ctx, { threadId }) => {
     await authorizeThreadAccess(ctx, threadId, true);
 
@@ -154,6 +156,7 @@ export const deleteThread = privateAction({
     });
     return null;
   },
+  returns: v.null(),
 });
 
 export async function authorizeThreadAccess(
@@ -189,16 +192,16 @@ export const getThreadDesigns = internalQuery({
       .withIndex("by_threadId", (q) => q.eq("threadId", args.threadId))
       .collect();
 
-    const designs: Doc<"designs">[] = [];
-
-    for (const artifact of artifacts) {
-      if (artifact.artifact.type === "design") {
-        const design = await ctx.db.get(artifact.artifact.designId);
-        if (design) {
-          designs.push(design);
-        }
-      }
-    }
+    const fetchedDesigns = await Promise.all(
+      artifacts.map((artifact) =>
+        artifact.artifact.type === "design"
+          ? ctx.db.get(artifact.artifact.designId)
+          : null
+      )
+    );
+    const designs: Doc<"designs">[] = fetchedDesigns.filter(
+      (design): design is Doc<"designs"> => design !== null
+    );
 
     return designs;
   },

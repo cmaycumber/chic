@@ -19,11 +19,10 @@ import { authorizeThreadAccess } from "./threads";
  */
 export const initiateAsyncStreaming = privateMutation({
   args: {
+    fileIds: v.optional(v.array(v.string())),
     prompt: v.string(),
     threadId: v.string(),
-    fileIds: v.optional(v.array(v.string())),
   },
-  returns: v.null(),
   handler: async (ctx, { prompt, threadId, fileIds }) => {
     await authorizeThreadAccess(ctx, threadId);
 
@@ -32,36 +31,40 @@ export const initiateAsyncStreaming = privateMutation({
     const content: any[] = [];
 
     if (fileIds && fileIds.length > 0) {
-      for (const fileId of fileIds) {
-        const { filePart, imagePart } = await getFile(
-          ctx,
-          components.agent,
-          fileId
-        );
-        // Prefer imagePart for images, otherwise use filePart
-        content.push(imagePart ?? filePart);
-      }
+      const fileParts = await Promise.all(
+        fileIds.map(async (fileId) => {
+          const { filePart, imagePart } = await getFile(
+            ctx,
+            components.agent,
+            fileId
+          );
+          // Prefer imagePart for images, otherwise use filePart
+          return imagePart ?? filePart;
+        })
+      );
+      content.push(...fileParts);
     }
 
-    content.push({ type: "text" as const, text: prompt });
+    content.push({ text: prompt, type: "text" as const });
 
     const { messageId } = await designAgent.saveMessage(ctx, {
-      threadId,
       message: {
-        role: "user",
         content,
+        role: "user",
       },
       metadata: fileIds && fileIds.length > 0 ? { fileIds } : undefined,
       skipEmbeddings: true,
+      threadId,
     });
 
     await ctx.scheduler.runAfter(0, internal.messages.streamAsync, {
-      threadId,
       promptMessageId: messageId,
+      threadId,
     });
 
     return null;
   },
+  returns: v.null(),
 });
 
 /**
@@ -70,7 +73,6 @@ export const initiateAsyncStreaming = privateMutation({
  */
 export const streamAsync = internalAction({
   args: { promptMessageId: v.string(), threadId: v.string() },
-  returns: v.null(),
   handler: async (ctx, { promptMessageId, threadId }) => {
     const result = await designAgent.streamText(
       ctx,
@@ -82,6 +84,7 @@ export const streamAsync = internalAction({
     await result.consumeStream();
     return null;
   },
+  returns: v.null(),
 });
 
 /**
@@ -90,18 +93,17 @@ export const streamAsync = internalAction({
  */
 export const listThreadMessages = privateQuery({
   args: {
-    threadId: v.string(),
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
+    threadId: v.string(),
   },
-  returns: v.any(),
   handler: async (ctx, args) => {
     const { threadId, streamArgs } = args;
     await authorizeThreadAccess(ctx, threadId);
 
     const streams = await syncStreams(ctx, components.agent, {
-      threadId,
       streamArgs,
+      threadId,
     });
 
     const paginated = await listUIMessages(ctx, components.agent, args);
@@ -111,4 +113,5 @@ export const listThreadMessages = privateQuery({
       streams,
     };
   },
+  returns: v.any(),
 });

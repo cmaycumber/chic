@@ -7,19 +7,6 @@ export const { create, read, update, destroy } = crud(schema, "artifacts");
 
 export const listByThreadId = privateQuery({
   args: { threadId: v.string() },
-  returns: v.array(
-    v.object({
-      _id: v.id("artifacts"),
-      _creationTime: v.number(),
-      threadId: v.string(),
-      artifact: v.union(
-        v.object({
-          type: v.literal("design"),
-          designId: v.id("designs"),
-        })
-      ),
-    })
-  ),
   handler: async (ctx, args) => {
     const artifacts = await ctx.db
       .query("artifacts")
@@ -27,38 +14,23 @@ export const listByThreadId = privateQuery({
       .collect();
     return artifacts;
   },
+  returns: v.array(
+    v.object({
+      _creationTime: v.number(),
+      _id: v.id("artifacts"),
+      artifact: v.union(
+        v.object({
+          designId: v.id("designs"),
+          type: v.literal("design"),
+        })
+      ),
+      threadId: v.string(),
+    })
+  ),
 });
 
 export const listByThreadIdWithDetails = privateQuery({
   args: { threadId: v.string() },
-  returns: v.array(
-    v.object({
-      _id: v.id("artifacts"),
-      _creationTime: v.number(),
-      threadId: v.string(),
-      type: v.literal("design"),
-      design: v.object({
-        _id: v.string(),
-        title: v.string(),
-        description: v.string(),
-        imageUrl: v.union(v.string(), v.null()),
-        products: v.optional(
-          v.array(
-            v.object({
-              name: v.string(),
-              price: v.number(),
-              imageUrl: v.string(),
-              productUrl: v.optional(v.string()),
-              description: v.optional(v.string()),
-            })
-          )
-        ),
-        budget: v.optional(v.number()),
-        designPlan: v.optional(v.string()),
-        isPublic: v.boolean(),
-      }),
-    })
-  ),
   handler: async (ctx, args) => {
     const artifacts = await ctx.db
       .query("artifacts")
@@ -98,20 +70,20 @@ export const listByThreadIdWithDetails = privateQuery({
           }
 
           return {
-            _id: artifact._id,
             _creationTime: artifact._creationTime,
-            threadId: artifact.threadId,
-            type: "design" as const,
+            _id: artifact._id,
             design: {
               _id: design._id,
-              title: design.title,
-              description: design.description,
-              imageUrl,
-              products: design.products,
               budget: design.budget,
+              description: design.description,
               designPlan: design.designPlan,
+              imageUrl,
               isPublic: design.isPublic ?? false,
+              products: design.products,
+              title: design.title,
             },
+            threadId: artifact.threadId,
+            type: "design" as const,
           };
         }
       }
@@ -128,4 +100,32 @@ export const listByThreadIdWithDetails = privateQuery({
 
     return result;
   },
+  returns: v.array(
+    v.object({
+      _creationTime: v.number(),
+      _id: v.id("artifacts"),
+      design: v.object({
+        _id: v.string(),
+        budget: v.optional(v.number()),
+        description: v.string(),
+        designPlan: v.optional(v.string()),
+        imageUrl: v.union(v.string(), v.null()),
+        isPublic: v.boolean(),
+        products: v.optional(
+          v.array(
+            v.object({
+              description: v.optional(v.string()),
+              imageUrl: v.string(),
+              name: v.string(),
+              price: v.number(),
+              productUrl: v.optional(v.string()),
+            })
+          )
+        ),
+        title: v.string(),
+      }),
+      threadId: v.string(),
+      type: v.literal("design"),
+    })
+  ),
 });

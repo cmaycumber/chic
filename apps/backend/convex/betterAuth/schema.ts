@@ -6,68 +6,71 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export const tables = {
-  user: defineTable({
-    name: v.string(),
-    email: v.string(),
-    emailVerified: v.boolean(),
-    image: v.optional(v.union(v.null(), v.string())),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    userId: v.optional(v.union(v.null(), v.string())),
-    role: v.optional(v.union(v.null(), v.string())),
-    banned: v.optional(v.union(v.null(), v.boolean())),
-    banReason: v.optional(v.union(v.null(), v.string())),
-    banExpires: v.optional(v.union(v.null(), v.number())),
-  })
-    .index("email_name", ["email", "name"])
-    .index("name", ["name"])
-    .index("userId", ["userId"]),
-  session: defineTable({
-    expiresAt: v.number(),
-    token: v.string(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-    ipAddress: v.optional(v.union(v.null(), v.string())),
-    userAgent: v.optional(v.union(v.null(), v.string())),
-    userId: v.string(),
-    impersonatedBy: v.optional(v.union(v.null(), v.string())),
-  })
-    .index("expiresAt", ["expiresAt"])
-    .index("expiresAt_userId", ["expiresAt", "userId"])
-    .index("token", ["token"])
-    .index("userId", ["userId"]),
   account: defineTable({
-    accountId: v.string(),
-    providerId: v.string(),
-    userId: v.string(),
     accessToken: v.optional(v.union(v.null(), v.string())),
-    refreshToken: v.optional(v.union(v.null(), v.string())),
-    idToken: v.optional(v.union(v.null(), v.string())),
     accessTokenExpiresAt: v.optional(v.union(v.null(), v.number())),
+    accountId: v.string(),
+    createdAt: v.number(),
+    idToken: v.optional(v.union(v.null(), v.string())),
+    password: v.optional(v.union(v.null(), v.string())),
+    providerId: v.string(),
+    refreshToken: v.optional(v.union(v.null(), v.string())),
     refreshTokenExpiresAt: v.optional(v.union(v.null(), v.number())),
     scope: v.optional(v.union(v.null(), v.string())),
-    password: v.optional(v.union(v.null(), v.string())),
-    createdAt: v.number(),
     updatedAt: v.number(),
+    userId: v.string(),
   })
     .index("accountId", ["accountId"])
     .index("accountId_providerId", ["accountId", "providerId"])
     .index("providerId_userId", ["providerId", "userId"])
     .index("userId", ["userId"]),
-  verification: defineTable({
-    identifier: v.string(),
-    value: v.string(),
-    expiresAt: v.number(),
+  jwks: defineTable({
     createdAt: v.number(),
+    privateKey: v.string(),
+    publicKey: v.string(),
+  }),
+  session: defineTable({
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    impersonatedBy: v.optional(v.union(v.null(), v.string())),
+    ipAddress: v.optional(v.union(v.null(), v.string())),
+    token: v.string(),
     updatedAt: v.number(),
+    userAgent: v.optional(v.union(v.null(), v.string())),
+    userId: v.string(),
+  })
+    .index("expiresAt", ["expiresAt"])
+    .index("expiresAt_userId", ["expiresAt", "userId"])
+    .index("token", ["token"])
+    .index("userId", ["userId"]),
+  user: defineTable({
+    banExpires: v.optional(v.union(v.null(), v.number())),
+    banned: v.optional(v.union(v.null(), v.boolean())),
+    banReason: v.optional(v.union(v.null(), v.string())),
+    createdAt: v.number(),
+    email: v.string(),
+    emailVerified: v.boolean(),
+    image: v.optional(v.union(v.null(), v.string())),
+    // Added by the `anonymous` plugin (boolean, not required) — same shape the
+    // generator emits for the other optional booleans, e.g. `banned`.
+    isAnonymous: v.optional(v.union(v.null(), v.boolean())),
+    name: v.string(),
+    role: v.optional(v.union(v.null(), v.string())),
+    updatedAt: v.number(),
+    userId: v.optional(v.union(v.null(), v.string())),
+  })
+    .index("email_name", ["email", "name"])
+    .index("name", ["name"])
+    .index("userId", ["userId"]),
+  verification: defineTable({
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    identifier: v.string(),
+    updatedAt: v.number(),
+    value: v.string(),
   })
     .index("expiresAt", ["expiresAt"])
     .index("identifier", ["identifier"]),
-  jwks: defineTable({
-    publicKey: v.string(),
-    privateKey: v.string(),
-    createdAt: v.number(),
-  }),
 };
 
 const schema = defineSchema(tables);

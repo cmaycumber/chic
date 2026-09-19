@@ -16,13 +16,9 @@ import { privateAction } from "./lib/utils";
  */
 export const generateDesignImage = privateAction({
   args: {
-    imageStorageId: v.string(),
     description: v.string(),
+    imageStorageId: v.string(),
   },
-  returns: v.object({
-    storageIds: v.array(v.string()),
-    message: v.string(),
-  }),
   handler: async (ctx, args) => {
     // Get the uploaded image from storage
     const imageUrl = await ctx.storage.getUrl(args.imageStorageId);
@@ -44,25 +40,26 @@ Make it look realistic, well-lit, and professionally styled. Maintain the room's
 
     // Use Google Gemini Flash for image generation with the uploaded image
     const imageResult = await generateText({
+      messages: [
+        {
+          content: [
+            {
+              data: `data:${mimeType};base64,${imageBase64}`,
+              mediaType: "image",
+              type: "file",
+            },
+            {
+              text: imagePrompt,
+              type: "text",
+            },
+          ],
+          role: "user",
+        },
+      ],
       model: gateway.languageModel("google/gemini-2.5-flash-image"),
       providerOptions: {
         google: { responseModalities: ["TEXT", "IMAGE"] },
       },
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              image: `data:${mimeType};base64,${imageBase64}`,
-            },
-            {
-              type: "text",
-              text: imagePrompt,
-            },
-          ],
-        },
-      ],
     });
 
     // Extract all generated images from the steps content
@@ -97,6 +94,7 @@ Make it look realistic, well-lit, and professionally styled. Maintain the room's
         type: generatedImage.mediaType,
       });
 
+      // biome-ignore lint/performance/noAwaitInLoops: intentionally sequential so a failed store aborts before further images are written
       const imageStorageId = await ctx.storage.store(blob);
 
       if (!imageStorageId) {
@@ -109,8 +107,12 @@ Make it look realistic, well-lit, and professionally styled. Maintain the room's
     }
 
     return {
-      storageIds,
       message: `Successfully generated ${storageIds.length} design image${storageIds.length > 1 ? "s" : ""}`,
+      storageIds,
     };
   },
+  returns: v.object({
+    message: v.string(),
+    storageIds: v.array(v.string()),
+  }),
 });
