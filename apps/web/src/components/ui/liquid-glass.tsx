@@ -17,8 +17,8 @@ interface LiquidGlassProps {
   hostClassName?: string;
   onClick?: () => void;
   /**
-   * Use the refracting library surface. Turn off for scrolling or
-   * text-dense panels, which keep the CSS material only.
+   * Opt in to the refracting library surface (hero surfaces only). The
+   * default is the single-layer CSS material, which stays crisp everywhere.
    */
   refract?: boolean;
   style?: React.CSSProperties;
@@ -55,7 +55,7 @@ export function LiquidGlass({
   blurAmount = DEFAULT_BLUR,
   onClick,
   style,
-  refract = true,
+  refract = false,
 }: LiquidGlassProps) {
   const [mounted, setMounted] = useState(false);
 

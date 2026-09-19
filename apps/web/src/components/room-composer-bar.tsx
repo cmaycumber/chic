@@ -138,6 +138,7 @@ export function RoomComposerBar({ className }: RoomComposerBarProps) {
         cornerRadius={COMPOSER_CORNER_RADIUS}
         displacementScale={COMPOSER_DISPLACEMENT_SCALE}
         hostClassName="w-full"
+        refract
         tone="frost"
       >
         <Button
@@ -146,7 +147,7 @@ export function RoomComposerBar({ className }: RoomComposerBarProps) {
           onClick={controller.openPicker}
           size="icon-lg"
           type="button"
-          variant="glass-dark"
+          variant="glass-inset"
         >
           {controller.isBusy ? (
             <Loader2 className="size-5 animate-spin" />

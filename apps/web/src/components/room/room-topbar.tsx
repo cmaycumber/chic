@@ -527,14 +527,10 @@ export function RoomTopBar({
           cornerRadius={CLUSTER_RADIUS}
           displacementScale={PILL_DISPLACEMENT}
           hostClassName="w-fit max-w-full"
-          // The refracting surface measures its content once and lags behind
-          // a truncating title, leaving the badge outside the pill on a
-          // phone. The CSS material always fits exactly.
-          refract={!isMobile}
           tone="dark"
         >
           <div className="flex items-center gap-2 overflow-hidden p-1.5 font-sans">
-            <Button asChild size="icon-sm" variant="glass-dark">
+            <Button asChild size="icon-sm" variant="glass-inset">
               <Link href="/rooms">
                 <ChevronLeft className="size-4" />
                 <span className="sr-only">Back to your rooms</span>

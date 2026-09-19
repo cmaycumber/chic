@@ -38,6 +38,8 @@ const buttonVariants = cva(
           "liquid-glass liquid-glass-brass glass-press rounded-full text-white",
         "glass-dark":
           "liquid-glass liquid-glass-dark glass-press rounded-full text-white hover:bg-black/50",
+        "glass-inset":
+          "glass-press rounded-full text-white/90 hover:bg-white/15 active:bg-white/25",
         link: "text-foreground underline-offset-4 hover:underline",
         outline:
           "border border-border bg-background hover:bg-accent hover:text-accent-foreground",

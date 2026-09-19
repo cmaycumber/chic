@@ -134,7 +134,6 @@ export function CommentComposer({
           displacementScale={PILL_DISPLACEMENT}
           // Refraction layers mis-size around a growing textarea on a narrow
           // screen, leaving the send button outside the glass.
-          refract={!isMobile}
           tone="dark"
         >
           {/* The chip takes a row of its own: sharing one with the text left
