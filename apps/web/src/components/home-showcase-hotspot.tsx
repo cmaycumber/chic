@@ -8,15 +8,14 @@ import { cn } from "@/lib/utils";
 
 const DOT_SIZE = 28;
 const CARD_WIDTH_CLASS = "w-56";
-
-export type HotspotAnchorX = "left" | "right";
-export type HotspotAnchorY = "above" | "below";
+const CARD_RADIUS = 20;
 
 type HotspotEventHandler = (event: SyntheticEvent<HTMLButtonElement>) => void;
 
 interface HomeShowcaseHotspotProps {
-  anchorX: HotspotAnchorX;
-  anchorY: HotspotAnchorY;
+  /** Card position in container pixels, already clamped to the viewport. */
+  cardLeft: number;
+  cardTop: number;
   hotspot: ShowcaseHotspot;
   isOpen: boolean;
   onEnter: HotspotEventHandler;
@@ -27,10 +26,14 @@ interface HomeShowcaseHotspotProps {
   y: number;
 }
 
-/** One tappable frost-glass dot over the photo, plus its product card. */
+/**
+ * One tappable frost-glass dot over the photo, plus its product card. The
+ * card is a sibling of the dot rather than a child, so it can be placed in
+ * container coordinates and never hang off an edge on a narrow screen.
+ */
 export function HomeShowcaseHotspot({
-  anchorX,
-  anchorY,
+  cardLeft,
+  cardTop,
   hotspot,
   isOpen,
   onEnter,
@@ -41,48 +44,46 @@ export function HomeShowcaseHotspot({
   y,
 }: HomeShowcaseHotspotProps) {
   return (
-    <div
-      className="pointer-events-auto absolute"
-      style={{ left: x, top: y, transform: "translate(-50%, -50%)" }}
-    >
-      {reduceMotion ? null : (
-        <span
-          aria-hidden="true"
-          className="showcase-hotspot-pulse absolute inset-0 rounded-full bg-white/70"
-        />
-      )}
-
-      <button
-        aria-expanded={isOpen}
-        className={cn(
-          "liquid-glass liquid-glass-frost glass-press relative flex items-center justify-center rounded-full",
-          isOpen && "ring-2 ring-white/80"
-        )}
-        data-hotspot-id={hotspot.id}
-        onBlur={onLeave}
-        onClick={onToggle}
-        onFocus={onEnter}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}
-        style={{ height: DOT_SIZE, width: DOT_SIZE }}
-        type="button"
+    <>
+      <div
+        className="pointer-events-auto absolute"
+        style={{ left: x, top: y, transform: "translate(-50%, -50%)" }}
       >
-        <span aria-hidden="true" className="size-2 rounded-full bg-white" />
-        <span className="sr-only">Shop {hotspot.label}</span>
-      </button>
+        {reduceMotion ? null : (
+          <span
+            aria-hidden="true"
+            className="showcase-hotspot-pulse absolute inset-0 rounded-full bg-white/70"
+          />
+        )}
+
+        <button
+          aria-expanded={isOpen}
+          className={cn(
+            "liquid-glass liquid-glass-frost glass-press relative flex items-center justify-center rounded-full",
+            isOpen && "ring-2 ring-white/80"
+          )}
+          data-hotspot-id={hotspot.id}
+          onBlur={onLeave}
+          onClick={onToggle}
+          onFocus={onEnter}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+          style={{ height: DOT_SIZE, width: DOT_SIZE }}
+          type="button"
+        >
+          <span aria-hidden="true" className="size-2 rounded-full bg-white" />
+          <span className="sr-only">Shop {hotspot.label}</span>
+        </button>
+      </div>
 
       {isOpen ? (
         <div
-          className={cn(
-            "absolute z-10",
-            CARD_WIDTH_CLASS,
-            anchorY === "below" ? "top-full mt-3" : "bottom-full mb-3",
-            anchorX === "left" ? "left-0" : "right-0"
-          )}
+          className={cn("pointer-events-auto absolute z-10", CARD_WIDTH_CLASS)}
+          style={{ left: cardLeft, top: cardTop }}
         >
           <LiquidGlass
             className="flex flex-col gap-1 p-3.5"
-            cornerRadius={20}
+            cornerRadius={CARD_RADIUS}
             hostClassName={CARD_WIDTH_CLASS}
             tone="frost"
           >
@@ -96,7 +97,7 @@ export function HomeShowcaseHotspot({
               {hotspot.detail}
             </p>
             <a
-              className="mt-1 w-fit text-[var(--color-brass)] text-xs underline-offset-4 hover:underline"
+              className="mt-1 w-fit text-brass text-xs underline-offset-4 hover:underline"
               href={amazonSearchUrl(hotspot.searchQuery)}
               rel="noopener noreferrer"
               target="_blank"
@@ -106,6 +107,6 @@ export function HomeShowcaseHotspot({
           </LiquidGlass>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

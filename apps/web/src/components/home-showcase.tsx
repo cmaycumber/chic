@@ -8,11 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  HomeShowcaseHotspot,
-  type HotspotAnchorX,
-  type HotspotAnchorY,
-} from "@/components/home-showcase-hotspot";
+import { HomeShowcaseHotspot } from "@/components/home-showcase-hotspot";
 import {
   type CoverLayout,
   useCoverImageRect,
@@ -29,20 +25,31 @@ const CARD_WIDTH_PX = 224;
 const CARD_HEIGHT_ESTIMATE_PX = 150;
 const EDGE_MARGIN_PX = 16;
 const GAP_PX = 12;
+/** The card never comes closer than this to any edge of the viewport. */
+const CARD_MARGIN_PX = 12;
+const DOT_RADIUS_PX = 14;
 /** Fraction of container height that's safe for a card's bottom edge; the
  * rest is reserved for the composer bar. */
 const COMPOSER_SAFE_FRACTION = 0.8;
 
 interface HotspotPlacement {
-  anchorX: HotspotAnchorX;
-  anchorY: HotspotAnchorY;
+  cardLeft: number;
+  cardTop: number;
   isVisible: boolean;
   x: number;
   y: number;
 }
 
+function clampRange(value: number, min: number, max: number): number {
+  if (max <= min) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, value));
+}
+
 /** Maps a hotspot's normalized coordinate onto the rendered (cover-fit)
- * photo, then decides which side the card should open toward. */
+ * photo, then places its card on the roomier side and pulls it back inside
+ * the viewport, which is what keeps it on screen at 375px. */
 function placeHotspot(
   normalizedX: number,
   normalizedY: number,
@@ -57,14 +64,24 @@ function placeHotspot(
     x >= 0 && x <= layout.containerWidth && y >= 0 && y <= composerSafeBottom;
 
   const spaceRight = layout.containerWidth - x;
-  const anchorX: HotspotAnchorX =
-    spaceRight >= CARD_WIDTH_PX + EDGE_MARGIN_PX ? "left" : "right";
+  const opensRight = spaceRight >= CARD_WIDTH_PX + EDGE_MARGIN_PX;
+  const cardLeft = clampRange(
+    opensRight ? x : x - CARD_WIDTH_PX,
+    CARD_MARGIN_PX,
+    layout.containerWidth - CARD_WIDTH_PX - CARD_MARGIN_PX
+  );
 
   const spaceBelow = composerSafeBottom - y;
-  const anchorY: HotspotAnchorY =
-    spaceBelow >= CARD_HEIGHT_ESTIMATE_PX + GAP_PX ? "below" : "above";
+  const opensBelow = spaceBelow >= CARD_HEIGHT_ESTIMATE_PX + GAP_PX;
+  const cardTop = clampRange(
+    opensBelow
+      ? y + DOT_RADIUS_PX + GAP_PX
+      : y - DOT_RADIUS_PX - GAP_PX - CARD_HEIGHT_ESTIMATE_PX,
+    CARD_MARGIN_PX,
+    layout.containerHeight - CARD_HEIGHT_ESTIMATE_PX - CARD_MARGIN_PX
+  );
 
-  return { anchorX, anchorY, isVisible, x, y };
+  return { cardLeft, cardTop, isVisible, x, y };
 }
 
 function nextHotspotId(current: string | null): string {
@@ -189,8 +206,8 @@ export function HomeShowcase() {
               }
               return [
                 <HomeShowcaseHotspot
-                  anchorX={placement.anchorX}
-                  anchorY={placement.anchorY}
+                  cardLeft={placement.cardLeft}
+                  cardTop={placement.cardTop}
                   hotspot={hotspot}
                   isOpen={openId === hotspot.id}
                   key={hotspot.id}

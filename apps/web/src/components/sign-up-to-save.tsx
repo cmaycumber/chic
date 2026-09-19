@@ -39,8 +39,12 @@ export function SignUpToSaveButton({ className }: { className?: string }) {
   const href = useSignUpHref();
 
   return (
-    <Button asChild className={className} variant="glass-brass">
-      <Link href={href}>Sign up to save</Link>
+    <Button asChild className={cn("shrink-0", className)} variant="glass-brass">
+      <Link href={href}>
+        {/* The whole offer does not fit beside the nav at 375px. */}
+        <span className="sm:hidden">Save</span>
+        <span className="hidden sm:inline">Sign up to save</span>
+      </Link>
     </Button>
   );
 }

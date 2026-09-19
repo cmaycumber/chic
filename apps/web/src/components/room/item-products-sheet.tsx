@@ -182,7 +182,7 @@ export function ItemProductsSheet({
         }}
         open
       >
-        <DrawerContent className="max-h-[75dvh] border-white/10 bg-ink/95 text-white">
+        <DrawerContent className="max-h-[60dvh]! border-white/10 bg-ink text-white">
           <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
             <div className="min-w-0">
               <DrawerTitle className="truncate font-serif text-lg text-white">
@@ -202,7 +202,7 @@ export function ItemProductsSheet({
               <span className="sr-only">Close products</span>
             </Button>
           </div>
-          <div className="overflow-y-auto px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <ProductsBody item={item} versionId={versionId} />
           </div>
         </DrawerContent>

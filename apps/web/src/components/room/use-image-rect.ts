@@ -3,6 +3,9 @@
 import { type RefObject, useEffect, useState } from "react";
 
 export interface ImageRect {
+  /** Size of the box the photo is laid out in, for viewport-edge clamping. */
+  containerHeight: number;
+  containerWidth: number;
   height: number;
   left: number;
   top: number;
@@ -14,7 +17,14 @@ export interface NaturalSize {
   width: number;
 }
 
-const EMPTY_RECT: ImageRect = { height: 0, left: 0, top: 0, width: 0 };
+const EMPTY_RECT: ImageRect = {
+  containerHeight: 0,
+  containerWidth: 0,
+  height: 0,
+  left: 0,
+  top: 0,
+  width: 0,
+};
 const CENTER_DIVISOR = 2;
 
 /**
@@ -48,6 +58,8 @@ export function useImageRect(
       const width = natural.width * scale;
       const height = natural.height * scale;
       setRect({
+        containerHeight: bounds.height,
+        containerWidth: bounds.width,
         height,
         left: (bounds.width - width) / CENTER_DIVISOR,
         top: (bounds.height - height) / CENTER_DIVISOR,

@@ -47,8 +47,8 @@ export default function UserMenu() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button className="gap-2" variant="outline">
-            <span>{user?.name}</span>
+          <Button className="max-w-40 gap-2" variant="outline">
+            <span className="truncate">{user?.name}</span>
             {credits !== undefined && credits !== null && (
               <span className="rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground text-xs">
                 {credits}c

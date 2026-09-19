@@ -16,9 +16,10 @@ import {
   type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { privateMutation, privateQuery } from "./lib/utils";
+import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import {
   vAnchor,
+  vBox,
   vCommentStatus,
   vItemsStatus,
   vProduct,
@@ -59,6 +60,35 @@ const vCommentOut = v.object({
   anchor: v.optional(vAnchor),
   baseVersionId: v.id("roomVersions"),
   error: v.optional(v.string()),
+  resultVersionId: v.optional(v.id("roomVersions")),
+  status: vCommentStatus,
+  text: v.string(),
+});
+
+/**
+ * What a share link exposes. Deliberately narrower than the private shapes
+ * above: no user ids, no internal error text, no storage ids.
+ */
+const vPublicItemOut = v.object({
+  box: vBox,
+  id: v.string(),
+  label: v.string(),
+  products: v.optional(v.array(vProduct)),
+});
+
+const vPublicVersionOut = v.object({
+  _creationTime: v.number(),
+  _id: v.id("roomVersions"),
+  imageUrl: v.union(v.string(), v.null()),
+  items: v.array(vPublicItemOut),
+  summary: v.optional(v.string()),
+});
+
+const vPublicCommentOut = v.object({
+  _creationTime: v.number(),
+  _id: v.id("roomComments"),
+  anchor: v.optional(vAnchor),
+  baseVersionId: v.id("roomVersions"),
   resultVersionId: v.optional(v.id("roomVersions")),
   status: vCommentStatus,
   text: v.string(),
@@ -193,6 +223,7 @@ export const get = privateQuery({
         _id: room._id,
         currentVersionId: room.currentVersionId,
         error: room.error,
+        isPublic: room.isPublic,
         status: room.status,
         title: room.title,
       },
@@ -207,10 +238,86 @@ export const get = privateQuery({
         _id: v.id("rooms"),
         currentVersionId: v.optional(v.id("roomVersions")),
         error: v.optional(v.string()),
+        isPublic: v.optional(v.boolean()),
         status: vRoomStatus,
         title: v.optional(v.string()),
       }),
       versions: v.array(vVersionOut),
+    }),
+    v.null()
+  ),
+});
+
+/**
+ * Share a room by link, or stop sharing it. A public room is readable by
+ * anyone who has its id through `getPublic`, which never exposes user ids.
+ */
+export const setPublic = privateMutation({
+  args: { isPublic: v.boolean(), roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await getOwnedRoom(ctx, ctx.userId, args.roomId);
+    await ctx.db.patch(room._id, { isPublic: args.isPublic });
+    return null;
+  },
+  returns: v.null(),
+});
+
+/**
+ * The shared view of a room: the before and after, the comments that got it
+ * there and the furniture in it. Returns null unless the room is public.
+ */
+export const getPublic = publicQuery({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room?.isPublic) {
+      return null;
+    }
+
+    const versionDocs = await ctx.db
+      .query("roomVersions")
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
+      .order("asc")
+      .collect();
+
+    const versions = await Promise.all(
+      versionDocs.map(async (version) => ({
+        _creationTime: version._creationTime,
+        _id: version._id,
+        imageUrl: await ctx.storage.getUrl(version.imageStorageId),
+        items: (version.items ?? []).map((item) => ({
+          box: item.box,
+          id: item.id,
+          label: item.label,
+          products: item.products,
+        })),
+        summary: version.summary,
+      }))
+    );
+
+    const commentDocs = await ctx.db
+      .query("roomComments")
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
+      .order("asc")
+      .collect();
+
+    const comments = commentDocs.map((comment) => ({
+      _creationTime: comment._creationTime,
+      _id: comment._id,
+      anchor: comment.anchor,
+      baseVersionId: comment.baseVersionId,
+      resultVersionId: comment.resultVersionId,
+      status: comment.status,
+      text: comment.text,
+    }));
+
+    return { comments, title: room.title, versions };
+  },
+  returns: v.union(
+    v.object({
+      comments: v.array(vPublicCommentOut),
+      title: v.optional(v.string()),
+      versions: v.array(vPublicVersionOut),
     }),
     v.null()
   ),

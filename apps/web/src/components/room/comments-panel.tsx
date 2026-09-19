@@ -4,7 +4,7 @@ import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
-import { X } from "lucide-react";
+import { MapPin, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,8 @@ import {
 type RetryHandler = (text: string, anchor: Anchor | undefined) => void;
 
 interface CommentsPanelProps {
+  /** Comment id -> the item its pin landed on, on its own base version. */
+  anchorLabels: Map<string, string>;
   comments: RoomComment[];
   currentVersionId: string | null;
   onClose: () => void;
@@ -37,12 +39,14 @@ interface CommentsPanelProps {
 }
 
 function CommentRow({
+  anchorLabel,
   comment,
   isCurrent,
   onJump,
   onRetry,
   pinNumber,
 }: {
+  anchorLabel: string | undefined;
   comment: RoomComment;
   isCurrent: boolean;
   onJump: (versionId: Id<"roomVersions">) => void;
@@ -82,9 +86,15 @@ function CommentRow({
             <p className="text-sm text-white leading-snug">{comment.text}</p>
           )}
 
-          <p className="mt-1 flex items-center gap-1.5 text-[11px] text-white/50">
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
             {comment.status === "pending" && <Spinner className="size-3" />}
             <span>{time}</span>
+            {anchorLabel === undefined ? null : (
+              <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-white/80">
+                <MapPin className="size-2.5 shrink-0" />
+                <span className="truncate">On: {anchorLabel}</span>
+              </span>
+            )}
           </p>
 
           {comment.status === "failed" && (
@@ -109,12 +119,14 @@ function CommentRow({
 }
 
 function CommentsList({
+  anchorLabels,
   comments,
   currentVersionId,
   onJump,
   onRetry,
   pinNumbers,
 }: {
+  anchorLabels: Map<string, string>;
   comments: RoomComment[];
   currentVersionId: string | null;
   onJump: (versionId: Id<"roomVersions">) => void;
@@ -133,6 +145,7 @@ function CommentsList({
     <ul className="flex flex-col gap-2">
       {comments.map((comment) => (
         <CommentRow
+          anchorLabel={anchorLabels.get(comment._id)}
           comment={comment}
           isCurrent={
             comment.resultVersionId !== undefined &&
@@ -150,6 +163,7 @@ function CommentsList({
 
 /** Every change you have asked for, newest first. */
 export function CommentsPanel({
+  anchorLabels,
   comments,
   currentVersionId,
   onClose,
@@ -169,6 +183,7 @@ export function CommentsPanel({
 
   const list = (
     <CommentsList
+      anchorLabels={anchorLabels}
       comments={newestFirst}
       currentVersionId={currentVersionId}
       onJump={onJump}
@@ -187,7 +202,7 @@ export function CommentsPanel({
         }}
         open
       >
-        <DrawerContent className="max-h-[75dvh] border-white/10 bg-ink/95 text-white">
+        <DrawerContent className="max-h-[70dvh]! border-white/10 bg-ink text-white">
           <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
             <div>
               <DrawerTitle className="font-serif text-lg text-white">
@@ -207,7 +222,7 @@ export function CommentsPanel({
               <span className="sr-only">Close comments</span>
             </Button>
           </div>
-          <div className="overflow-y-auto px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {list}
           </div>
         </DrawerContent>

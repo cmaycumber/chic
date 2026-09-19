@@ -160,6 +160,8 @@ export default defineSchema({
   rooms: defineTable({
     currentVersionId: v.optional(v.id("roomVersions")),
     error: v.optional(v.string()),
+    /** Shared by link: anyone with the room id can read it through `getPublic`. */
+    isPublic: v.optional(v.boolean()),
     originalImageStorageId: v.id("_storage"),
     status: vRoomStatus,
     title: v.optional(v.string()),

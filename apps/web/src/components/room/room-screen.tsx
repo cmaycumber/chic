@@ -8,17 +8,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CommentComposer } from "./comment-composer";
 import { CommentsPanel } from "./comments-panel";
 import { ItemProductsSheet } from "./item-products-sheet";
+import { PinComposer } from "./pin-composer";
 import { RoomCanvas } from "./room-canvas";
 import { RoomTopBar } from "./room-topbar";
 import type { Anchor, RoomComment, RoomMode, RoomVersion } from "./types";
 import { useRoomShortcuts } from "./use-room-shortcuts";
 import {
+  buildAnchorLabels,
   buildPinNumbers,
   buildPins,
   errorMessage,
+  findItemLabelAt,
   resolveCurrentVersion,
 } from "./utils";
 import { VersionStrip } from "./version-strip";
@@ -56,9 +60,11 @@ function RoomNotFound() {
 export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   const data = useQuery(api.rooms.get, { roomId });
   const setCurrentVersion = useMutation(api.rooms.setCurrentVersion);
+  const isMobile = useIsMobile();
 
   const [mode, setMode] = useState<RoomMode>("comment");
   const [pendingAnchor, setPendingAnchor] = useState<Anchor | null>(null);
+  const [composerFocusToken, setComposerFocusToken] = useState(0);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -79,6 +85,14 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
     () => buildPins(comments, pinNumbers, currentVersionId),
     [comments, pinNumbers, currentVersionId]
   );
+  const anchorLabels = useMemo(
+    () => buildAnchorLabels(comments, versions),
+    [comments, versions]
+  );
+  const pendingItemLabel = useMemo(
+    () => findItemLabelAt(currentVersion?.items, pendingAnchor),
+    [currentVersion, pendingAnchor]
+  );
 
   const lastErrorRef = useRef<string | null>(null);
   useEffect(() => {
@@ -92,6 +106,18 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
     setPendingAnchor(null);
     setSelectedItemId(null);
   }, []);
+
+  const handlePickAnchor = useCallback(
+    (anchor: Anchor | null, isAboveKeyboard: boolean) => {
+      setPendingAnchor(anchor);
+      // Opening the keyboard over the spot you just pinned hides the thing
+      // you are talking about, so a low pin waits for a deliberate tap.
+      if (anchor && isAboveKeyboard) {
+        setComposerFocusToken((token) => token + 1);
+      }
+    },
+    []
+  );
   useRoomShortcuts({ onEscape: handleEscape, onMode: setMode });
 
   const handleSelectItem = useCallback((itemId: string) => {
@@ -120,6 +146,10 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   }
 
   const isGenerating = data.room.status === "generating";
+  // On a wide screen a pin gets its own composer beside it, the way a design
+  // tool does; the bottom bar stands down so there is only ever one.
+  const pinComposerOpen =
+    mode === "comment" && !isMobile && pendingAnchor !== null && !isGenerating;
   const selectedItem =
     currentVersion?.items.find((item) => item.id === selectedItemId) ?? null;
   const versionIndex = versions.findIndex(
@@ -129,9 +159,22 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-ink">
       <RoomCanvas
+        anchorPopover={
+          pinComposerOpen && pendingAnchor ? (
+            <PinComposer
+              anchor={pendingAnchor}
+              isGenerating={isGenerating}
+              itemLabel={pendingItemLabel}
+              onCancel={() => setPendingAnchor(null)}
+              onSubmitted={() => setPendingAnchor(null)}
+              roomId={roomId}
+            />
+          ) : null
+        }
         isGenerating={isGenerating}
+        isSheetOpen={isMobile && selectedItem !== null}
         mode={mode}
-        onPickAnchor={setPendingAnchor}
+        onPickAnchor={handlePickAnchor}
         onSelectItem={handleSelectItem}
         onSelectPin={handleSelectPin}
         pendingAnchor={pendingAnchor}
@@ -164,9 +207,11 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
         />
       )}
 
-      {mode === "comment" && (
+      {mode === "comment" && !pinComposerOpen && (
         <CommentComposer
+          focusToken={composerFocusToken}
           isGenerating={isGenerating}
+          itemLabel={pendingItemLabel}
           onClearAnchor={() => setPendingAnchor(null)}
           onSubmitted={() => setPendingAnchor(null)}
           pendingAnchor={pendingAnchor}
@@ -176,6 +221,7 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
 
       {Boolean(commentsOpen) && (
         <CommentsPanel
+          anchorLabels={anchorLabels}
           comments={comments}
           currentVersionId={currentVersionId}
           onClose={() => setCommentsOpen(false)}

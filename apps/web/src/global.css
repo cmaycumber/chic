@@ -13,6 +13,19 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   --font-serif: "Cormorant Garamond", "Playfair Display", "Georgia", serif;
+
+  /*
+   * Chic brand palette. These live in `@theme`, not `:root`, so Tailwind
+   * generates real utilities for them — `bg-ink`, `text-brass/70`,
+   * `border-greige/60` — instead of silently dropping every class that
+   * carries an opacity modifier.
+   */
+  --color-ink: oklch(0.201 0.002 286.029);
+  --color-bone: oklch(0.98 0.008 87.511);
+  --color-greige: oklch(0.835 0.018 81.321);
+  --color-brass: oklch(0.664 0.083 77.403);
+  --color-blush: oklch(0.805 0.044 51.921);
+  --color-forest: oklch(0.323 0.058 168.364);
 }
 
 html {
@@ -74,13 +87,6 @@ body {
   --accent-brass: oklch(0.664 0.083 77.403);
   --accent-coral: oklch(0.6 0.15 35);
   --accent-cta: oklch(0.65 0.2 25);
-
-  /* Chic color palette */
-  --color-bone: oklch(0.98 0.008 87.511);
-  --color-ink: oklch(0.201 0.002 286.029);
-  --color-greige: oklch(0.835 0.018 81.321);
-  --color-brass: oklch(0.664 0.083 77.403);
-  --color-blush: oklch(0.805 0.044 51.921);
 
   --background: var(--color-bone);
   --foreground: oklch(0.15 0 0);
@@ -535,34 +541,6 @@ body {
   /* Chic design utilities */
   .font-serif {
     font-family: var(--font-serif);
-  }
-
-  .text-ink {
-    color: var(--color-ink);
-  }
-
-  .text-brass {
-    color: var(--color-brass);
-  }
-
-  .text-greige {
-    color: var(--color-greige);
-  }
-
-  .bg-bone {
-    background-color: var(--color-bone);
-  }
-
-  .bg-ink {
-    background-color: var(--color-ink);
-  }
-
-  .bg-greige {
-    background-color: var(--color-greige);
-  }
-
-  .border-greige {
-    border-color: var(--color-greige);
   }
 
   /* Subtle paper texture */

@@ -13,6 +13,7 @@ export const PANEL_DISPLACEMENT = 20;
 export const PILL_DISPLACEMENT = 26;
 
 export const PANEL_RADIUS = 24;
+export const PIN_POPOVER_RADIUS = 20;
 export const COMPOSER_RADIUS = 28;
 export const CLUSTER_RADIUS = 22;
 
@@ -58,11 +59,20 @@ export function resolveCurrentVersion(
   return current ?? versions.at(-1) ?? null;
 }
 
+/** The least a comment has to be for us to number its pin. */
+interface AnchoredComment {
+  _id: string;
+  anchor?: Anchor | undefined;
+}
+
 /**
  * Numbers every anchored comment in the order it was written so the badge in
- * the comments panel matches the pin on the photo.
+ * the comments panel matches the pin on the photo. Takes the shared, id-free
+ * shape too, so a public room numbers its pins exactly the same way.
  */
-export function buildPinNumbers(comments: RoomComment[]): Map<string, number> {
+export function buildPinNumbers(
+  comments: readonly AnchoredComment[]
+): Map<string, number> {
   const numbers = new Map<string, number>();
   let next = 1;
   for (const comment of comments) {
@@ -96,10 +106,76 @@ export function buildPins(
         commentId: comment._id,
         number,
         status: comment.status,
+        text: comment.text,
       });
     }
   }
   return pins;
+}
+
+/** All hit-testing needs of a detected item: a normalized box and a name. */
+interface BoxedItem {
+  box: { height: number; width: number; x: number; y: number };
+  label: string;
+}
+
+/**
+ * Names the piece of furniture a pin landed on. Boxes nest — a cushion sits
+ * inside a sofa — so the smallest box containing the point wins, which is the
+ * thing a person means when they tap there.
+ */
+export function findItemLabelAt(
+  items: readonly BoxedItem[] | undefined,
+  anchor: Anchor | null | undefined
+): string | null {
+  if (!(items && anchor)) {
+    return null;
+  }
+
+  let best: string | null = null;
+  let smallest = Number.POSITIVE_INFINITY;
+
+  for (const item of items) {
+    const { box, label } = item;
+    const contains =
+      anchor.x >= box.x &&
+      anchor.x <= box.x + box.width &&
+      anchor.y >= box.y &&
+      anchor.y <= box.y + box.height;
+    const area = box.width * box.height;
+    if (contains && area < smallest) {
+      best = label;
+      smallest = area;
+    }
+  }
+
+  return best;
+}
+
+/**
+ * The item label for every anchored comment, hit-tested against the version
+ * the comment was written on rather than whichever one is on screen now.
+ */
+export function buildAnchorLabels(
+  comments: readonly RoomComment[],
+  versions: readonly RoomVersion[]
+): Map<string, string> {
+  const itemsByVersion = new Map<string, RoomVersion["items"]>(
+    versions.map((version) => [version._id as string, version.items])
+  );
+  const labels = new Map<string, string>();
+
+  for (const comment of comments) {
+    const label = findItemLabelAt(
+      itemsByVersion.get(comment.baseVersionId),
+      comment.anchor
+    );
+    if (label !== null) {
+      labels.set(comment._id, label);
+    }
+  }
+
+  return labels;
 }
 
 /** Label used in the history strip and the top bar. */

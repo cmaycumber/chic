@@ -2,12 +2,18 @@
 
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
-import { type SyntheticEvent, useEffect, useRef, useState } from "react";
+import type { ReactNode, SyntheticEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { PIN_POPOVER_WIDTH, placePinPopover } from "./pin-placement";
 import { RoomHotspots } from "./room-hotspots";
 import { RoomPins } from "./room-pins";
 import type { Anchor, CommentPin, RoomMode, RoomVersion } from "./types";
-import { type NaturalSize, useImageRect } from "./use-image-rect";
+import {
+  type ImageRect,
+  type NaturalSize,
+  useImageRect,
+} from "./use-image-rect";
 import { clamp01 } from "./utils";
 
 /** Matches the Tailwind `duration-500` used on the incoming image layer. */
@@ -15,11 +21,38 @@ const FADE_MS = 500;
 /** Tapping within this fraction of the pin clears it instead of moving it. */
 const SAME_SPOT_THRESHOLD = 0.03;
 const CENTER = 0.5;
+/** A phone keyboard covers roughly the lower half; a pin above it stays seen. */
+const KEYBOARD_SAFE_FRACTION = 0.42;
+/** What a phone bottom sheet leaves of the screen, as a fraction of it. */
+const SHEET_VISIBLE_FRACTION = 0.4;
+/** The photo never slides up under the floating top bar. */
+const TOP_SAFE_PX = 88;
+
+/**
+ * How far to slide the photo up so a bottom sheet does not sit on top of the
+ * thing it is about. A letterboxed landscape photo is centred in a portrait
+ * screen, which is exactly where the sheet opens.
+ */
+function sheetLift(rect: ImageRect, isSheetOpen: boolean): number {
+  if (!(isSheetOpen && rect.height > 0)) {
+    return 0;
+  }
+  const overlap =
+    rect.top + rect.height - rect.containerHeight * SHEET_VISIBLE_FRACTION;
+  if (overlap <= 0) {
+    return 0;
+  }
+  return Math.min(overlap, Math.max(0, rect.top - TOP_SAFE_PX));
+}
 
 interface RoomCanvasProps {
+  /** Rendered beside a fresh pin. The canvas owns where it goes. */
+  anchorPopover: ReactNode;
   isGenerating: boolean;
+  /** A phone bottom sheet is covering the lower part of the screen. */
+  isSheetOpen: boolean;
   mode: RoomMode;
-  onPickAnchor: (anchor: Anchor | null) => void;
+  onPickAnchor: (anchor: Anchor | null, isAboveKeyboard: boolean) => void;
   onSelectItem: (itemId: string) => void;
   onSelectPin: (commentId: string) => void;
   pendingAnchor: Anchor | null;
@@ -71,7 +104,9 @@ function imageOpacityClass(isReady: boolean, isGenerating: boolean): string {
  * rather than the container, because `object-contain` letterboxes.
  */
 export function RoomCanvas({
+  anchorPopover,
   isGenerating,
+  isSheetOpen,
   mode,
   onPickAnchor,
   onSelectItem,
@@ -128,14 +163,23 @@ export function RoomCanvas({
       Math.abs(pendingAnchor.x - x) < SAME_SPOT_THRESHOLD &&
       Math.abs(pendingAnchor.y - y) < SAME_SPOT_THRESHOLD;
 
-    onPickAnchor(isSameSpot ? null : { x, y });
+    const isAboveKeyboard =
+      rect.top + y * rect.height <
+      rect.containerHeight * KEYBOARD_SAFE_FRACTION;
+
+    onPickAnchor(isSameSpot ? null : { x, y }, isAboveKeyboard);
   };
 
   const showPrevious = displayUrl !== null && displayUrl !== imageUrl;
   const canInteract = rect.width > 0 && !isGenerating;
+  const lift = sheetLift(rect, isSheetOpen);
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-ink" ref={containerRef}>
+    <div
+      className="absolute inset-0 overflow-hidden bg-ink transition-transform duration-300 ease-out"
+      ref={containerRef}
+      style={lift === 0 ? undefined : { transform: `translateY(${-lift}px)` }}
+    >
       {/* Transitional only: the incoming layer carries the description. */}
       {showPrevious ? <ImageLayer alt="" src={displayUrl} /> : null}
 
@@ -199,6 +243,18 @@ export function RoomCanvas({
           )}
         </div>
       )}
+
+      {pendingAnchor !== null && anchorPopover !== null && rect.width > 0 ? (
+        <div
+          className="pointer-events-auto absolute z-10"
+          style={{
+            ...placePinPopover(pendingAnchor, rect),
+            width: PIN_POPOVER_WIDTH,
+          }}
+        >
+          {anchorPopover}
+        </div>
+      ) : null}
 
       {Boolean(isGenerating) && (
         <output className="liquid-glass liquid-glass-frost absolute top-24 left-1/2 flex -translate-x-1/2 items-center gap-2.5 rounded-full py-2 pr-4 pl-3 font-sans text-sm text-white shadow-lg">

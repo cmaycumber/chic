@@ -14,11 +14,14 @@ import {
   HiddenFileInput,
   useUploadController,
 } from "@/components/upload-room-button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 const COMPOSER_CORNER_RADIUS = 999;
 const COMPOSER_DISPLACEMENT_SCALE = 25;
 const COMPOSER_PLACEHOLDER = "What would you change about your room?";
+/** The long ask runs under the send button once the bar is phone-width. */
+const COMPOSER_PLACEHOLDER_SHORT = "What would you change?";
 
 interface RoomComposerBarProps {
   className?: string;
@@ -50,6 +53,7 @@ function imageFromClipboard(data: DataTransfer | null): File | null {
 }
 
 export function RoomComposerBar({ className }: RoomComposerBarProps) {
+  const isMobile = useIsMobile();
   const [text, setText] = useState("");
   const controller = useUploadController({ initialComment: text });
   const { openPicker, submitFile } = controller;
@@ -152,17 +156,19 @@ export function RoomComposerBar({ className }: RoomComposerBarProps) {
           <span className="sr-only">Add a photo of your room</span>
         </Button>
         {controller.isBusy ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 text-base text-white/80">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-sm text-white/80 sm:text-base">
             <span className="truncate">{busyLabel(controller.busy)}</span>
           </div>
         ) : (
           <input
             aria-label="What would you change about your room?"
-            className="min-w-0 flex-1 bg-transparent text-base text-white placeholder:text-white/60 focus:outline-none"
+            className="min-w-0 flex-1 truncate bg-transparent text-sm text-white placeholder:text-white/60 focus:outline-none sm:text-base"
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={COMPOSER_PLACEHOLDER}
+            placeholder={
+              isMobile ? COMPOSER_PLACEHOLDER_SHORT : COMPOSER_PLACEHOLDER
+            }
             type="text"
             value={text}
           />

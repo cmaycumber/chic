@@ -24,4 +24,5 @@ export interface CommentPin {
   commentId: string;
   number: number;
   status: RoomComment["status"];
+  text: string;
 }

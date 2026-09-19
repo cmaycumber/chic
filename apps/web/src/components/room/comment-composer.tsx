@@ -4,11 +4,19 @@ import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { ArrowUp, MapPin, X } from "lucide-react";
-import { type FormEvent, type KeyboardEvent, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { anchorChipLabel } from "./pin-composer";
 import type { Anchor } from "./types";
 import {
   COMPOSER_RADIUS,
@@ -19,8 +27,20 @@ import {
 
 const MAX_TEXTAREA_HEIGHT = 84;
 
+/** The example only fits where there is room for it; a phone gets the ask. */
+const PLACEHOLDER_SHORT = "Comment to change something…";
+const PLACEHOLDER_LONG =
+  "Comment to change something… e.g. “swap the sofa for a green velvet one”";
+
 interface CommentComposerProps {
+  /**
+   * Bumped when a pin lands somewhere the keyboard will not cover, so the
+   * phone opens its keyboard on the tap instead of asking for a second one.
+   */
+  focusToken: number;
   isGenerating: boolean;
+  /** The detected item under the pin, when the tap landed on one. */
+  itemLabel: string | null;
   onClearAnchor: () => void;
   onSubmitted: () => void;
   pendingAnchor: Anchor | null;
@@ -32,16 +52,29 @@ interface CommentComposerProps {
  * optional pin telling us where you mean.
  */
 export function CommentComposer({
+  focusToken,
   isGenerating,
+  itemLabel,
   onClearAnchor,
   onSubmitted,
   pendingAnchor,
   roomId,
 }: CommentComposerProps) {
   const addComment = useMutation(api.rooms.addComment);
+  const isMobile = useIsMobile();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  // Seeded with the token we mounted on, so remounting never steals focus.
+  const handledFocusToken = useRef(focusToken);
+
+  useEffect(() => {
+    if (focusToken === handledFocusToken.current) {
+      return;
+    }
+    handledFocusToken.current = focusToken;
+    textareaRef.current?.focus();
+  }, [focusToken]);
 
   const isBusy = isGenerating || isSending;
   const canSend = text.trim().length > 0 && !isBusy;
@@ -99,15 +132,20 @@ export function CommentComposer({
           className={`w-full ${GLASS_RESET}`}
           cornerRadius={COMPOSER_RADIUS}
           displacementScale={PILL_DISPLACEMENT}
+          // Refraction layers mis-size around a growing textarea on a narrow
+          // screen, leaving the send button outside the glass.
+          refract={!isMobile}
           tone="dark"
         >
-          <div className="flex w-full items-end gap-2 p-2 font-sans">
+          {/* The chip takes a row of its own: sharing one with the text left
+              the placeholder wrapping under the send button at 375px. */}
+          <div className="flex w-full flex-col gap-1 p-2 font-sans">
             {Boolean(pendingAnchor) && (
-              <span className="mb-1 inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--accent-brass)]/30 py-1 pr-1 pl-2 text-white text-xs">
-                <MapPin className="size-3" />
-                Pinned
+              <span className="inline-flex w-fit max-w-full items-center gap-1 self-start rounded-full bg-brass/40 py-1 pr-1 pl-2 text-white text-xs">
+                <MapPin className="size-3 shrink-0" />
+                <span className="truncate">{anchorChipLabel(itemLabel)}</span>
                 <button
-                  className="rounded-full p-0.5 hover:bg-white/20"
+                  className="shrink-0 rounded-full p-0.5 hover:bg-white/20"
                   onClick={onClearAnchor}
                   type="button"
                 >
@@ -117,31 +155,33 @@ export function CommentComposer({
               </span>
             )}
 
-            <textarea
-              aria-label="Comment to change something in the photo"
-              className="max-h-[84px] min-h-9 flex-1 resize-none bg-transparent py-2 pl-2 text-sm text-white leading-snug outline-none placeholder:text-white/50 disabled:opacity-60"
-              disabled={isBusy}
-              onChange={(event) => {
-                setText(event.target.value);
-                resize();
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Comment to change something… e.g. “swap the sofa for a green velvet one”"
-              ref={textareaRef}
-              rows={1}
-              value={text}
-            />
+            <div className="flex w-full items-end gap-2">
+              <textarea
+                aria-label="Comment to change something in the photo"
+                className="max-h-[84px] min-h-9 min-w-0 flex-1 resize-none bg-transparent py-2 pl-2 text-sm text-white leading-snug outline-none placeholder:text-white/50 disabled:opacity-60"
+                disabled={isBusy}
+                onChange={(event) => {
+                  setText(event.target.value);
+                  resize();
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={isMobile ? PLACEHOLDER_SHORT : PLACEHOLDER_LONG}
+                ref={textareaRef}
+                rows={1}
+                value={text}
+              />
 
-            <Button
-              className="mb-0.5 shrink-0"
-              disabled={!canSend}
-              size="icon"
-              type="submit"
-              variant="glass-brass"
-            >
-              {isBusy ? <Spinner /> : <ArrowUp className="size-4" />}
-              <span className="sr-only">Send comment</span>
-            </Button>
+              <Button
+                className="mb-0.5 shrink-0"
+                disabled={!canSend}
+                size="icon"
+                type="submit"
+                variant="glass-brass"
+              >
+                {isBusy ? <Spinner /> : <ArrowUp className="size-4" />}
+                <span className="sr-only">Send comment</span>
+              </Button>
+            </div>
           </div>
         </LiquidGlass>
       </form>

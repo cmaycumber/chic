@@ -32,6 +32,8 @@ interface LiquidGlassProps {
 const PILL_RADIUS = 999;
 const DEFAULT_DISPLACEMENT = 40;
 const DEFAULT_BLUR = 0.08;
+/** Fixed mouse values switch off the library's per-surface mousemove tracking. */
+const STATIC_MOUSE = { x: 0, y: 0 };
 
 /**
  * Apple-style liquid glass surface that behaves like a normal block element.
@@ -103,7 +105,9 @@ export function LiquidGlass({
         cornerRadius={cornerRadius}
         displacementScale={displacementScale}
         elasticity={0}
+        globalMousePos={STATIC_MOUSE}
         mode="standard"
+        mouseOffset={STATIC_MOUSE}
         onClick={onClick}
         overLight={tone === "light"}
         padding="0px"
