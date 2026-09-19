@@ -9,6 +9,12 @@ export type RoomComment = RoomData["comments"][number];
 export type RoomItem = RoomVersion["items"][number];
 export type RoomProduct = NonNullable<RoomItem["products"]>[number];
 
+/** Someone invited to edit this room. The owner is not in this list. */
+export type Collaborator = RoomData["collaborators"][number];
+
+/** Owner or invited editor: what this viewer is allowed to do here. */
+export type RoomRole = RoomData["role"];
+
 /** A point on the photo, normalized to 0..1 on both axes. */
 export interface Anchor {
   x: number;
@@ -21,6 +27,10 @@ export type RoomMode = "comment" | "shop";
 /** An anchored comment rendered as a numbered pin on the photo. */
 export interface CommentPin {
   anchor: Anchor;
+  /** Who asked for this, as one letter. Omitted when nobody else is here. */
+  authorInitial: string | null;
+  authorIsOwner: boolean;
+  authorName: string | undefined;
   commentId: string;
   number: number;
   status: RoomComment["status"];

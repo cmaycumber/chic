@@ -65,6 +65,8 @@ Convex (`bunx convex env set NAME value` from `apps/backend`):
 | `SERPAPI_API_KEY` | Amazon product search for shoppable items |
 | `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER` | Billing (optional; sign-up works without them) |
 | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Optional Pinterest OAuth |
+| `RESEND_API_KEY` | Sends password reset emails via Resend |
+| `EMAIL_FROM` | Optional sender override (defaults to `Chic <hello@usechic.com>`) |
 
 ### Local development without a Convex account
 

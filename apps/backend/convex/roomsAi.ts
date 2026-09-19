@@ -388,7 +388,7 @@ export const searchItemProducts = privateAction({
   args: { itemId: v.string(), versionId: v.id("roomVersions") },
   handler: async (ctx, args): Promise<AmazonProduct[]> => {
     const version: Doc<"roomVersions"> | null = await ctx.runQuery(
-      internal.rooms.internalAssertVersionOwner,
+      internal.rooms.internalAssertVersionEditor,
       { userId: ctx.userId, versionId: args.versionId }
     );
     if (!version) {

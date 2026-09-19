@@ -36,24 +36,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import type { Room, RoomMode } from "./types";
+import {
+  CollaboratorStack,
+  PeopleDialog,
+  PeopleMenuItems,
+  type RoomPeople,
+} from "./room-people";
+import { deliverShareLink, ShareLinkDialog } from "./share-link";
+import type { Collaborator, Room, RoomMode } from "./types";
 import {
   CLUSTER_RADIUS,
   errorMessage,
@@ -73,6 +72,8 @@ interface RoomTopBarProps {
   onModeChange: (mode: RoomMode) => void;
   onToggleComments: () => void;
   onToggleHistory: () => void;
+  owner: Collaborator;
+  people: RoomPeople;
   room: Room;
   versionCount: number;
   versionIndex: number;
@@ -87,104 +88,6 @@ function versionSummary(index: number, count: number): string {
 
 function badgeLabel(count: number): string {
   return count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : `${count}`;
-}
-
-/** A share sheet the visitor dismissed is not an error worth shouting about. */
-function isAbortError(error: unknown): boolean {
-  return error instanceof Error && error.name === "AbortError";
-}
-
-/** Either the link reached the visitor, or they have to copy it themselves. */
-type ShareOutcome = "delivered" | "needs-fallback";
-
-async function copyShareLink(url: string): Promise<ShareOutcome> {
-  if (typeof navigator.clipboard?.writeText !== "function") {
-    return "needs-fallback";
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-    toast.success("Link copied");
-    return "delivered";
-  } catch {
-    // Permission policy, an insecure origin, a browser that wants a gesture
-    // it did not see: none of that is worth a raw error in a toast.
-    return "needs-fallback";
-  }
-}
-
-async function deliverShareLink(
-  title: string,
-  url: string
-): Promise<ShareOutcome> {
-  if (typeof navigator.share === "function") {
-    try {
-      await navigator.share({ title, url });
-      return "delivered";
-    } catch (error) {
-      if (isAbortError(error)) {
-        return "delivered";
-      }
-      // The sheet refused; the clipboard is the next best thing.
-    }
-  }
-  return await copyShareLink(url);
-}
-
-/** The link, spelled out, for when neither the sheet nor the clipboard works. */
-function ShareLinkDialog({
-  onClose,
-  url,
-}: {
-  onClose: () => void;
-  url: string;
-}) {
-  const handleCopy = () => {
-    copyShareLink(url)
-      .then((outcome) => {
-        if (outcome === "delivered") {
-          onClose();
-          return;
-        }
-        toast.error("Copying is blocked here. Select the link and copy it.");
-      })
-      .catch((error: unknown) => toast.error(errorMessage(error)));
-  };
-
-  return (
-    <Dialog
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
-      open
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Share this room</DialogTitle>
-          <DialogDescription>
-            Anyone with this link can open the room.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex items-center gap-2">
-          <Input
-            aria-label="Link to this room"
-            onFocus={(event) => event.currentTarget.select()}
-            readOnly
-            value={url}
-          />
-          <Button
-            className="shrink-0"
-            onClick={handleCopy}
-            type="button"
-            variant="brass"
-          >
-            Copy
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
 }
 
 interface RoomShare {
@@ -358,7 +261,7 @@ function CollapsedMenuItems({
         <DropdownMenuItem asChild>
           <Link href={signUpHref}>
             <BookmarkPlus className="size-4" />
-            Save your designs
+            Sign in to keep
           </Link>
         </DropdownMenuItem>
       ) : null}
@@ -389,6 +292,7 @@ interface RoomMenuProps {
   imageUrl: string | null;
   isPublic: boolean;
   onTogglePublic: () => void;
+  people: RoomPeople;
   roomId: Id<"rooms">;
   title: string;
 }
@@ -398,6 +302,7 @@ function RoomMenu({
   imageUrl,
   isPublic,
   onTogglePublic,
+  people,
   roomId,
   title,
 }: RoomMenuProps) {
@@ -431,14 +336,19 @@ function RoomMenu({
         >
           {collapsed ? <CollapsedMenuItems {...collapsed} /> : null}
 
-          <DropdownMenuItem onSelect={onTogglePublic}>
-            {isPublic ? (
-              <Lock className="size-4" />
-            ) : (
-              <Globe className="size-4" />
-            )}
-            {isPublic ? "Make private" : "Make public"}
-          </DropdownMenuItem>
+          <PeopleMenuItems people={people} />
+          <DropdownMenuSeparator className="bg-white/10" />
+
+          {people.role === "owner" ? (
+            <DropdownMenuItem onSelect={onTogglePublic}>
+              {isPublic ? (
+                <Lock className="size-4" />
+              ) : (
+                <Globe className="size-4" />
+              )}
+              {isPublic ? "Make private" : "Make public"}
+            </DropdownMenuItem>
+          ) : null}
 
           <DropdownMenuItem asChild disabled={!imageUrl}>
             <a
@@ -452,16 +362,18 @@ function RoomMenu({
             </a>
           </DropdownMenuItem>
 
-          <DropdownMenuItem
-            className="text-[var(--accent-coral)] focus:text-[var(--accent-coral)]"
-            onSelect={(event) => {
-              event.preventDefault();
-              setConfirmOpen(true);
-            }}
-          >
-            <Trash2 className="size-4" />
-            Delete room
-          </DropdownMenuItem>
+          {people.role === "owner" ? (
+            <DropdownMenuItem
+              className="text-[var(--accent-coral)] focus:text-[var(--accent-coral)]"
+              onSelect={(event) => {
+                event.preventDefault();
+                setConfirmOpen(true);
+              }}
+            >
+              <Trash2 className="size-4" />
+              Delete room
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -497,6 +409,8 @@ export function RoomTopBar({
   onModeChange,
   onToggleComments,
   onToggleHistory,
+  owner,
+  people,
   room,
   versionCount,
   versionIndex,
@@ -538,7 +452,13 @@ export function RoomTopBar({
             </Button>
             <div className="flex min-w-0 flex-col">
               <div className="flex min-w-0 items-center gap-1.5">
-                <RoomTitle roomId={room._id} title={title} />
+                {people.role === "owner" ? (
+                  <RoomTitle roomId={room._id} title={title} />
+                ) : (
+                  <span className="min-w-0 flex-1 truncate px-1 font-serif text-sm text-white sm:max-w-56 sm:flex-none">
+                    {title}
+                  </span>
+                )}
                 {titleBadge}
               </div>
               <span className="flex min-w-0 items-center gap-1.5 px-1 text-[11px] text-white/50">
@@ -555,6 +475,13 @@ export function RoomTopBar({
 
       <div className="pointer-events-auto flex items-center gap-2">
         {isAnonymous && !isMobile ? <SaveYourDesignsPill /> : null}
+
+        {isMobile ? null : (
+          <CollaboratorStack
+            collaborators={people.collaborators}
+            onClick={people.openPeople}
+          />
+        )}
 
         <ModeToggle mode={mode} onModeChange={onModeChange} />
 
@@ -615,14 +542,31 @@ export function RoomTopBar({
           imageUrl={imageUrl}
           isPublic={isPublic}
           onTogglePublic={togglePublic}
+          people={people}
           roomId={room._id}
           title={title}
         />
       </div>
 
       {fallbackUrl === null ? null : (
-        <ShareLinkDialog onClose={dismissFallback} url={fallbackUrl} />
+        <ShareLinkDialog
+          description="Anyone with this link can open the room."
+          onClose={dismissFallback}
+          title="Share this room"
+          url={fallbackUrl}
+        />
       )}
+
+      {people.fallbackUrl === null ? null : (
+        <ShareLinkDialog
+          description="Anyone with this link can edit this room."
+          onClose={people.dismissFallback}
+          title="Invite to edit"
+          url={people.fallbackUrl}
+        />
+      )}
+
+      <PeopleDialog owner={owner} people={people} roomId={room._id} />
     </div>
   );
 }

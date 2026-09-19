@@ -10,6 +10,9 @@ import { cn } from "@/lib/utils";
 
 const DEFAULT_CALLBACK_URL = "/rooms";
 
+/** Must match `ANONYMOUS_ROOM_TTL_DAYS` in the backend's `rooms.ts`. */
+export const ANONYMOUS_ROOM_TTL_DAYS = 7;
+
 /**
  * Whether the visitor is using the product without an account.
  *
@@ -49,7 +52,10 @@ export function SignUpToSaveButton({ className }: { className?: string }) {
   );
 }
 
-/** The same offer, sized for the floating chrome over a room photo. */
+/**
+ * The same offer, sized for the floating chrome over a room photo, and led by
+ * the deadline: an anonymous visitor's rooms are real but they are on a clock.
+ */
 export function SaveYourDesignsPill({ className }: { className?: string }) {
   const href = useSignUpHref();
 
@@ -60,7 +66,12 @@ export function SaveYourDesignsPill({ className }: { className?: string }) {
       size="sm"
       variant="glass-brass"
     >
-      <Link href={href}>Save your designs</Link>
+      <Link href={href}>
+        <span className="md:hidden">Sign in to keep</span>
+        <span className="hidden md:inline">
+          Kept for {ANONYMOUS_ROOM_TTL_DAYS} days · Sign in to keep
+        </span>
+      </Link>
     </Button>
   );
 }

@@ -21,6 +21,7 @@ import type { Anchor, RoomComment } from "./types";
 import {
   errorMessage,
   GLASS_RESET,
+  initialOf,
   PANEL_DISPLACEMENT,
   PANEL_RADIUS,
 } from "./utils";
@@ -36,6 +37,8 @@ interface CommentsPanelProps {
   onJump: (versionId: Id<"roomVersions">) => void;
   pinNumbers: Map<string, number>;
   roomId: Id<"rooms">;
+  /** Off in a room of one, where every line would carry the same name. */
+  showAuthors: boolean;
 }
 
 function CommentRow({
@@ -45,6 +48,7 @@ function CommentRow({
   onJump,
   onRetry,
   pinNumber,
+  showAuthor,
 }: {
   anchorLabel: string | undefined;
   comment: RoomComment;
@@ -52,6 +56,7 @@ function CommentRow({
   onJump: (versionId: Id<"roomVersions">) => void;
   onRetry: RetryHandler;
   pinNumber: number | undefined;
+  showAuthor: boolean;
 }) {
   const resultVersionId =
     comment.status === "applied" ? comment.resultVersionId : undefined;
@@ -74,6 +79,22 @@ function CommentRow({
         )}
 
         <div className="min-w-0 flex-1">
+          {showAuthor && comment.authorName ? (
+            <p className="mb-0.5 flex items-center gap-1.5 font-medium text-[11px] text-white/70">
+              <span
+                className={cn(
+                  "flex size-4 shrink-0 items-center justify-center rounded-full text-[8px] text-white",
+                  comment.authorIsOwner
+                    ? "bg-[var(--accent-brass)]"
+                    : "bg-white/25"
+                )}
+              >
+                {initialOf(comment.authorName)}
+              </span>
+              <span className="truncate">{comment.authorName}</span>
+            </p>
+          ) : null}
+
           {resultVersionId ? (
             <button
               className="text-left text-sm text-white leading-snug hover:underline"
@@ -125,6 +146,7 @@ function CommentsList({
   onJump,
   onRetry,
   pinNumbers,
+  showAuthors,
 }: {
   anchorLabels: Map<string, string>;
   comments: RoomComment[];
@@ -132,6 +154,7 @@ function CommentsList({
   onJump: (versionId: Id<"roomVersions">) => void;
   onRetry: RetryHandler;
   pinNumbers: Map<string, number>;
+  showAuthors: boolean;
 }) {
   if (comments.length === 0) {
     return (
@@ -155,6 +178,7 @@ function CommentsList({
           onJump={onJump}
           onRetry={onRetry}
           pinNumber={pinNumbers.get(comment._id)}
+          showAuthor={showAuthors}
         />
       ))}
     </ul>
@@ -170,6 +194,7 @@ export function CommentsPanel({
   onJump,
   pinNumbers,
   roomId,
+  showAuthors,
 }: CommentsPanelProps) {
   const isMobile = useIsMobile();
   const addComment = useMutation(api.rooms.addComment);
@@ -189,6 +214,7 @@ export function CommentsPanel({
       onJump={onJump}
       onRetry={handleRetry}
       pinNumbers={pinNumbers}
+      showAuthors={showAuthors}
     />
   );
 

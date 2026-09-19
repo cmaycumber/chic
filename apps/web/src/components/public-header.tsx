@@ -78,11 +78,6 @@ export function PublicHeader({
           />
         </Link>
         <div className="flex items-center gap-2 sm:gap-3">
-          {isFloating ? null : (
-            <Button asChild className="h-9 text-sm" size="sm" variant="ghost">
-              <Link href="/pricing">Pricing</Link>
-            </Button>
-          )}
           {isFloating || isAuthenticated ? null : (
             <Button asChild className="h-9 text-sm" size="sm" variant="ghost">
               <Link href="/login">Sign in</Link>

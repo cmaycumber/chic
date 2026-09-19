@@ -20,6 +20,7 @@ import type * as agents_tools_updateDesign from "../agents/tools/updateDesign.js
 import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
 import type * as credits from "../credits.js";
+import type * as crons from "../crons.js";
 import type * as designs from "../designs.js";
 import type * as files from "../files.js";
 import type * as healthCheck from "../healthCheck.js";
@@ -27,6 +28,7 @@ import type * as http from "../http.js";
 import type * as ideas from "../ideas.js";
 import type * as lib_amazonAffiliate from "../lib/amazonAffiliate.js";
 import type * as lib_amazonSearch from "../lib/amazonSearch.js";
+import type * as lib_email from "../lib/email.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as likes from "../likes.js";
 import type * as messages from "../messages.js";
@@ -59,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   artifacts: typeof artifacts;
   auth: typeof auth;
   credits: typeof credits;
+  crons: typeof crons;
   designs: typeof designs;
   files: typeof files;
   healthCheck: typeof healthCheck;
@@ -66,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   ideas: typeof ideas;
   "lib/amazonAffiliate": typeof lib_amazonAffiliate;
   "lib/amazonSearch": typeof lib_amazonSearch;
+  "lib/email": typeof lib_email;
   "lib/utils": typeof lib_utils;
   likes: typeof likes;
   messages: typeof messages;

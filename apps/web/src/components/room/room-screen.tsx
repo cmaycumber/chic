@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useIsAnonymous } from "@/components/sign-up-to-save";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,8 +15,16 @@ import { CommentsPanel } from "./comments-panel";
 import { ItemProductsSheet } from "./item-products-sheet";
 import { PinComposer } from "./pin-composer";
 import { RoomCanvas } from "./room-canvas";
+import { useRoomPeople } from "./room-people";
 import { RoomTopBar } from "./room-topbar";
-import type { Anchor, RoomComment, RoomMode, RoomVersion } from "./types";
+import type {
+  Anchor,
+  Collaborator,
+  RoomComment,
+  RoomMode,
+  RoomVersion,
+} from "./types";
+import { useJoinWithInvite } from "./use-invite";
 import { useRoomShortcuts } from "./use-room-shortcuts";
 import {
   buildAnchorLabels,
@@ -29,6 +38,7 @@ import { VersionStrip } from "./version-strip";
 
 const NO_VERSIONS: RoomVersion[] = [];
 const NO_COMMENTS: RoomComment[] = [];
+const NO_COLLABORATORS: Collaborator[] = [];
 
 function RoomLoading() {
   return (
@@ -58,9 +68,11 @@ function RoomNotFound() {
  * glass above it. Comment to change the photo, shop what is in it.
  */
 export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
+  const isJoining = useJoinWithInvite(roomId);
   const data = useQuery(api.rooms.get, { roomId });
   const setCurrentVersion = useMutation(api.rooms.setCurrentVersion);
   const isMobile = useIsMobile();
+  const isAnonymous = useIsAnonymous();
 
   const [mode, setMode] = useState<RoomMode>("comment");
   const [pendingAnchor, setPendingAnchor] = useState<Anchor | null>(null);
@@ -71,8 +83,20 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
 
   const versions = data?.versions ?? NO_VERSIONS;
   const comments = data?.comments ?? NO_COMMENTS;
+  const collaborators = data?.collaborators ?? NO_COLLABORATORS;
   const roomCurrentVersionId = data?.room.currentVersionId;
   const roomError = data?.room.error ?? null;
+  // In a room of one there is only ever one name to show, so the pins and the
+  // panel stay as quiet as they were before anyone else arrived.
+  const showAuthors = collaborators.length > 0;
+
+  const people = useRoomPeople({
+    collaborators,
+    inviteToken: data?.room.inviteToken,
+    isAnonymous,
+    role: data?.role ?? "owner",
+    roomId,
+  });
 
   const currentVersion = useMemo(
     () => resolveCurrentVersion(versions, roomCurrentVersionId),
@@ -82,8 +106,8 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
 
   const pinNumbers = useMemo(() => buildPinNumbers(comments), [comments]);
   const pins = useMemo(
-    () => buildPins(comments, pinNumbers, currentVersionId),
-    [comments, pinNumbers, currentVersionId]
+    () => buildPins(comments, pinNumbers, currentVersionId, showAuthors),
+    [comments, pinNumbers, currentVersionId, showAuthors]
   );
   const anchorLabels = useMemo(
     () => buildAnchorLabels(comments, versions),
@@ -137,7 +161,7 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
 
   const handleSelectPin = useCallback(() => setCommentsOpen(true), []);
 
-  if (data === undefined) {
+  if (data === undefined || isJoining) {
     return <RoomLoading />;
   }
 
@@ -193,6 +217,8 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
         onModeChange={setMode}
         onToggleComments={() => setCommentsOpen((open) => !open)}
         onToggleHistory={() => setHistoryOpen((open) => !open)}
+        owner={data.owner}
+        people={people}
         room={data.room}
         versionCount={versions.length}
         versionIndex={Math.max(versionIndex, 0)}
@@ -228,6 +254,7 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
           onJump={handleSelectVersion}
           pinNumbers={pinNumbers}
           roomId={roomId}
+          showAuthors={showAuthors}
         />
       )}
 

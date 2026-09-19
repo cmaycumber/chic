@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
@@ -118,6 +119,15 @@ export default function SignInForm({
               </div>
             )}
           </form.Field>
+        </div>
+
+        <div className="text-right">
+          <Link
+            className="text-link text-sm hover:text-link-hover"
+            href="/forgot-password"
+          >
+            Forgot password?
+          </Link>
         </div>
 
         <form.Subscribe>

@@ -36,6 +36,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // An invite link is the one way into a room you have never opened. The page
+  // signs the visitor in anonymously and redeems the token, so it goes through
+  // rather than being sent home for having no session yet.
+  if (request.nextUrl.searchParams.has("invite")) {
+    return NextResponse.next();
+  }
+
   // Without any session there is nothing to show here yet: start at home.
   if (matchesRoute(pathname, ROOM_ROUTES)) {
     return NextResponse.redirect(new URL("/", request.url));

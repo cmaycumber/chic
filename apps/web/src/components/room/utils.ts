@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import type { Anchor, CommentPin, RoomComment, RoomVersion } from "./types";
 
 /**
@@ -44,10 +45,20 @@ export function amazonSearchUrl(query: string): string {
 }
 
 export function errorMessage(error: unknown): string {
+  // A ConvexError carries a message we wrote for this person; a plain Error
+  // arrives wrapped in request ids and stack noise.
+  if (error instanceof ConvexError && typeof error.data === "string") {
+    return error.data;
+  }
   if (error instanceof Error) {
     return error.message;
   }
   return "Something went wrong. Please try again.";
+}
+
+/** The one letter that stands in for a person on a pin. */
+export function initialOf(name: string | undefined): string {
+  return name?.trim().charAt(0).toUpperCase() || "?";
 }
 
 /** The version on screen: the room's current one, else the newest. */
@@ -84,11 +95,17 @@ export function buildPinNumbers(
   return numbers;
 }
 
-/** Pins for the comments that belong to the version currently on screen. */
+/**
+ * Pins for the comments that belong to the version currently on screen.
+ *
+ * `showAuthors` is off in a room of one: a letter on every pin telling you
+ * that you wrote it is noise on your own photo.
+ */
 export function buildPins(
   comments: RoomComment[],
   numbers: Map<string, number>,
-  versionId: string | null
+  versionId: string | null,
+  showAuthors: boolean
 ): CommentPin[] {
   if (!versionId) {
     return [];
@@ -103,6 +120,9 @@ export function buildPins(
     if (anchor && belongsHere && number !== undefined) {
       pins.push({
         anchor,
+        authorInitial: showAuthors ? initialOf(comment.authorName) : null,
+        authorIsOwner: comment.authorIsOwner,
+        authorName: comment.authorName,
         commentId: comment._id,
         number,
         status: comment.status,

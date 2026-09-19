@@ -18,6 +18,7 @@ import type { DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
+import { passwordResetEmail, sendEmail } from "./lib/email";
 
 const siteUrl = process.env.SITE_URL || "http://localhost:3001";
 
@@ -80,6 +81,10 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: async ({ user, url }) => {
+        await sendEmail({ to: user.email, ...passwordResetEmail({ url }) });
+      },
     },
     plugins: [
       convex({
@@ -99,6 +104,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
           await ctx.runMutation(internal.rooms.internalTransferOwnership, {
             fromUserId: anonymousUser.user.id,
             toUserId: newUser.user.id,
+            toUserName: newUser.user.name,
           });
         },
       }),

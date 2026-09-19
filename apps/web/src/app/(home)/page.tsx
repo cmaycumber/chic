@@ -5,7 +5,6 @@ import { RoomComposerBar } from "@/components/room-composer-bar";
 const FOOTER_LINKS = [
   { href: "/ideas", label: "Ideas" },
   { href: "/blog", label: "Blog" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
 ] as const;

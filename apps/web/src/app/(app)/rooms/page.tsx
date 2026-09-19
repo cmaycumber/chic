@@ -3,11 +3,16 @@
 import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
-import { Loader2, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Loader2, MoreVertical, Pencil, Trash2, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  ANONYMOUS_ROOM_TTL_DAYS,
+  useIsAnonymous,
+  useSignUpHref,
+} from "@/components/sign-up-to-save";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,11 +42,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadRoomButton } from "@/components/upload-room-button";
+import { cn } from "@/lib/utils";
 
 interface Room {
   _creationTime: number;
   _id: Id<"rooms">;
   imageUrl: string | null;
+  role: "collaborator" | "owner";
   status: "ready" | "generating" | "error";
   title?: string;
   versionCount: number;
@@ -131,6 +138,12 @@ function RoomCard({ room }: { room: Room }) {
               Generating
             </Badge>
           )}
+          {room.role === "collaborator" && room.status !== "generating" && (
+            <Badge className="absolute bottom-2 left-2 gap-1 border-none bg-ink/80 text-white">
+              <Users className="size-3" />
+              Shared with you
+            </Badge>
+          )}
         </div>
         <div>
           <h3 className="truncate font-medium text-ink">{displayTitle}</h3>
@@ -140,7 +153,12 @@ function RoomCard({ room }: { room: Room }) {
         </div>
       </Link>
 
-      <div className="absolute top-2 right-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+      <div
+        className={cn(
+          "absolute top-2 right-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100",
+          room.role === "collaborator" && "hidden"
+        )}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -241,8 +259,26 @@ function RoomCard({ room }: { room: Room }) {
   );
 }
 
+/**
+ * Rooms made without an account are real rooms on a deadline. Say so once,
+ * above the grid, rather than putting a countdown on every card.
+ */
+function RetentionNotice() {
+  const signUpHref = useSignUpHref();
+
+  return (
+    <p className="mb-6 rounded-xl border border-greige/60 bg-white/60 px-4 py-3 text-ink/70 text-sm backdrop-blur-sm">
+      Your rooms are kept for {ANONYMOUS_ROOM_TTL_DAYS} days.{" "}
+      <Link className="font-medium text-ink underline" href={signUpHref}>
+        Sign in to keep them.
+      </Link>
+    </p>
+  );
+}
+
 export default function RoomsPage() {
   const rooms = useQuery(api.rooms.list);
+  const isAnonymous = useIsAnonymous();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -256,6 +292,8 @@ export default function RoomsPage() {
           </p>
         </div>
       </div>
+
+      {isAnonymous ? <RetentionNotice /> : null}
 
       {rooms === undefined && (
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">

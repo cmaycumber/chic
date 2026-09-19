@@ -1,4 +1,4 @@
-import { AuthGate } from "@/components/auth-gate";
+import { RoomAuthGate } from "@/components/room/room-auth-gate";
 
 /**
  * Immersive shell for the room screen: no site header, no page scroll. The
@@ -10,10 +10,10 @@ export default function RoomLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthGate>
+    <RoomAuthGate>
       <div className="h-dvh w-full overflow-hidden bg-ink text-white">
         {children}
       </div>
-    </AuthGate>
+    </RoomAuthGate>
   );
 }

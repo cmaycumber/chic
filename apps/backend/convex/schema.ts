@@ -143,6 +143,12 @@ export default defineSchema({
   roomComments: defineTable({
     /** Optional normalized (0..1) point on the image the comment refers to. */
     anchor: v.optional(vAnchor),
+    /**
+     * Who asked, resolved when the comment was written. Denormalized because
+     * a room is read far more often than it gains a collaborator, and the
+     * name is only ever shown next to the words that person wrote.
+     */
+    authorName: v.optional(v.string()),
     /** The version that was displayed when the comment was made. */
     baseVersionId: v.id("roomVersions"),
     error: v.optional(v.string()),
@@ -154,19 +160,42 @@ export default defineSchema({
   }).index("by_room", ["roomId"]),
 
   /**
+   * Who may edit a room besides its owner. A row per person rather than an
+   * array on the room, because Convex cannot index array membership and the
+   * rooms list has to find "rooms shared with me" by user id.
+   */
+  roomMembers: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.string(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_room_and_user", ["roomId", "userId"])
+    .index("by_user", ["userId"]),
+
+  /**
    * A room is an uploaded photo the user iterates on by leaving comments.
    * Every applied comment produces a new roomVersion.
    */
   rooms: defineTable({
     currentVersionId: v.optional(v.id("roomVersions")),
     error: v.optional(v.string()),
+    /**
+     * When an anonymous owner's room is deleted. Cleared the moment they sign
+     * up; never set for a room made by someone with an account.
+     */
+    expiresAt: v.optional(v.number()),
+    /** The secret in an invite link. Absent once the owner revokes it. */
+    inviteToken: v.optional(v.string()),
     /** Shared by link: anyone with the room id can read it through `getPublic`. */
     isPublic: v.optional(v.boolean()),
     originalImageStorageId: v.id("_storage"),
     status: vRoomStatus,
     title: v.optional(v.string()),
     userId: v.string(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_expiresAt", ["expiresAt"])
+    .index("by_inviteToken", ["inviteToken"])
+    .index("by_user", ["userId"]),
 
   /** One rendered image of a room (the original upload is version 0). */
   roomVersions: defineTable({

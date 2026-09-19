@@ -21,12 +21,6 @@ export function PublicFooter() {
             <div className="flex flex-col gap-2 text-muted-foreground text-sm">
               <Link
                 className="transition-colors hover:text-foreground"
-                href="/pricing"
-              >
-                Pricing
-              </Link>
-              <Link
-                className="transition-colors hover:text-foreground"
                 href="/about"
               >
                 About
