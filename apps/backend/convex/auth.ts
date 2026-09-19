@@ -104,8 +104,9 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       }),
       polar({
         client: polarClient,
-        // Local deployments without a Polar token can still create accounts.
-        createCustomerOnSignUp: Boolean(process.env.POLAR_ACCESS_TOKEN),
+        // The product is free for now: never let a Polar outage or expired
+        // token block account creation. Checkout creates the customer later.
+        createCustomerOnSignUp: false,
         use: [
           checkout({
             authenticatedUsersOnly: true,
