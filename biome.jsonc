@@ -1,9 +1,13 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": ["ultracite"],
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/next",
+    "ultracite/biome/react"
+  ],
   "files": {
     // Remove the native files until we start working on the project.
-    "includes": ["!**/apps/native"]
+    "includes": ["!**/apps/native", "!**/.omc"]
   },
   "linter": {
     "rules": {
@@ -12,7 +16,12 @@
         "noConsole": "warn"
       },
       "performance": {
-        "noNamespaceImport": "warn"
+        "noNamespaceImport": "warn",
+        // New in ultracite 7; flags every inline arrow function passed as a JSX prop
+        // (onClick, onChange, etc.), which is the idiomatic React pattern used
+        // throughout this codebase. Forcing useCallback everywhere is noisy, not a
+        // real bug, so this is a warning rather than a hard error.
+        "noJsxPropsBind": "warn"
       },
       "style": {
         "noMagicNumbers": "warn",
@@ -61,14 +70,12 @@
             "useKeyWithClickEvents": "off"
           },
           "correctness": {
-            "noNestedComponentDefinitions": "off"
-          },
-          "nursery": {
-            "noShadow": "off",
+            "noNestedComponentDefinitions": "off",
             "useImageSize": "off"
           },
           "suspicious": {
-            "noArrayIndexKey": "off"
+            "noArrayIndexKey": "off",
+            "noShadow": "off"
           },
           "complexity": {
             "noExcessiveCognitiveComplexity": "off"
@@ -86,7 +93,7 @@
           "performance": {
             "noImgElement": "off"
           },
-          "nursery": {
+          "correctness": {
             "useImageSize": "off"
           },
           "style": {

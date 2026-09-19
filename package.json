@@ -7,40 +7,44 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo dev",
+    "backend": "bun run --filter @furnish/backend",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "native": "bun run --filter @furnish/native",
-    "web": "bun run --filter './apps/web'",
-    "backend": "bun run --filter @furnish/backend",
-    "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev",
+    "dev": "turbo dev",
     "dev:backend": "turbo -F @furnish/backend run dev",
+    "dev:native": "turbo -F native dev",
     "dev:setup": "turbo -F @furnish/backend dev:setup",
+    "dev:web": "turbo -F web dev",
     "fix": "bun x ultracite fix",
-    "prepare": "lefthook install"
+    "native": "bun run --filter @furnish/native",
+    "prepare": "lefthook install",
+    "web": "bun run --filter './apps/web'"
   },
-  "devDependencies": {
-    "@biomejs/biome": "2.2.6",
-    "@manypkg/cli": "^0.25.1",
-    "concurrently": "^9.2.1",
-    "lefthook": "^1.13.6",
-    "lint-staged": "^16.2.4",
-    "turbo": "2.5.8",
-    "ultracite": "5.6.2"
-  },
-  "packageManager": "bun@1.2.18",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
       "bun x ultracite fix",
       "bun x ultracite fix"
     ]
   },
+  "overrides": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  },
   "dependencies": {
-    "@hookform/resolvers": "^5.2.2",
-    "ai": "^5.0.108",
-    "next": "^16.0.8",
-    "react-hook-form": "^7.66.1",
-    "zod": "^4.1.12"
-  }
+    "@hookform/resolvers": "^5.9.1",
+    "ai": "^7.0.107",
+    "next": "^16.3.5",
+    "react-hook-form": "^7.88.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@manypkg/cli": "^0.25.1",
+    "concurrently": "^10.0.5",
+    "lefthook": "^2.1.14",
+    "lint-staged": "^17.5.1",
+    "turbo": "2.11.2",
+    "ultracite": "7.12.0"
+  },
+  "packageManager": "bun@1.2.18"
 }
