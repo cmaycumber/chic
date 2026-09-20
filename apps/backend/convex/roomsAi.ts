@@ -21,6 +21,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
 import { type AmazonProduct, searchAmazon } from "./lib/amazonSearch";
+import { ROOM_STYLES, ROOM_TYPES } from "./lib/roomTaxonomy";
 import { privateAction } from "./lib/utils";
 import { vProduct } from "./schema";
 
@@ -267,6 +268,15 @@ export const applyComment = internalAction({
   returns: v.null(),
 });
 
+/**
+ * The gallery's two tags. Asked for alongside the furniture because the model
+ * is already looking at the photo: one call, two answers.
+ */
+const roomTypeField = z
+  .enum(ROOM_TYPES)
+  .describe("the single best-fitting room type");
+const styleField = z.enum(ROOM_STYLES).describe("the dominant decor style");
+
 const detectionSchema = z.object({
   items: z
     .array(
@@ -290,6 +300,14 @@ const detectionSchema = z.object({
       })
     )
     .max(MAX_ITEMS),
+  roomType: roomTypeField,
+  style: styleField,
+});
+
+/** Just the tags, for a room whose items were detected before tags existed. */
+const classificationSchema = z.object({
+  roomType: roomTypeField,
+  style: styleField,
 });
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value / BOX_SCALE));
@@ -320,7 +338,7 @@ export const detectItems = internalAction({
                 type: "file",
               },
               {
-                text: `Detect every distinct piece of furniture, lighting, rug, artwork, plant and decor in this room photo that someone could buy. Return at most ${MAX_ITEMS} items, largest and most prominent first. Skip architectural features such as walls, windows, doors, floors and ceilings. For each item give a short label, a one sentence description, a specific Amazon search query, and a tight 2D bounding box as [ymin, xmin, ymax, xmax] on a 0-1000 scale.`,
+                text: `Detect every distinct piece of furniture, lighting, rug, artwork, plant and decor in this room photo that someone could buy. Return at most ${MAX_ITEMS} items, largest and most prominent first. Skip architectural features such as walls, windows, doors, floors and ceilings. For each item give a short label, a one sentence description, a specific Amazon search query, and a tight 2D bounding box as [ymin, xmin, ymax, xmax] on a 0-1000 scale. Also classify the photo itself: the single best-fitting room type and the dominant decor style.`,
                 type: "text",
               },
             ],
@@ -368,12 +386,87 @@ export const detectItems = internalAction({
         status: "ready",
         versionId: version._id,
       });
+
+      // The photo the room started as decides what the room is. Later edits
+      // only re-tag a room that has no tags yet, so an edit that repaints the
+      // walls cannot quietly move a bedroom into the kitchen gallery.
+      const isOriginal = version.commentId === undefined;
+      const tags = await ctx.runQuery(internal.rooms.internalGetRoomTags, {
+        roomId: version.roomId,
+      });
+      if (tags && (isOriginal || !tags.roomType)) {
+        await ctx.runMutation(internal.rooms.internalSetRoomTags, {
+          roomId: version.roomId,
+          roomType: object.roomType,
+          style: object.style,
+        });
+      }
     } catch {
       await ctx.runMutation(internal.rooms.internalSetItems, {
         status: "error",
         versionId: version._id,
       });
     }
+
+    return null;
+  },
+  returns: v.null(),
+});
+
+/**
+ * Tag a room that has no room type, so listing it in the gallery files it
+ * under the right `/ideas/[roomType]` page. Scheduled when an older room is
+ * listed; rooms created since detection started tagging arrive already done.
+ */
+export const internalClassifyRoom = internalAction({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const target = await ctx.runQuery(
+      internal.rooms.internalGetRoomToClassify,
+      { roomId: args.roomId }
+    );
+    if (!target) {
+      return null;
+    }
+
+    const image = await storageToDataUrl(ctx, target.imageStorageId);
+    const startedAt = Date.now();
+    const { object, usage } = await generateObject({
+      messages: [
+        {
+          content: [
+            { data: image, mediaType: "image", type: "file" },
+            {
+              text: "Classify this room photo: give the single best-fitting room type and the dominant decor style.",
+              type: "text",
+            },
+          ],
+          role: "user",
+        },
+      ],
+      model: gateway.languageModel(
+        process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
+      ),
+      // Same reasoning as detection: this is a lookup, not a reasoning task.
+      providerOptions: {
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+        openai: { reasoningEffort: "minimal" },
+      },
+      schema: classificationSchema,
+    });
+
+    // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+    console.info("[roomsAi] classify", {
+      model: process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL,
+      ms: Date.now() - startedAt,
+      usage,
+    });
+
+    await ctx.runMutation(internal.rooms.internalSetRoomTags, {
+      roomId: args.roomId,
+      roomType: object.roomType,
+      style: object.style,
+    });
 
     return null;
   },

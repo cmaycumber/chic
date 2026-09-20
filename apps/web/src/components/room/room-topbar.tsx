@@ -37,6 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -90,12 +91,18 @@ function badgeLabel(count: number): string {
   return count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : `${count}`;
 }
 
+/** What the owner is told the first time a room leaves their account. */
+const PUBLISHED_MESSAGE =
+  "Anyone with the link can open this room. It's also in the Chic gallery.";
+
 interface RoomShare {
   dismissFallback: () => void;
   /** Set when the link could not be delivered and needs the manual dialog. */
   fallbackUrl: string | null;
+  isListed: boolean;
   isPublic: boolean;
   share: () => void;
+  toggleListed: () => void;
   togglePublic: () => void;
 }
 
@@ -105,7 +112,9 @@ interface RoomShare {
  */
 function useRoomShare(room: Room, title: string): RoomShare {
   const setPublic = useMutation(api.rooms.setPublic);
+  const setListed = useMutation(api.rooms.setListed);
   const isPublic = room.isPublic ?? false;
+  const isListed = room.isListed ?? false;
   const roomId = room._id;
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
 
@@ -116,6 +125,7 @@ function useRoomShare(room: Room, title: string): RoomShare {
     const run = async () => {
       if (!isPublic) {
         await setPublic({ isPublic: true, roomId });
+        toast.success(PUBLISHED_MESSAGE);
       }
       if ((await deliverShareLink(title, url)) === "needs-fallback") {
         setFallbackUrl(url);
@@ -128,15 +138,30 @@ function useRoomShare(room: Room, title: string): RoomShare {
   const togglePublic = useCallback(() => {
     const next = !isPublic;
     setPublic({ isPublic: next, roomId })
-      .then(() =>
-        toast.success(
-          next ? "Anyone with the link can open this room" : "Room is private"
-        )
-      )
+      .then(() => toast.success(next ? PUBLISHED_MESSAGE : "Room is private"))
       .catch((error: unknown) => toast.error(errorMessage(error)));
   }, [isPublic, roomId, setPublic]);
 
-  return { dismissFallback, fallbackUrl, isPublic, share, togglePublic };
+  const toggleListed = useCallback(() => {
+    const next = !isListed;
+    setListed({ isListed: next, roomId })
+      .then(() =>
+        toast.success(
+          next ? "Listed in the gallery" : "Hidden from the gallery"
+        )
+      )
+      .catch((error: unknown) => toast.error(errorMessage(error)));
+  }, [isListed, roomId, setListed]);
+
+  return {
+    dismissFallback,
+    fallbackUrl,
+    isListed,
+    isPublic,
+    share,
+    toggleListed,
+    togglePublic,
+  };
 }
 
 function RoomTitle({ roomId, title }: { roomId: Id<"rooms">; title: string }) {
@@ -290,7 +315,9 @@ function CollapsedMenuItems({
 interface RoomMenuProps {
   collapsed: CollapsedItemsProps | null;
   imageUrl: string | null;
+  isListed: boolean;
   isPublic: boolean;
+  onToggleListed: () => void;
   onTogglePublic: () => void;
   people: RoomPeople;
   roomId: Id<"rooms">;
@@ -300,7 +327,9 @@ interface RoomMenuProps {
 function RoomMenu({
   collapsed,
   imageUrl,
+  isListed,
   isPublic,
+  onToggleListed,
   onTogglePublic,
   people,
   roomId,
@@ -348,6 +377,18 @@ function RoomMenu({
               )}
               {isPublic ? "Make private" : "Make public"}
             </DropdownMenuItem>
+          ) : null}
+
+          {/* A public room is in the gallery unless its owner takes it out,
+              so the switch only makes sense once the link is live. */}
+          {people.role === "owner" && isPublic ? (
+            <DropdownMenuCheckboxItem
+              checked={isListed}
+              onCheckedChange={onToggleListed}
+              onSelect={(event) => event.preventDefault()}
+            >
+              Show in Chic gallery
+            </DropdownMenuCheckboxItem>
           ) : null}
 
           <DropdownMenuItem asChild disabled={!imageUrl}>
@@ -418,8 +459,15 @@ export function RoomTopBar({
   const title = room.title ?? "Untitled room";
   const isAnonymous = useIsAnonymous();
   const isMobile = useIsMobile();
-  const { dismissFallback, fallbackUrl, isPublic, share, togglePublic } =
-    useRoomShare(room, title);
+  const {
+    dismissFallback,
+    fallbackUrl,
+    isListed,
+    isPublic,
+    share,
+    toggleListed,
+    togglePublic,
+  } = useRoomShare(room, title);
 
   const publicBadge = isPublic ? (
     <span className="shrink-0 rounded-full bg-[var(--accent-brass)]/30 px-1.5 py-0.5 text-[10px] text-white">
@@ -540,7 +588,9 @@ export function RoomTopBar({
               : null
           }
           imageUrl={imageUrl}
+          isListed={isListed}
           isPublic={isPublic}
+          onToggleListed={toggleListed}
           onTogglePublic={togglePublic}
           people={people}
           roomId={room._id}

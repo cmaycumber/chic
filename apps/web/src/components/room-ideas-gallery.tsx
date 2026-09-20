@@ -1,221 +1,109 @@
-"use client";
+import type { Route } from "next";
+import Link from "next/link";
+import { GalleryRoomCard } from "@/components/gallery-room-card";
+import { UploadRoomButton } from "@/components/upload-room-button";
+import type { GalleryCard } from "@/lib/gallery";
+import { type RoomStyle, roomStyleLabel } from "@/lib/room-taxonomy";
+import { cn } from "@/lib/utils";
 
-import { api } from "@furnish/backend/convex/_generated/api";
-import type { Id } from "@furnish/backend/convex/_generated/dataModel";
-import { useQuery } from "convex/react";
-import { Sparkles } from "lucide-react";
-import { useState } from "react";
-import { DesignCard } from "@/components/design-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+const PRIORITY_CARDS = 3;
 
-type RoomType =
-  | "living-room"
-  | "bedroom"
-  | "kitchen"
-  | "bathroom"
-  | "dining-room"
-  | "home-office"
-  | "family-room"
-  | "nursery"
-  | "outdoor";
-
-type DesignStyle =
-  | "modern"
-  | "minimalist"
-  | "scandinavian"
-  | "industrial"
-  | "bohemian"
-  | "coastal"
-  | "traditional"
-  | "contemporary";
-
-interface Design {
-  _creationTime: number;
-  _id: Id<"designs">;
-  budget?: number;
-  description: string;
-  designStyle?: DesignStyle;
-  featured?: boolean;
-  imageUrl: string | null;
-  likesCount?: number;
-  roomType?: RoomType;
-  tags?: string[];
-  title: string;
+interface StyleFilterProps {
+  activeStyle?: RoomStyle;
+  basePath: Route;
+  styles: RoomStyle[];
 }
 
-interface FilterOptions {
-  styles: {
-    style: string;
-    count: number;
-  }[];
-  tags: {
-    tag: string;
-    count: number;
-  }[];
+/**
+ * Style is the one thing worth narrowing by, and the chips are links so the
+ * filtered page is a page: shareable, crawlable, rendered on the server.
+ */
+function StyleFilter({ activeStyle, basePath, styles }: StyleFilterProps) {
+  if (styles.length === 0) {
+    return null;
+  }
+
+  const chip = (href: Route, label: string, isActive: boolean) => (
+    <Link
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "shrink-0 rounded-full border px-3 py-1.5 text-sm transition-colors",
+        isActive
+          ? "border-transparent bg-foreground text-background"
+          : "border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+      )}
+      href={href}
+      key={href}
+    >
+      {label}
+    </Link>
+  );
+
+  return (
+    <div className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      {chip(basePath, "All styles", activeStyle === undefined)}
+      {styles.map((style) =>
+        chip(
+          `${basePath}?style=${style}` as Route,
+          roomStyleLabel(style) ?? style,
+          style === activeStyle
+        )
+      )}
+    </div>
+  );
 }
 
 interface RoomIdeasGalleryProps {
-  initialFeatured: Design[];
-  initialFilters: FilterOptions;
-  roomLabel: string;
-  roomType: RoomType;
+  activeStyle?: RoomStyle;
+  basePath: Route;
+  /** What to say when there is nothing here yet, in the page's own words. */
+  emptyMessage: string;
+  rooms: GalleryCard[];
+  styles: RoomStyle[];
 }
 
+/** The grid itself: real rooms people shared, newest first. */
 export function RoomIdeasGallery({
-  roomType,
-  roomLabel,
-  initialFeatured,
-  initialFilters,
+  activeStyle,
+  basePath,
+  emptyMessage,
+  rooms,
+  styles,
 }: RoomIdeasGalleryProps) {
-  const [selectedStyle, setSelectedStyle] = useState<DesignStyle | "all">(
-    "all"
-  );
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  // Use initial data from SSR
-  const featuredDesigns = initialFeatured;
-  const filterOptions = initialFilters;
-
-  // Fetch all designs with current filters
-  const allDesigns = useQuery(api.ideas.getRoomIdeas, {
-    limit: 50,
-    roomType,
-    style: selectedStyle === "all" ? undefined : selectedStyle,
-    tags: selectedTags.length > 0 ? selectedTags : undefined,
-  });
-
-  const handleTagToggle = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  };
-
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mx-auto max-w-7xl">
-        {/* Featured Section */}
-        {featuredDesigns.length > 0 ? (
-          <section className="mb-16">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h2 className="mb-2 font-bold text-3xl">
-                  Featured {roomLabel} Designs
-                </h2>
-                <p className="text-muted-foreground">
-                  Hand-picked designs from our community
-                </p>
-              </div>
-              <Sparkles className="size-8 text-primary" />
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {featuredDesigns.map((design) => (
-                <DesignCard design={design} key={design._id} />
-              ))}
-            </div>
-          </section>
-        ) : null}
+    <section className="container mx-auto px-4 pb-16 sm:px-6">
+      <div className="mx-auto max-w-6xl">
+        <StyleFilter
+          activeStyle={activeStyle}
+          basePath={basePath}
+          styles={styles}
+        />
 
-        {/* Filters */}
-        <section className="mb-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="flex-1">
-              <p className="mb-2 block font-medium text-sm">Filter by Style</p>
-              <Select
-                onValueChange={(value) =>
-                  setSelectedStyle(value as DesignStyle | "all")
-                }
-                value={selectedStyle}
-              >
-                <SelectTrigger className="w-full md:w-64">
-                  <SelectValue placeholder="All Styles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Styles</SelectItem>
-                  {filterOptions.styles.map(
-                    (style: { style: string; count: number }) => (
-                      <SelectItem key={style.style} value={style.style}>
-                        {style.style.charAt(0).toUpperCase() +
-                          style.style.slice(1)}{" "}
-                        ({style.count})
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
+        {rooms.length === 0 ? (
+          <div className="rounded-2xl border border-border border-dashed px-6 py-16 text-center">
+            <p className="font-serif text-2xl text-foreground">
+              {emptyMessage}
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-muted-foreground text-sm">
+              Upload a photo, comment on what you want changed, and share the
+              result. Shared rooms show up here.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <UploadRoomButton label="Upload a photo" variant="compact" />
             </div>
-
-            {filterOptions && filterOptions.tags.length > 0 ? (
-              <div className="flex-1">
-                <p className="mb-2 block font-medium text-sm">Filter by Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {filterOptions.tags
-                    .slice(0, 10)
-                    .map((tagOption: { tag: string; count: number }) => (
-                      <Badge
-                        className="cursor-pointer"
-                        key={tagOption.tag}
-                        onClick={() => handleTagToggle(tagOption.tag)}
-                        variant={
-                          selectedTags.includes(tagOption.tag)
-                            ? "default"
-                            : "outline"
-                        }
-                      >
-                        {tagOption.tag} ({tagOption.count})
-                      </Badge>
-                    ))}
-                </div>
-              </div>
-            ) : null}
           </div>
-
-          {selectedStyle !== "all" || selectedTags.length > 0 ? (
-            <div className="mt-4">
-              <Button
-                onClick={() => {
-                  setSelectedStyle("all");
-                  setSelectedTags([]);
-                }}
-                size="sm"
-                variant="ghost"
-              >
-                Clear Filters
-              </Button>
-            </div>
-          ) : null}
-        </section>
-
-        {/* All Designs Grid */}
-        <section>
-          <h2 className="mb-6 font-bold text-2xl">
-            All {roomLabel} Designs
-            {allDesigns ? ` (${allDesigns.length})` : ""}
-          </h2>
-
-          {allDesigns && allDesigns.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {allDesigns.map((design) => (
-                <DesignCard design={design} key={design._id} />
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">
-                No designs found with the selected filters. Try adjusting your
-                selection.
-              </p>
-            </div>
-          )}
-        </section>
+        ) : (
+          <div className="grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            {rooms.map((card, index) => (
+              <GalleryRoomCard
+                card={card}
+                key={card.roomId}
+                priority={index < PRIORITY_CARDS}
+              />
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

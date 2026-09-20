@@ -3,7 +3,7 @@ import { HomeShowcase } from "@/components/home-showcase";
 import { RoomComposerBar } from "@/components/room-composer-bar";
 
 const FOOTER_LINKS = [
-  { href: "/ideas", label: "Ideas" },
+  { href: "/ideas", label: "Room ideas" },
   { href: "/blog", label: "Blog" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },

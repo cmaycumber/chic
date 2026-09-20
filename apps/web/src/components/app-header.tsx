@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Compass, LayoutGrid } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/logo";
@@ -9,8 +9,6 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/rooms", icon: LayoutGrid, label: "Rooms" },
-  { href: "/explore", icon: Compass, label: "Explore" },
-  { href: "/saved", icon: Bookmark, label: "Saved" },
 ] as const;
 
 export function AppHeader() {

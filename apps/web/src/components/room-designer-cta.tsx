@@ -1,42 +1,30 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { UploadRoomButton } from "@/components/upload-room-button";
 
 interface RoomDesignerCtaProps {
-  roomType: string;
+  /** Lowercase room name, e.g. "living room". Omit for the whole gallery. */
+  roomLabel?: string;
 }
 
-export function RoomDesignerCta({ roomType }: RoomDesignerCtaProps) {
-  const roomLabel = roomType
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+/** The ask at the bottom of an ideas page: your room, changed by asking. */
+export function RoomDesignerCta({ roomLabel }: RoomDesignerCtaProps) {
+  const subject = roomLabel ? `your ${roomLabel}` : "your room";
 
   return (
-    <section className="container mx-auto px-4 py-12">
-      <Card className="mx-auto max-w-7xl border-2 border-primary/20 bg-linear-to-br from-primary/5 to-primary/10">
-        <CardContent className="flex flex-col items-center gap-6 p-8 text-center md:p-12">
-          <h2 className="font-bold text-3xl md:text-4xl">
-            Design Your Own {roomLabel}
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Love these designs but want something personalized? Use our free AI
-            room designer to create a custom {roomLabel.toLowerCase()} tailored
-            to your style, space, and budget.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button asChild size="lg">
-              <Link href="/design-tools/ai-room-designer">
-                Try AI Room Designer
-              </Link>
-            </Button>
-          </div>
-          <p className="text-muted-foreground text-sm">
-            ✓ 100% Free &nbsp;•&nbsp; ✓ Instant Results &nbsp;•&nbsp; ✓
-            Personalized for Your Space
-          </p>
-        </CardContent>
-      </Card>
+    <section className="container mx-auto px-4 pb-20 sm:px-6">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-5 rounded-3xl border border-border bg-muted/30 px-6 py-12 text-center sm:px-12">
+        <h2 className="font-serif text-3xl text-foreground leading-tight md:text-4xl">
+          Now do this to {subject}
+        </h2>
+        <p className="max-w-xl text-muted-foreground">
+          Upload a photo, pin a comment on whatever you want different, and tap
+          any piece of furniture to shop it on Amazon. Share the before and
+          after when you like it.
+        </p>
+        <UploadRoomButton label="Upload a photo" variant="compact" />
+        <p className="text-muted-foreground text-xs">
+          Free, no sign-up required.
+        </p>
+      </div>
     </section>
   );
 }

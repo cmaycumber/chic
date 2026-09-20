@@ -29,6 +29,7 @@ import type * as ideas from "../ideas.js";
 import type * as lib_amazonAffiliate from "../lib/amazonAffiliate.js";
 import type * as lib_amazonSearch from "../lib/amazonSearch.js";
 import type * as lib_email from "../lib/email.js";
+import type * as lib_roomTaxonomy from "../lib/roomTaxonomy.js";
 import type * as lib_utils from "../lib/utils.js";
 import type * as likes from "../likes.js";
 import type * as messages from "../messages.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "lib/amazonAffiliate": typeof lib_amazonAffiliate;
   "lib/amazonSearch": typeof lib_amazonSearch;
   "lib/email": typeof lib_email;
+  "lib/roomTaxonomy": typeof lib_roomTaxonomy;
   "lib/utils": typeof lib_utils;
   likes: typeof likes;
   messages: typeof messages;

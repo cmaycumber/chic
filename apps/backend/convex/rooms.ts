@@ -17,6 +17,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { authComponent } from "./auth";
+import { type RoomType, vRoomStyle, vRoomType } from "./lib/roomTaxonomy";
 import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import {
   vAnchor,
@@ -30,6 +31,22 @@ import {
 
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_TITLE_LENGTH = 120;
+
+/** Rooms on one gallery page, and the most a caller may ask for. */
+const GALLERY_DEFAULT_LIMIT = 24;
+const GALLERY_MAX_LIMIT = 60;
+
+/**
+ * How many listed rooms to read per page before filtering. A room only earns
+ * a card once it has an edit to show, so more rows are read than handed back.
+ */
+const GALLERY_OVERFETCH = 3;
+
+/** The most rows a whole-gallery scan (sitemap, counts) will ever touch. */
+const GALLERY_SCAN_CAP = 5000;
+
+/** A card needs a before and an after, which means at least two versions. */
+const MIN_GALLERY_VERSIONS = 2;
 
 /** How long a room made without an account is kept before it is deleted. */
 const MS_PER_DAY = 86_400_000;
@@ -376,8 +393,11 @@ export const get = privateQuery({
         // Only the owner hands out edit access, so only the owner is told
         // whether a link is out there.
         inviteToken: role === "owner" ? room.inviteToken : undefined,
+        isListed: room.isListed,
         isPublic: room.isPublic,
+        roomType: room.roomType,
         status: room.status,
+        style: room.style,
         title: room.title,
       },
       versions,
@@ -395,8 +415,11 @@ export const get = privateQuery({
         currentVersionId: v.optional(v.id("roomVersions")),
         error: v.optional(v.string()),
         inviteToken: v.optional(v.string()),
+        isListed: v.optional(v.boolean()),
         isPublic: v.optional(v.boolean()),
+        roomType: v.optional(vRoomType),
         status: vRoomStatus,
+        style: v.optional(vRoomStyle),
         title: v.optional(v.string()),
       }),
       versions: v.array(vVersionOut),
@@ -406,14 +429,70 @@ export const get = privateQuery({
 });
 
 /**
+ * A room cannot sit in the gallery untagged: `/ideas/[roomType]` is the whole
+ * point of listing it. Rooms made before tagging existed get classified the
+ * moment someone lists them.
+ */
+async function scheduleClassifyIfNeeded(
+  ctx: MutationCtx,
+  room: Doc<"rooms">,
+  isListed: boolean
+) {
+  if (!isListed || room.roomType) {
+    return;
+  }
+  await ctx.scheduler.runAfter(0, internal.roomsAi.internalClassifyRoom, {
+    roomId: room._id,
+  });
+}
+
+/**
  * Share a room by link, or stop sharing it. A public room is readable by
  * anyone who has its id through `getPublic`, which never exposes user ids.
+ *
+ * Sharing also offers the room to the gallery unless the owner says otherwise:
+ * the toggle in the share sheet starts on. Unsharing takes it straight back
+ * out, because a room nobody can open has no business being advertised.
  */
 export const setPublic = privateMutation({
-  args: { isPublic: v.boolean(), roomId: v.id("rooms") },
+  args: {
+    isListed: v.optional(v.boolean()),
+    isPublic: v.boolean(),
+    roomId: v.id("rooms"),
+  },
   handler: async (ctx, args) => {
     const room = await getOwnedRoom(ctx, ctx.userId, args.roomId);
-    await ctx.db.patch(room._id, { isPublic: args.isPublic });
+    const isListed = args.isPublic ? (args.isListed ?? true) : false;
+    await ctx.db.patch(room._id, {
+      isListed,
+      isPublic: args.isPublic,
+      ...(isListed ? { listedAt: Date.now() } : {}),
+    });
+    await scheduleClassifyIfNeeded(ctx, room, isListed);
+    return null;
+  },
+  returns: v.null(),
+});
+
+/**
+ * Put a shared room in the public gallery, or take it out again, without
+ * touching the share link itself.
+ */
+export const setListed = privateMutation({
+  args: { isListed: v.boolean(), roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await getOwnedRoom(ctx, ctx.userId, args.roomId);
+    if (args.isListed && !room.isPublic) {
+      throw new ConvexError("Share the room first");
+    }
+    // A room that has been in the gallery before keeps the date it first
+    // appeared, so relisting does not jump the queue.
+    const firstListing = args.isListed && room.listedAt === undefined;
+    await ctx.db.patch(room._id, {
+      isListed: args.isListed,
+      ...(firstListing ? { listedAt: Date.now() } : {}),
+    });
+    await scheduleClassifyIfNeeded(ctx, room, args.isListed);
     return null;
   },
   returns: v.null(),
@@ -468,11 +547,25 @@ export const getPublic = publicQuery({
       text: comment.text,
     }));
 
-    return { comments, title: room.title, versions };
+    const names = await namesByUserId(ctx, [room.userId]);
+
+    return {
+      comments,
+      isListed: room.isListed,
+      ownerName: names.get(room.userId),
+      roomType: room.roomType,
+      style: room.style,
+      title: room.title,
+      versions,
+    };
   },
   returns: v.union(
     v.object({
       comments: v.array(vPublicCommentOut),
+      isListed: v.optional(v.boolean()),
+      ownerName: v.optional(v.string()),
+      roomType: v.optional(vRoomType),
+      style: v.optional(vRoomStyle),
       title: v.optional(v.string()),
       versions: v.array(vPublicVersionOut),
     }),
@@ -533,6 +626,211 @@ export const getInvitePreview = publicQuery({
     }),
     v.null()
   ),
+});
+
+// ---------------------------------------------------------------------------
+// The public gallery at /ideas
+// ---------------------------------------------------------------------------
+
+/** One room as the gallery grid shows it: the before, the after, the tags. */
+const vGalleryCard = v.object({
+  afterUrl: v.union(v.string(), v.null()),
+  beforeUrl: v.union(v.string(), v.null()),
+  commentCount: v.number(),
+  itemCount: v.number(),
+  listedAt: v.number(),
+  ownerName: v.optional(v.string()),
+  roomId: v.id("rooms"),
+  roomType: v.optional(vRoomType),
+  style: v.optional(vRoomStyle),
+  title: v.optional(v.string()),
+});
+
+/** Listed rooms newest first, narrowed to one room type when asked for. */
+async function listedRooms(
+  ctx: QueryCtx,
+  roomType: RoomType | undefined,
+  take: number
+): Promise<Doc<"rooms">[]> {
+  if (roomType === undefined) {
+    return await ctx.db
+      .query("rooms")
+      .withIndex("by_listed", (q) => q.eq("isListed", true))
+      .order("desc")
+      .take(take);
+  }
+  return await ctx.db
+    .query("rooms")
+    .withIndex("by_listed_type", (q) =>
+      q.eq("isListed", true).eq("roomType", roomType)
+    )
+    .order("desc")
+    .take(take);
+}
+
+/**
+ * The two photos a card is made of, or null when there is nothing to show
+ * yet: a room earns its place in the gallery by having been changed.
+ */
+function galleryPair(room: Doc<"rooms">, versions: Doc<"roomVersions">[]) {
+  if (versions.length < MIN_GALLERY_VERSIONS) {
+    return null;
+  }
+  const before = versions.at(0);
+  const current = versions.find(
+    (version) => version._id === room.currentVersionId
+  );
+  const after = current ?? versions.at(-1);
+  if (!(before && after) || before._id === after._id) {
+    return null;
+  }
+  return { after, before };
+}
+
+/**
+ * The gallery: public rooms whose owners offered them up, newest first.
+ *
+ * Filtering happens in memory after the index read because what makes a room
+ * worth showing — a finished render that differs from the photo it started as
+ * — lives in its versions, not on the room.
+ */
+export const listGallery = publicQuery({
+  args: {
+    limit: v.optional(v.number()),
+    roomType: v.optional(vRoomType),
+    style: v.optional(vRoomStyle),
+  },
+  handler: async (ctx, args) => {
+    const limit = Math.min(
+      args.limit ?? GALLERY_DEFAULT_LIMIT,
+      GALLERY_MAX_LIMIT
+    );
+    const candidates = await listedRooms(
+      ctx,
+      args.roomType,
+      limit * GALLERY_OVERFETCH
+    );
+
+    const eligible = candidates.filter(
+      (room) =>
+        room.isPublic &&
+        room.status === "ready" &&
+        (args.style === undefined || room.style === args.style)
+    );
+
+    const withVersions = await Promise.all(
+      eligible.map(async (room) => ({
+        room,
+        versions: await ctx.db
+          .query("roomVersions")
+          .withIndex("by_room", (q) => q.eq("roomId", room._id))
+          .order("asc")
+          .collect(),
+      }))
+    );
+
+    const showable = withVersions
+      .map(({ room, versions }) => {
+        const pair = galleryPair(room, versions);
+        return pair ? { ...pair, room } : null;
+      })
+      .filter((entry) => entry !== null)
+      .slice(0, limit);
+
+    const names = await namesByUserId(
+      ctx,
+      showable.map((entry) => entry.room.userId)
+    );
+
+    const rooms = await Promise.all(
+      showable.map(async ({ after, before, room }) => {
+        const [beforeUrl, afterUrl, comments] = await Promise.all([
+          ctx.storage.getUrl(before.imageStorageId),
+          ctx.storage.getUrl(after.imageStorageId),
+          ctx.db
+            .query("roomComments")
+            .withIndex("by_room", (q) => q.eq("roomId", room._id))
+            .collect(),
+        ]);
+        return {
+          afterUrl,
+          beforeUrl,
+          commentCount: comments.filter(
+            (comment) => comment.status === "applied"
+          ).length,
+          itemCount: after.items?.length ?? 0,
+          listedAt: room.listedAt ?? room._creationTime,
+          ownerName: names.get(room.userId),
+          roomId: room._id,
+          roomType: room.roomType,
+          style: room.style,
+          title: room.title,
+        };
+      })
+    );
+
+    return { rooms };
+  },
+  returns: v.object({ rooms: v.array(vGalleryCard) }),
+});
+
+/** Every listed room, for the sitemap. Ids and dates only. */
+export const listGalleryForSitemap = publicQuery({
+  args: {},
+  handler: async (ctx) => {
+    const listed = await ctx.db
+      .query("rooms")
+      .withIndex("by_listed", (q) => q.eq("isListed", true))
+      .order("desc")
+      .take(GALLERY_SCAN_CAP);
+
+    return {
+      rooms: listed
+        .filter((room) => room.isPublic)
+        .map((room) => ({
+          listedAt: room.listedAt ?? room._creationTime,
+          roomId: room._id,
+          roomType: room.roomType,
+        })),
+    };
+  },
+  returns: v.object({
+    rooms: v.array(
+      v.object({
+        listedAt: v.number(),
+        roomId: v.id("rooms"),
+        roomType: v.optional(vRoomType),
+      })
+    ),
+  }),
+});
+
+/** How many listed rooms there are of each type, biggest category first. */
+export const galleryCounts = publicQuery({
+  args: {},
+  handler: async (ctx) => {
+    const listed = await ctx.db
+      .query("rooms")
+      .withIndex("by_listed", (q) => q.eq("isListed", true))
+      .order("desc")
+      .take(GALLERY_SCAN_CAP);
+
+    const tally = new Map<RoomType, number>();
+    for (const room of listed) {
+      if (room.isPublic && room.roomType) {
+        tally.set(room.roomType, (tally.get(room.roomType) ?? 0) + 1);
+      }
+    }
+
+    return {
+      counts: [...tally]
+        .map(([roomType, count]) => ({ count, roomType }))
+        .sort((a, b) => b.count - a.count),
+    };
+  },
+  returns: v.object({
+    counts: v.array(v.object({ count: v.number(), roomType: vRoomType })),
+  }),
 });
 
 /**
@@ -901,6 +1199,64 @@ export const internalTransferOwnership = internalMutation({
 export const internalGetVersion = internalQuery({
   args: { versionId: v.id("roomVersions") },
   handler: async (ctx, args) => await ctx.db.get(args.versionId),
+});
+
+/** What the room is already tagged with, so detection only fills a gap. */
+export const internalGetRoomTags = internalQuery({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room) {
+      return null;
+    }
+    return { roomType: room.roomType, style: room.style };
+  },
+});
+
+/**
+ * The image to classify an untagged room from: whichever version its owner is
+ * looking at. Null when the room is gone or already tagged, which is the
+ * common case by the time a scheduled backfill runs.
+ */
+export const internalGetRoomToClassify = internalQuery({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room || room.roomType) {
+      return null;
+    }
+    const versions = await ctx.db
+      .query("roomVersions")
+      .withIndex("by_room", (q) => q.eq("roomId", room._id))
+      .order("asc")
+      .collect();
+    const current = versions.find(
+      (version) => version._id === room.currentVersionId
+    );
+    const shown = current ?? versions.at(-1);
+    return shown ? { imageStorageId: shown.imageStorageId } : null;
+  },
+});
+
+/** Record the room type and style the vision model read off the photo. */
+export const internalSetRoomTags = internalMutation({
+  args: {
+    roomId: v.id("rooms"),
+    roomType: vRoomType,
+    style: vRoomStyle,
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room) {
+      return null;
+    }
+    await ctx.db.patch(room._id, {
+      roomType: args.roomType,
+      style: args.style,
+    });
+    return null;
+  },
+  returns: v.null(),
 });
 
 export const internalGetCommentContext = internalQuery({

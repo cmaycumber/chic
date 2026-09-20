@@ -1,5 +1,9 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+// The gallery's room types and styles live in ./lib/roomTaxonomy, which the
+// web app imports too. They are not re-exported from here: one import path
+// for the whole vocabulary.
+import { vRoomStyle, vRoomType } from "./lib/roomTaxonomy";
 
 const design = v.object({
   // For now we only have one type of artifact, but we could add more later.
@@ -186,15 +190,29 @@ export default defineSchema({
     expiresAt: v.optional(v.number()),
     /** The secret in an invite link. Absent once the owner revokes it. */
     inviteToken: v.optional(v.string()),
+    /**
+     * Opted in to the public gallery at `/ideas`. Only meaningful while the
+     * room is public: sharing is what makes it readable, listing is what puts
+     * it in front of people who were not sent the link.
+     */
+    isListed: v.optional(v.boolean()),
     /** Shared by link: anyone with the room id can read it through `getPublic`. */
     isPublic: v.optional(v.boolean()),
+    /** When the room entered the gallery; the gallery's sort order. */
+    listedAt: v.optional(v.number()),
     originalImageStorageId: v.id("_storage"),
+    /** What kind of room the photo shows, tagged by the detection model. */
+    roomType: v.optional(vRoomType),
     status: vRoomStatus,
+    /** The dominant decor style, tagged by the detection model. */
+    style: v.optional(vRoomStyle),
     title: v.optional(v.string()),
     userId: v.string(),
   })
     .index("by_expiresAt", ["expiresAt"])
     .index("by_inviteToken", ["inviteToken"])
+    .index("by_listed", ["isListed", "listedAt"])
+    .index("by_listed_type", ["isListed", "roomType", "listedAt"])
     .index("by_user", ["userId"]),
 
   /** One rendered image of a room (the original upload is version 0). */

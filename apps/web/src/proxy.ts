@@ -10,9 +10,6 @@ const AUTH_ROUTES = ["/login", "/signup"];
  */
 const ROOM_ROUTES = ["/rooms", "/room"];
 
-/** Routes that genuinely need an account. */
-const ACCOUNT_ROUTES = ["/explore", "/saved"];
-
 const matchesRoute = (pathname: string, routes: readonly string[]) =>
   routes.some((route) => pathname.startsWith(route));
 
@@ -46,12 +43,6 @@ export async function proxy(request: NextRequest) {
   // Without any session there is nothing to show here yet: start at home.
   if (matchesRoute(pathname, ROOM_ROUTES)) {
     return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  if (matchesRoute(pathname, ACCOUNT_ROUTES)) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

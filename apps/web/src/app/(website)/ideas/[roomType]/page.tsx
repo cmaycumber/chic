@@ -1,199 +1,152 @@
-import { api } from "@furnish/backend/convex/_generated/api";
-import { fetchQuery } from "convex/nextjs";
-import type { Metadata } from "next";
+import { ROOM_TYPES } from "@furnish/backend/convex/lib/roomTaxonomy";
+import type { Metadata, Route } from "next";
 import { notFound } from "next/navigation";
 import { RoomDesignerCta } from "@/components/room-designer-cta";
 import { RoomIdeasGallery } from "@/components/room-ideas-gallery";
 import { RoomIdeasHero } from "@/components/room-ideas-hero";
+import { loadGallery } from "@/lib/gallery";
+import {
+  isRoomType,
+  parseStyleParam,
+  type RoomType,
+  roomTypeLabel,
+  roomTypeTitle,
+} from "@/lib/room-taxonomy";
+import { siteConfig } from "@/lib/site-config";
 
-type Params = Promise<{
-  roomType: string;
-}>;
+/** The gallery moves at the speed people share rooms, which is not fast. */
+export const revalidate = 300;
 
-const VALID_ROOM_TYPES = [
-  "living-room",
-  "bedroom",
-  "kitchen",
-  "bathroom",
-  "dining-room",
-  "home-office",
-  "family-room",
-  "nursery",
-  "outdoor",
-] as const;
+const GALLERY_LIMIT = 24;
 
-const ROOM_LABELS: Record<string, string> = {
-  bathroom: "Bathroom",
-  bedroom: "Bedroom",
-  "dining-room": "Dining Room",
-  "family-room": "Family Room",
-  "home-office": "Home Office",
-  kitchen: "Kitchen",
-  "living-room": "Living Room",
-  nursery: "Nursery",
-  outdoor: "Outdoor Space",
-};
+interface RoomIdeasPageProps {
+  params: Promise<{ roomType: string }>;
+  searchParams: Promise<{ style?: string }>;
+}
 
-const ROOM_DESCRIPTIONS: Record<string, string> = {
-  bathroom:
-    "Create your dream bathroom with our curated design gallery. Browse spa-like, modern, and traditional bathroom ideas with shopping guides.",
-  bedroom:
-    "Transform your bedroom into a serene retreat. Explore cozy, modern, and luxurious bedroom designs with complete furniture shopping lists.",
-  "dining-room":
-    "Elevate your dining space with elegant design ideas. Explore formal and casual dining room styles with complete furniture and lighting recommendations.",
-  "family-room":
-    "Create the perfect family gathering space. Discover comfortable, durable, and stylish family room designs that work for everyone.",
-  "home-office":
-    "Design a productive workspace you'll love. Browse modern, minimalist, and cozy home office ideas with ergonomic furniture suggestions.",
-  kitchen:
-    "Get inspired by stunning kitchen designs. From farmhouse to modern, find your perfect kitchen style with practical layout ideas and product recommendations.",
-  "living-room":
-    "Discover inspiring living room designs from modern to traditional. Browse hundreds of curated living room ideas with real furniture and decor recommendations.",
-  nursery:
-    "Design a beautiful and functional nursery for your little one. Explore gender-neutral, modern, and classic nursery ideas with safety in mind.",
-  outdoor:
-    "Transform your outdoor living space into an oasis. Browse patio, deck, and garden designs with furniture and decor ideas for every budget.",
-};
-
+/** The nine pages exist whether or not anyone has shared one of these yet. */
 export function generateStaticParams() {
-  return VALID_ROOM_TYPES.map((roomType) => ({
-    roomType,
-  }));
+  return ROOM_TYPES.map((roomType) => ({ roomType }));
+}
+
+/** "living room", the way it reads mid-sentence. */
+function lowerLabel(roomType: RoomType): string {
+  return roomTypeLabel(roomType).toLowerCase();
+}
+
+function describe(roomType: RoomType): string {
+  const label = lowerLabel(roomType);
+  return `Real ${label} photos on Chic, before and after. Every one started as somebody's own ${label}: comment to change it, tap any piece to shop it on Amazon.`;
 }
 
 export async function generateMetadata({
   params,
-}: {
-  params: Params;
-}): Promise<Metadata> {
+}: RoomIdeasPageProps): Promise<Metadata> {
   const { roomType } = await params;
 
-  if (
-    !VALID_ROOM_TYPES.includes(roomType as (typeof VALID_ROOM_TYPES)[number])
-  ) {
-    return {
-      title: "Room Not Found",
-    };
+  if (!isRoomType(roomType)) {
+    return { title: "Room not found" };
   }
 
-  const roomLabel = ROOM_LABELS[roomType];
-  const description = ROOM_DESCRIPTIONS[roomType];
+  const label = roomTypeLabel(roomType);
+  const lower = lowerLabel(roomType);
+  const title = `${label} ideas from real rooms, before and after`;
+  const description = describe(roomType);
 
   return {
+    alternates: { canonical: `${siteConfig.baseUrl}/ideas/${roomType}` },
     description,
     keywords: [
-      `${roomType} ideas`,
-      `${roomType} design`,
-      `${roomType} decor ideas`,
-      `modern ${roomType} ideas`,
-      `small ${roomType} ideas`,
-      `${roomLabel.toLowerCase()} inspiration`,
-      "interior design ideas",
-      "room design",
+      `${lower} ideas`,
+      `${lower} before and after`,
+      `${lower} makeover`,
+      `real ${lower} redesigns`,
+      `shoppable ${lower} design`,
     ],
     openGraph: {
       description,
-      images: [
-        {
-          alt: `${roomLabel} Design Ideas - Inspiring interior designs`,
-          height: 630,
-          url: "/images/ai-room-designer-bedroom.png",
-          width: 1200,
-        },
-      ],
-      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
+      siteName: "Chic",
+      title,
       type: "website",
     },
-    title: `${roomLabel} Ideas: 50+ Inspiring Designs | Chic AI Interior Designer`,
+    title: `${roomTypeTitle(roomType)} Ideas: Real Rooms, Before and After | Chic`,
     twitter: {
       card: "summary_large_image",
       description,
-      images: ["/images/ai-room-designer-bedroom.png"],
-      title: `${roomLabel} Ideas - Inspiring Interior Designs`,
+      title,
     },
   };
 }
 
-export default async function RoomIdeasPage({ params }: { params: Params }) {
-  const resolvedParams = await params;
-  const { roomType } = resolvedParams;
+export default async function RoomIdeasPage({
+  params,
+  searchParams,
+}: RoomIdeasPageProps) {
+  const { roomType } = await params;
 
-  if (
-    !VALID_ROOM_TYPES.includes(roomType as (typeof VALID_ROOM_TYPES)[number])
-  ) {
+  if (!isRoomType(roomType)) {
     notFound();
   }
 
-  const roomLabel = ROOM_LABELS[roomType];
-
-  // Fetch featured designs for SSR
-  const featuredDesigns = await fetchQuery(api.ideas.getFeaturedRoomDesigns, {
-    limit: 6,
-    roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
+  const style = parseStyleParam((await searchParams).style);
+  const gallery = await loadGallery({
+    limit: GALLERY_LIMIT,
+    roomType,
+    style,
   });
 
-  // Fetch filter options
-  const filterOptions = await fetchQuery(api.ideas.getRoomFilterOptions, {
-    roomType: roomType as (typeof VALID_ROOM_TYPES)[number],
-  });
+  const label = roomTypeLabel(roomType);
+  const lower = lowerLabel(roomType);
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-muted/20">
-      {/* Hero Section */}
+    <div className="min-h-screen">
       <RoomIdeasHero
-        description={ROOM_DESCRIPTIONS[roomType]}
-        roomLabel={roomLabel}
+        description={describe(roomType)}
+        roomCount={gallery.total}
+        title={`${label} ideas from real rooms, before and after`}
       />
 
-      {/* Main Gallery with Filters */}
       <RoomIdeasGallery
-        initialFeatured={featuredDesigns}
-        initialFilters={filterOptions}
-        roomLabel={roomLabel}
-        roomType={roomType as (typeof VALID_ROOM_TYPES)[number]}
+        activeStyle={style}
+        basePath={`/ideas/${roomType}` as Route}
+        emptyMessage={`Be the first to share a ${lower}.`}
+        rooms={gallery.rooms}
+        styles={gallery.styles}
       />
 
-      {/* SEO Content Section */}
-      <section className="container mx-auto px-4 py-12">
-        <article className="prose prose-lg dark:prose-invert mx-auto max-w-7xl">
-          <h2>About {roomLabel} Design Ideas</h2>
-          <p>{ROOM_DESCRIPTIONS[roomType]}</p>
-
-          <h3>Popular {roomLabel} Styles</h3>
-          <p>
-            Whether you're drawn to modern minimalism, cozy traditional, or
-            eclectic bohemian style, our curated {roomLabel.toLowerCase()}{" "}
-            designs showcase the best of every aesthetic. Each design includes
-            detailed product recommendations and styling tips to help you
-            recreate the look in your own home.
-          </p>
-
-          <h3>How to Use These {roomLabel} Ideas</h3>
-          <p>
-            Browse our gallery to find designs that inspire you. Each{" "}
-            {roomLabel.toLowerCase()} idea includes:
-          </p>
-          <ul>
-            <li>High-quality design visualizations</li>
-            <li>Complete product lists with pricing</li>
-            <li>Style and color palette details</li>
-            <li>Budget breakdowns</li>
-            <li>Shopping links to purchase items</li>
-          </ul>
-
-          <h3>Create Your Own {roomLabel} Design</h3>
-          <p>
-            Love what you see but want to customize it for your space? Use our
-            free AI room designer tool to generate personalized{" "}
-            {roomLabel.toLowerCase()} designs tailored to your style, budget,
-            and room dimensions. Simply describe your vision, and our AI will
-            create professional design concepts in seconds.
-          </p>
-        </article>
+      <section className="container mx-auto px-4 pb-14 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-3xl space-y-8 text-muted-foreground">
+            <div className="space-y-3">
+              <h2 className="font-serif text-2xl text-foreground">
+                Why these {lower} photos look like {lower}s
+              </h2>
+              <p>
+                Because they are. Every {lower} here began as a photo of a real
+                one, with its real proportions, its real windows and its real
+                awkward corner. The person who uploaded it pinned a comment on
+                the part they wanted different, and the photo changed around the
+                comment. Nothing was generated from scratch, so nothing has that
+                showroom look that turns out to be unbuildable in your actual
+                room.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <h2 className="font-serif text-2xl text-foreground">
+                Steal the pieces, not just the look
+              </h2>
+              <p>
+                Open any {lower} above and tap the furniture in it. Chic finds
+                each piece on Amazon, so a {lower} you like is a shopping list
+                rather than a mood board. The count on each card says how many
+                pieces in that room are already matched.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* AI Tool CTA */}
-      <RoomDesignerCta roomType={roomType} />
+      <RoomDesignerCta roomLabel={lower} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Sparkles } from "lucide-react";
 import Link from "next/link";
+import { siteConfig } from "@/lib/site-config";
 
 export function PublicFooter() {
   return (
@@ -10,9 +11,7 @@ export function PublicFooter() {
             <Sparkles className="size-5 text-foreground" />
             <span className="font-medium text-base">chic</span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Your AI interior designer
-          </p>
+          <p className="text-muted-foreground text-sm">{siteConfig.tagline}</p>
         </div>
 
         <div className="mb-12 grid gap-12 md:grid-cols-5">
@@ -41,7 +40,7 @@ export function PublicFooter() {
                 className="transition-colors hover:text-foreground"
                 href="/design-tools/ai-room-designer"
               >
-                AI Room Designer
+                Room Designer
               </Link>
             </div>
           </div>
@@ -53,7 +52,7 @@ export function PublicFooter() {
                 className="transition-colors hover:text-foreground"
                 href="/ideas"
               >
-                Explore All Ideas
+                Room ideas
               </Link>
               <Link
                 className="transition-colors hover:text-foreground"
@@ -127,7 +126,7 @@ export function PublicFooter() {
 
         <div className="border-t pt-8">
           <p className="text-muted-foreground text-sm">
-            © 2025 chic. All rights reserved.
+            © 2026 chic. All rights reserved.
           </p>
         </div>
       </div>

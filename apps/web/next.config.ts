@@ -28,6 +28,16 @@ const nextConfig: NextConfig = {
       new URL("https://m.media-amazon.com/**"),
     ],
   },
+  // The design gallery these paths served is gone; the room gallery replaced
+  // it, so every old link lands on the nearest thing that still exists.
+  redirects() {
+    return [
+      { destination: "/ideas", permanent: true, source: "/explore" },
+      { destination: "/ideas", permanent: true, source: "/explore/:designId" },
+      { destination: "/ideas", permanent: true, source: "/design/:designId" },
+      { destination: "/rooms", permanent: true, source: "/saved" },
+    ];
+  },
   rewrites() {
     return [
       {

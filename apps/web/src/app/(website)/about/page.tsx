@@ -1,4 +1,4 @@
-import { Target, Users, Zap } from "lucide-react";
+import { Clock, MessageSquare, ShoppingBag } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -6,35 +6,35 @@ import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = {
   description:
-    "Learn about Chic, the free AI interior designer democratizing professional interior design. Get expert design guidance, instant room visualizations, and personalized recommendations at no cost.",
+    "Chic turns a photo of your room into one you can change with a comment and shop from Amazon. No prompts, no design brief, no sign-up required.",
   keywords: [
     "about chic",
-    "ai interior designer",
-    "free interior design",
-    "design technology",
-    "home design ai",
+    "ai room redesign",
+    "comment to edit a room photo",
+    "shoppable room design",
+    "free room design tool",
   ],
   openGraph: {
     description:
-      "Democratizing professional interior design through AI. Get expert design guidance and instant room visualizations for free.",
+      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to use.",
     images: [
       {
-        alt: "About Chic - Your AI Interior Designer",
+        alt: "About Chic",
         height: 630,
         url: "/images/ai-room-designer-hero.png",
         width: 1200,
       },
     ],
-    title: "About Chic - Your AI Interior Designer",
+    title: "About Chic",
     type: "website",
   },
-  title: "About Chic - Your AI Interior Designer | Free Interior Design Tool",
+  title: "About Chic | Redesign a Room With a Comment, Not a Prompt",
   twitter: {
     card: "summary_large_image",
     description:
-      "Democratizing professional interior design through AI. Get expert design guidance and instant room visualizations for free.",
+      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to use.",
     images: ["/images/ai-room-designer-hero.png"],
-    title: "About Chic - Your AI Interior Designer",
+    title: "About Chic",
   },
 };
 
@@ -46,12 +46,13 @@ export default function AboutPage() {
         <div className="container mx-auto px-6">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="font-bold text-4xl tracking-tight md:text-5xl">
-              About Chic - Your AI Interior Designer
+              About Chic
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              We're democratizing professional interior design through
-              artificial intelligence. Get expert design guidance, instant room
-              visualizations, and personalized recommendations—all for free.
+              Chic turns a photo of your room into a room you can actually
+              change, and buy from. Upload a photo, leave a comment on what you
+              want different, and watch it happen in about 20 seconds. Free, no
+              sign-up required.
             </p>
           </div>
         </div>
@@ -64,82 +65,65 @@ export default function AboutPage() {
             <div className="grid gap-12 md:grid-cols-3">
               <Card className="p-8 text-center">
                 <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
-                  <Target className="size-8 text-primary" />
-                </div>
-                <h3 className="mt-6 font-semibold text-xl">Our Mission</h3>
-                <p className="mt-4 text-muted-foreground">
-                  Make professional interior design accessible to everyone
-                  through our AI interior designer. Whether you're a first-time
-                  decorator or experienced designer, our AI provides expert
-                  guidance at no cost.
-                </p>
-              </Card>
-
-              <Card className="p-8 text-center">
-                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
-                  <Zap className="size-8 text-primary" />
+                  <MessageSquare className="size-8 text-primary" />
                 </div>
                 <h3 className="mt-6 font-semibold text-xl">
-                  Our AI Technology
+                  Comment, don't prompt
                 </h3>
                 <p className="mt-4 text-muted-foreground">
-                  Our AI interior designer uses advanced machine learning models
-                  trained on thousands of professional designs. Get instant room
-                  layouts, color recommendations, and style suggestions tailored
-                  to your unique space.
+                  Writing a paragraph to describe your dream room is slow, and
+                  most people don't have the vocabulary for it anyway. So we
+                  skip that step. Pin a comment to the exact spot in your photo,
+                  like "swap this sofa for a green velvet one," and the room
+                  updates around it.
                 </p>
               </Card>
 
               <Card className="p-8 text-center">
                 <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
-                  <Users className="size-8 text-primary" />
+                  <ShoppingBag className="size-8 text-primary" />
                 </div>
-                <h3 className="mt-6 font-semibold text-xl">Our Community</h3>
+                <h3 className="mt-6 font-semibold text-xl">
+                  Every piece is shoppable
+                </h3>
                 <p className="mt-4 text-muted-foreground">
-                  Thousands of homeowners, renters, and design enthusiasts
-                  creating beautiful spaces together.
+                  A redesign you can't buy from is just a picture. Tap any piece
+                  of furniture in your new photo and we point you to it on
+                  Amazon, so the room you imagined is one you can build.
                 </p>
               </Card>
-            </div>
 
-            <div className="space-y-6">
-              <h2 className="font-bold text-3xl">Our Story</h2>
-              <div className="space-y-4 text-muted-foreground">
-                <p>
-                  Chic was born from a simple observation: professional interior
-                  designers charge thousands of dollars, putting expert design
-                  guidance out of reach for most people. Yet everyone deserves a
-                  beautiful, functional space.
+              <Card className="p-8 text-center">
+                <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
+                  <Clock className="size-8 text-primary" />
+                </div>
+                <h3 className="mt-6 font-semibold text-xl">Free, no sign-up</h3>
+                <p className="mt-4 text-muted-foreground">
+                  Upload a photo and start commenting without creating an
+                  account. Rooms stick around on their own for 7 days. Sign in
+                  only if you want to keep one longer or invite someone else to
+                  edit it with you.
                 </p>
-                <p>
-                  We built Chic as your personal AI interior designer. By
-                  combining cutting-edge artificial intelligence with proven
-                  design principles, we deliver professional-quality interior
-                  design guidance—completely free. Our AI analyzes your space,
-                  understands your style, and provides instant, personalized
-                  recommendations.
-                </p>
-                <p>
-                  Whether you're redecorating a single room or planning a
-                  complete home renovation, our AI interior designer helps you
-                  make confident decisions about colors, furniture, layouts, and
-                  budgets. Chat with your AI designer anytime, upload room
-                  photos, and watch your vision come to life.
-                </p>
-              </div>
+              </Card>
             </div>
 
             <div className="rounded-lg border bg-card p-12 text-center">
-              <h3 className="font-bold text-2xl">
-                Ready to transform your space?
-              </h3>
+              <h3 className="font-bold text-2xl">Have a question?</h3>
               <p className="mt-4 text-muted-foreground">
-                Join our community and start your design journey today.
+                We read every message. Or just try it yourself, it takes about
+                20 seconds.
               </p>
-              <div className="mt-8">
-                <Link href="/signup">
-                  <Button size="lg">Get Started Free</Button>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <Link href="/">
+                  <Button size="lg" variant="brass">
+                    Upload a Photo
+                  </Button>
                 </Link>
+                <a href="mailto:chad.maycumber11@gmail.com">
+                  <Button size="lg" variant="outline">
+                    Contact Us
+                  </Button>
+                </a>
               </div>
             </div>
           </div>

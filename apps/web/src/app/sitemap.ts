@@ -1,11 +1,30 @@
+import { api } from "@furnish/backend/convex/_generated/api";
+import { ROOM_TYPES } from "@furnish/backend/convex/lib/roomTaxonomy";
 import { allPosts } from "content-collections";
+import { fetchQuery } from "convex/nextjs";
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site-config";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+/** Rooms people offered to the gallery. Never worth a 500 on the sitemap. */
+async function listedRoomPages(
+  baseUrl: string
+): Promise<MetadataRoute.Sitemap> {
+  try {
+    const { rooms } = await fetchQuery(api.rooms.listGalleryForSitemap, {});
+    return rooms.map((room) => ({
+      changeFrequency: "weekly" as const,
+      lastModified: new Date(room.listedAt),
+      priority: 0.6,
+      url: `${baseUrl}/r/${room.roomId}`,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { baseUrl } = siteConfig;
 
-  // Static pages
   const staticPages: MetadataRoute.Sitemap = [
     {
       changeFrequency: "weekly",
@@ -32,24 +51,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/blog`,
     },
     {
-      changeFrequency: "weekly",
-      lastModified: new Date(),
-      priority: 0.7,
-      url: `${baseUrl}/explore`,
-    },
-    {
-      changeFrequency: "monthly",
-      lastModified: new Date(),
-      priority: 0.6,
-      url: `${baseUrl}/signup`,
-    },
-    {
-      changeFrequency: "monthly",
-      lastModified: new Date(),
-      priority: 0.5,
-      url: `${baseUrl}/login`,
-    },
-    {
       changeFrequency: "yearly",
       lastModified: new Date(),
       priority: 0.3,
@@ -63,25 +64,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Room ideas pages (high priority for SEO)
+  // The gallery and the nine room types it is browsed by.
   const roomIdeasPages: MetadataRoute.Sitemap = [
     {
       changeFrequency: "daily" as const,
       lastModified: new Date(),
-      priority: 1.0, // Main explore page - highest priority
+      priority: 1.0,
       url: `${baseUrl}/ideas`,
     },
-    ...[
-      "living-room",
-      "bedroom",
-      "kitchen",
-      "bathroom",
-      "dining-room",
-      "home-office",
-      "family-room",
-      "nursery",
-      "outdoor",
-    ].map((roomType) => ({
+    ...ROOM_TYPES.map((roomType) => ({
       changeFrequency: "daily" as const,
       lastModified: new Date(),
       priority: 0.9,
@@ -89,7 +80,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
   ];
 
-  // Dynamic blog post pages
   const blogPosts: MetadataRoute.Sitemap = allPosts
     .filter((post) => post.published)
     .map((post) => ({
@@ -99,5 +89,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/blog/${post.slug}`,
     }));
 
-  return [...staticPages, ...roomIdeasPages, ...blogPosts];
+  const roomPages = await listedRoomPages(baseUrl);
+
+  return [...staticPages, ...roomIdeasPages, ...roomPages, ...blogPosts];
 }
