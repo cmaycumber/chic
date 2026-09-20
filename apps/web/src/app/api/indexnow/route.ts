@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     }
 
     // Get all URLs from the sitemap
-    const sitemapEntries = sitemap();
+    const sitemapEntries = await sitemap();
     const urls = sitemapEntries.map((entry) => entry.url);
 
     // Batch URLs (IndexNow has a limit of 10,000 URLs per request)

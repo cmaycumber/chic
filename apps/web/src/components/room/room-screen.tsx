@@ -30,6 +30,7 @@ import {
   buildAnchorLabels,
   buildPinNumbers,
   buildPins,
+  canEditRoom,
   errorMessage,
   findItemLabelAt,
   resolveCurrentVersion,
@@ -170,6 +171,9 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   }
 
   const isGenerating = data.room.status === "generating";
+  // `rooms.get` only answers people who may edit, but the product sheet asks
+  // anyway so a future read-only role cannot slip a write button through.
+  const canEdit = canEditRoom(data.role);
   // On a wide screen a pin gets its own composer beside it, the way a design
   // tool does; the bottom bar stands down so there is only ever one.
   const pinComposerOpen =
@@ -260,8 +264,11 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
 
       {selectedItem && currentVersion ? (
         <ItemProductsSheet
+          canEdit={canEdit}
+          isGenerating={isGenerating}
           item={selectedItem}
           onClose={() => setSelectedItemId(null)}
+          roomId={roomId}
           versionId={currentVersion._id}
         />
       ) : null}

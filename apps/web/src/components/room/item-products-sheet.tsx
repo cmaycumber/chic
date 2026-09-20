@@ -1,8 +1,12 @@
 "use client";
 
+import { api } from "@furnish/backend/convex/_generated/api";
 import type { Id } from "@furnish/backend/convex/_generated/dataModel";
-import { ExternalLink, Star, X } from "lucide-react";
+import { useMutation } from "convex/react";
+import { ExternalLink, Sparkles, Star, X } from "lucide-react";
 import Image from "next/image";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -12,27 +16,129 @@ import {
 } from "@/components/ui/drawer";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { RoomItem, RoomProduct } from "./types";
 import { useItemProducts } from "./use-item-products";
 import {
   amazonSearchUrl,
+  errorMessage,
   formatPrice,
   GLASS_RESET,
   PANEL_DISPLACEMENT,
   PANEL_RADIUS,
+  shortProductName,
 } from "./utils";
 
 const SKELETON_KEYS = ["first", "second", "third"] as const;
 const RATING_DECIMALS = 1;
 
 interface ItemProductsSheetProps {
+  /** Owners and invited editors can put a product in the photo; nobody else. */
+  canEdit: boolean;
+  isGenerating: boolean;
   item: RoomItem;
   onClose: () => void;
+  roomId: Id<"rooms">;
   versionId: Id<"roomVersions">;
 }
 
-function ProductCard({ product }: { product: RoomProduct }) {
+/** Everything a product card needs to offer "Add to room". */
+interface AddState {
+  canEdit: boolean;
+  isGenerating: boolean;
+  onAdd: (product: RoomProduct) => void;
+  /** The product link we are asking the backend about right now. */
+  pendingUrl: string | null;
+}
+
+/**
+ * Asking for a real product is just a comment: it renders that exact piece
+ * into the photo and lands in the history beside everything else you asked
+ * for, so the sheet can close the moment the comment exists.
+ */
+function useAddProduct({
+  baseVersionId,
+  itemId,
+  onClose,
+  roomId,
+}: {
+  baseVersionId: Id<"roomVersions">;
+  itemId: string;
+  onClose: () => void;
+  roomId: Id<"rooms">;
+}) {
+  const addProductComment = useMutation(api.rooms.addProductComment);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+
+  const onAdd = useCallback(
+    (product: RoomProduct) => {
+      setPendingUrl(product.productUrl);
+      addProductComment({
+        baseVersionId,
+        itemId,
+        product: {
+          imageUrl: product.imageUrl,
+          name: product.name,
+          price: product.price,
+          productUrl: product.productUrl,
+          rating: product.rating,
+          reviewCount: product.reviewCount,
+        },
+        roomId,
+      })
+        .then(() => {
+          toast.success(
+            `Rendering ${shortProductName(product.name)} into your room`
+          );
+          onClose();
+        })
+        .catch((error: unknown) => toast.error(errorMessage(error)))
+        .finally(() => setPendingUrl(null));
+    },
+    [addProductComment, baseVersionId, itemId, onClose, roomId]
+  );
+
+  return { onAdd, pendingUrl };
+}
+
+/** The whole point of the sheet: put this exact thing in my photo. */
+function AddToRoomButton({
+  add,
+  product,
+}: {
+  add: AddState;
+  product: RoomProduct;
+}) {
+  if (!add.canEdit) {
+    return null;
+  }
+
+  const isAdding = add.pendingUrl === product.productUrl;
+  const isBusy = add.isGenerating || add.pendingUrl !== null;
+
+  return (
+    <Button
+      className="w-fit"
+      disabled={isBusy}
+      onClick={() => add.onAdd(product)}
+      size="sm"
+      type="button"
+      variant="glass-brass"
+    >
+      {isAdding ? <Spinner className="size-3.5" /> : <Sparkles />}
+      {add.isGenerating ? "Rendering…" : "Add to room"}
+    </Button>
+  );
+}
+
+function ProductCard({
+  add,
+  product,
+}: {
+  add: AddState;
+  product: RoomProduct;
+}) {
   return (
     <li className="flex gap-3 rounded-2xl bg-white/5 p-2.5">
       <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-white">
@@ -60,15 +166,20 @@ function ProductCard({ product }: { product: RoomProduct }) {
             )}
           </p>
         )}
-        <Button asChild className="mt-1 w-fit" size="sm" variant="glass-brass">
+        {/* Putting the piece in the photo is the offer here, so buying it
+            steps back to a link and both actions fit one line at 390px. */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <AddToRoomButton add={add} product={product} />
           <a
+            className="inline-flex items-center gap-1 text-white/60 text-xs underline-offset-4 hover:text-white hover:underline"
             href={product.productUrl}
             rel="noopener noreferrer"
             target="_blank"
           >
             View on Amazon
+            <ExternalLink className="size-3" />
           </a>
-        </Button>
+        </div>
       </div>
     </li>
   );
@@ -93,9 +204,11 @@ function ProductsSkeleton() {
 
 /** Products for one detected item, plus a manual Amazon search as a fallback. */
 function ProductsBody({
+  add,
   item,
   versionId,
 }: {
+  add: AddState;
   item: RoomItem;
   versionId: Id<"roomVersions">;
 }) {
@@ -120,7 +233,7 @@ function ProductsBody({
       {products.length > 0 && (
         <ul className="flex flex-col gap-2">
           {products.map((product) => (
-            <ProductCard key={product.productUrl} product={product} />
+            <ProductCard add={add} key={product.productUrl} product={product} />
           ))}
         </ul>
       )}
@@ -166,11 +279,21 @@ function SheetHeading({
  * sheet so the photo stays visible above it.
  */
 export function ItemProductsSheet({
+  canEdit,
+  isGenerating,
   item,
   onClose,
+  roomId,
   versionId,
 }: ItemProductsSheetProps) {
   const isMobile = useIsMobile();
+  const { onAdd, pendingUrl } = useAddProduct({
+    baseVersionId: versionId,
+    itemId: item.id,
+    onClose,
+    roomId,
+  });
+  const add: AddState = { canEdit, isGenerating, onAdd, pendingUrl };
 
   if (isMobile) {
     return (
@@ -203,7 +326,7 @@ export function ItemProductsSheet({
             </Button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <ProductsBody item={item} versionId={versionId} />
+            <ProductsBody add={add} item={item} versionId={versionId} />
           </div>
         </DrawerContent>
       </Drawer>
@@ -233,7 +356,7 @@ export function ItemProductsSheet({
             </Button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-4">
-            <ProductsBody item={item} versionId={versionId} />
+            <ProductsBody add={add} item={item} versionId={versionId} />
           </div>
         </div>
       </LiquidGlass>

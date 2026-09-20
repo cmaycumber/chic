@@ -1,12 +1,27 @@
 import Image from "next/image";
 import { formatPrice } from "@/components/room/utils";
 import { Button } from "@/components/ui/button";
-import type { PublicProduct, PublicVersion } from "./types";
+import type { PublicComment, PublicProduct, PublicVersion } from "./types";
 
 interface ShoppableItem {
   id: string;
   label: string;
   product: PublicProduct;
+}
+
+/**
+ * The products somebody asked for by name. Everything else on this page is a
+ * match we found for imagined furniture; these are the actual thing, so the
+ * card gets to say so.
+ */
+export function inPhotoProductUrls(comments: PublicComment[]): Set<string> {
+  const urls = new Set<string>();
+  for (const comment of comments) {
+    if (comment.product && comment.resultVersionId !== undefined) {
+      urls.add(comment.product.productUrl);
+    }
+  }
+  return urls;
 }
 
 /**
@@ -29,7 +44,13 @@ export function shoppableItems(versions: PublicVersion[]): ShoppableItem[] {
   return [];
 }
 
-function ProductCard({ item }: { item: ShoppableItem }) {
+function ProductCard({
+  isInPhoto,
+  item,
+}: {
+  isInPhoto: boolean;
+  item: ShoppableItem;
+}) {
   const { product } = item;
 
   return (
@@ -42,6 +63,11 @@ function ProductCard({ item }: { item: ShoppableItem }) {
           sizes="(max-width: 640px) 45vw, 240px"
           src={product.imageUrl}
         />
+        {isInPhoto ? (
+          <span className="absolute top-2 left-2 rounded-full bg-[var(--accent-brass)] px-2 py-0.5 font-medium text-[10px] text-white">
+            In this photo
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3">
         <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
@@ -68,7 +94,13 @@ function ProductCard({ item }: { item: ShoppableItem }) {
 }
 
 /** Everything in the photo you can actually buy. */
-export function ShareShop({ items }: { items: ShoppableItem[] }) {
+export function ShareShop({
+  inPhotoUrls,
+  items,
+}: {
+  inPhotoUrls: Set<string>;
+  items: ShoppableItem[];
+}) {
   if (items.length === 0) {
     return null;
   }
@@ -84,7 +116,11 @@ export function ShareShop({ items }: { items: ShoppableItem[] }) {
 
       <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {items.map((item) => (
-          <ProductCard item={item} key={item.id} />
+          <ProductCard
+            isInPhoto={inPhotoUrls.has(item.product.productUrl)}
+            item={item}
+            key={item.id}
+          />
         ))}
       </ul>
     </section>

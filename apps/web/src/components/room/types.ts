@@ -9,6 +9,9 @@ export type RoomComment = RoomData["comments"][number];
 export type RoomItem = RoomVersion["items"][number];
 export type RoomProduct = NonNullable<RoomItem["products"]>[number];
 
+/** The real Amazon piece an "Add to room" comment put into the photo. */
+export type CommentProduct = NonNullable<RoomComment["product"]>;
+
 /** Someone invited to edit this room. The owner is not in this list. */
 export type Collaborator = RoomData["collaborators"][number];
 
@@ -33,6 +36,8 @@ export interface CommentPin {
   authorName: string | undefined;
   commentId: string;
   number: number;
+  /** Set when the comment asked for a real product rather than a change. */
+  product: CommentProduct | null;
   status: RoomComment["status"];
   text: string;
 }

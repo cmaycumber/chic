@@ -9,12 +9,13 @@
  * - AI_GATEWAY_API_KEY: Vercel AI Gateway (Muse Image edits the photo,
  *   Gemini 3.1 Flash Lite detects furniture; override with ROOM_EDIT_MODEL
  *   and ROOM_DETECT_MODEL)
- * - OPENAI_API_KEY: only needed when ROOM_EDIT_MODEL is an openai/ model
+ * - OPENAI_API_KEY: needed when ROOM_EDIT_MODEL is an openai/ model, and for
+ *   putting a bought product into the photo (ROOM_PRODUCT_EDIT_MODEL)
  * - SERPAPI_API_KEY: Amazon product search
  */
 "use node";
 import { createOpenAI } from "@ai-sdk/openai";
-import { gateway, generateImage, generateObject } from "ai";
+import { gateway, generateImage, generateObject, type ImageModel } from "ai";
 import { v } from "convex/values";
 import z from "zod";
 import { internal } from "./_generated/api";
@@ -27,6 +28,12 @@ import { vProduct } from "./schema";
 
 /** Gateway id of the model that renders comment edits (override with ROOM_EDIT_MODEL). */
 const DEFAULT_IMAGE_EDIT_MODEL = "meta/muse-image-1.0";
+/**
+ * The model that paints a bought product into the photo (override with
+ * ROOM_PRODUCT_EDIT_MODEL). Not the comment editor: this call carries a second
+ * image, and the gateway's Muse refuses one, while OpenAI's endpoint takes it.
+ */
+const DEFAULT_PRODUCT_EDIT_MODEL = "openai/gpt-image-2.5-flare";
 const OPENAI_PREFIX = "openai/";
 /** Gateway id of the vision model that finds furniture (override with ROOM_DETECT_MODEL). */
 const DEFAULT_DETECTION_MODEL = "google/gemini-3.5-flash-lite";
@@ -36,6 +43,16 @@ const BOX_SCALE = 1000;
 const PERCENT = 100;
 const ERROR_PREVIEW_LENGTH = 200;
 const OUTPUT_COMPRESSION = 82;
+
+/**
+ * Amazon thumbnails carry their size in the file name
+ * (`81nwHIyQClL._AC_UL320_.jpg`). Dropping that segment asks for the original,
+ * which is what the edit model should be copying from.
+ */
+const AMAZON_IMAGE_SIZE_MODIFIER = /\._[A-Za-z0-9_,]+_\./;
+const BYTES_PER_MB = 1_048_576;
+const MAX_PRODUCT_IMAGE_MB = 8;
+const MAX_PRODUCT_IMAGE_BYTES = MAX_PRODUCT_IMAGE_MB * BYTES_PER_MB;
 
 interface StorageCtx {
   storage: { get: (id: Id<"_storage">) => Promise<Blob | null> };
@@ -95,11 +112,11 @@ interface AnchoredItem {
  * The detected item under a pin: the smallest bounding box containing it.
  * Lets the prompt name the object ("the sofa") instead of only a location.
  */
-function findAnchoredItem(
-  items: AnchoredItem[] | undefined,
+function findAnchoredItem<Item extends AnchoredItem>(
+  items: Item[] | undefined,
   anchor: AnchorPoint
-): AnchoredItem | null {
-  let best: AnchoredItem | null = null;
+): Item | null {
+  let best: Item | null = null;
   for (const item of items ?? []) {
     const { box } = item;
     const inside =
@@ -153,17 +170,107 @@ Apply exactly what the comment asks for and nothing else. Keep the camera angle,
 }
 
 /**
+ * The room photo with a product photo beside it, and the words that say what
+ * to do with the pair. Written so the model treats the second image as the
+ * thing to copy, not as a second room.
+ */
+function buildProductPrompt(
+  productName: string,
+  anchor?: AnchorPoint,
+  item?: AnchoredItem | null
+) {
+  const label = item ? item.label.toLowerCase() : "piece of furniture";
+  return `You are editing a photo of a real room for an interior design app.
+
+The first image is the room. The second image is a product photo of a ${label} sold online: "${productName}".
+
+${describeAnchor(anchor, item)}
+
+Replace that ${label} with this exact product: the same shape, colour, material and proportions as the product photo, scaled realistically to the room and placed where the current ${label} is. Keep everything else in the room photo identical: camera angle, layout, architecture, windows, flooring, lighting and every other object. The result must be photorealistic and look like the same photo with only that one item changed.`;
+}
+
+/** Fetch a URL, treating any failure as "not there". */
+async function fetchImage(url: string): Promise<Response | null> {
+  try {
+    const response = await fetch(url);
+    return response.ok ? response : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The product's own photo, at the largest size Amazon will serve. The listing
+ * hands back a thumbnail; a 320px sofa is not enough for the model to copy a
+ * material off, so the size modifier is stripped and the original asked for.
+ */
+async function downloadProductImage(imageUrl: string): Promise<Uint8Array> {
+  const fullSize = imageUrl.replace(AMAZON_IMAGE_SIZE_MODIFIER, ".");
+  const response =
+    (fullSize === imageUrl ? null : await fetchImage(fullSize)) ??
+    (await fetchImage(imageUrl));
+  if (!response) {
+    throw new Error("Could not open that product's photo");
+  }
+  if (!(response.headers.get("content-type") ?? "").startsWith("image/")) {
+    throw new Error("That product's link did not return a photo");
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > MAX_PRODUCT_IMAGE_BYTES) {
+    throw new Error("That product's photo is too large to use");
+  }
+  return bytes;
+}
+
+interface EditModel {
+  model: ImageModel;
+  modelId: string;
+}
+
+/**
  * Resolve the edit model. OpenAI models go through the OpenAI provider when
  * its key is present, because the AI Gateway drops image provider options
  * (WebP output). Everything else, e.g. `meta/muse-image-1.0`, uses the gateway.
  */
-function imageEditModel() {
+function imageEditModel(): EditModel {
   const modelId = process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL;
   const apiKey = process.env.OPENAI_API_KEY;
   if (apiKey && modelId.startsWith(OPENAI_PREFIX)) {
-    return createOpenAI({ apiKey }).image(modelId.slice(OPENAI_PREFIX.length));
+    return {
+      model: createOpenAI({ apiKey }).image(
+        modelId.slice(OPENAI_PREFIX.length)
+      ),
+      modelId,
+    };
   }
-  return gateway.imageModel(modelId);
+  return { model: gateway.imageModel(modelId), modelId };
+}
+
+/**
+ * Resolve the model that puts a bought product in the room. Two input images
+ * are the whole point here, so an openai/ id without a key is a dead end
+ * rather than something to quietly fall back from.
+ */
+function productEditModel(): EditModel {
+  const modelId =
+    process.env.ROOM_PRODUCT_EDIT_MODEL || DEFAULT_PRODUCT_EDIT_MODEL;
+  if (!modelId.startsWith(OPENAI_PREFIX)) {
+    return { model: gateway.imageModel(modelId), modelId };
+  }
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Product previews are not set up yet");
+  }
+  return {
+    model: createOpenAI({ apiKey }).image(modelId.slice(OPENAI_PREFIX.length)),
+    modelId,
+  };
+}
+
+interface EditRequest extends EditModel {
+  /** The room first; a product photo second when there is one to copy. */
+  images: Uint8Array[];
+  prompt: string;
 }
 
 /**
@@ -172,13 +279,12 @@ function imageEditModel() {
  */
 async function renderEdit(
   ctx: ActionCtx,
-  baseImage: Uint8Array,
-  prompt: string
+  request: EditRequest
 ): Promise<Id<"_storage">> {
   const startedAt = Date.now();
   const result = await generateImage({
-    model: imageEditModel(),
-    prompt: { images: [baseImage], text: prompt },
+    model: request.model,
+    prompt: { images: request.images, text: request.prompt },
     providerOptions: {
       openai: {
         // PNG edits come back at 2MB+; compressed WebP keeps versions light.
@@ -190,7 +296,8 @@ async function renderEdit(
 
   // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
   console.info("[roomsAi] edit", {
-    model: process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL,
+    images: request.images.length,
+    model: request.modelId,
     ms: Date.now() - startedAt,
     usage: result.calls[0]?.usage ?? null,
   });
@@ -216,6 +323,36 @@ async function renderEdit(
 }
 
 /**
+ * What one comment asks the image model for: words against the room photo, or
+ * a chosen product against the room photo and the product's own photo.
+ */
+async function buildEditRequest(
+  comment: Doc<"roomComments">,
+  baseVersion: Doc<"roomVersions">,
+  baseImage: Uint8Array
+): Promise<EditRequest> {
+  const item = comment.anchor
+    ? findAnchoredItem(baseVersion.items, comment.anchor)
+    : null;
+  const { product } = comment;
+
+  if (!product) {
+    return {
+      images: [baseImage],
+      ...imageEditModel(),
+      prompt: buildEditPrompt(comment.text, comment.anchor, item),
+    };
+  }
+
+  const productImage = await downloadProductImage(product.imageUrl);
+  return {
+    images: [baseImage, productImage],
+    ...productEditModel(),
+    prompt: buildProductPrompt(product.name, comment.anchor, item),
+  };
+}
+
+/**
  * Apply a user's comment to the version it was left on and create a new
  * version with the result. Item detection is scheduled on the new version.
  */
@@ -235,14 +372,7 @@ export const applyComment = internalAction({
       const baseImage = await storageToBytes(ctx, baseVersion.imageStorageId);
       const imageStorageId = await renderEdit(
         ctx,
-        baseImage,
-        buildEditPrompt(
-          comment.text,
-          comment.anchor,
-          comment.anchor
-            ? findAnchoredItem(baseVersion.items, comment.anchor)
-            : null
-        )
+        await buildEditRequest(comment, baseVersion, baseImage)
       );
 
       const versionId = await ctx.runMutation(
@@ -311,6 +441,44 @@ const classificationSchema = z.object({
 });
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value / BOX_SCALE));
+
+interface DetectedItem extends AnchoredItem {
+  id: string;
+}
+
+/**
+ * When a version came from someone placing a product, the room already knows
+ * what is in it. Hand the real listing to the item detection just found under
+ * the pin, so tapping it opens the thing they chose rather than a new search.
+ *
+ * Silent when nothing matches: a seeded product is a nicety, not the edit.
+ */
+async function seedPlacedProduct(
+  ctx: ActionCtx,
+  version: Doc<"roomVersions">,
+  items: DetectedItem[]
+): Promise<void> {
+  if (!version.commentId) {
+    return;
+  }
+  const placement = await ctx.runQuery(
+    internal.rooms.internalGetCommentProduct,
+    { commentId: version.commentId }
+  );
+  if (!placement?.anchor) {
+    return;
+  }
+  const placed = findAnchoredItem(items, placement.anchor);
+  if (!placed) {
+    return;
+  }
+  await ctx.runMutation(internal.rooms.internalSetItemProducts, {
+    itemId: placed.id,
+    products: [placement.product],
+    status: "ready",
+    versionId: version._id,
+  });
+}
 
 /**
  * Detect furniture and decor in a version's image so it becomes shoppable.
@@ -386,6 +554,8 @@ export const detectItems = internalAction({
         status: "ready",
         versionId: version._id,
       });
+
+      await seedPlacedProduct(ctx, version, items);
 
       // The photo the room started as decides what the room is. Later edits
       // only re-tag a room that has no tags yet, so an edit that repaints the
@@ -474,8 +644,12 @@ export const internalClassifyRoom = internalAction({
 });
 
 /**
- * Fetch Amazon products for a detected item. Results are cached on the item,
- * so repeated clicks are free.
+ * Fetch Amazon products for a detected item.
+ *
+ * Two caches sit in front of the paid search: the products written onto the
+ * item, which makes a second click on the same sofa free, and `productSearches`
+ * keyed by the query itself, which makes the first click free for everyone
+ * after the first person who ever asked for a grey linen sofa.
  */
 export const searchItemProducts = privateAction({
   args: { itemId: v.string(), versionId: v.id("roomVersions") },
@@ -487,40 +661,66 @@ export const searchItemProducts = privateAction({
     if (!version) {
       throw new Error("Version not found");
     }
-
-    const item = version.items?.find(
-      (candidate) => candidate.id === args.itemId
-    );
-    if (!item) {
-      throw new Error("Item not found");
-    }
-    if (item.productsStatus === "ready" && item.products) {
-      return item.products;
-    }
-
-    await ctx.runMutation(internal.rooms.internalSetItemProducts, {
-      itemId: item.id,
-      status: "pending",
-      versionId: version._id,
-    });
-
-    try {
-      const products = await searchAmazon(item.searchQuery, PRODUCTS_PER_ITEM);
-      await ctx.runMutation(internal.rooms.internalSetItemProducts, {
-        itemId: item.id,
-        products,
-        status: "ready",
-        versionId: version._id,
-      });
-      return products;
-    } catch (error) {
-      await ctx.runMutation(internal.rooms.internalSetItemProducts, {
-        itemId: item.id,
-        status: "error",
-        versionId: version._id,
-      });
-      throw error;
-    }
+    return await fetchItemProducts(ctx, version, args.itemId);
   },
   returns: v.array(vProduct),
 });
+
+/** The products for one item, from the item, the shared cache or SerpAPI. */
+async function fetchItemProducts(
+  ctx: ActionCtx,
+  version: Doc<"roomVersions">,
+  itemId: string
+): Promise<AmazonProduct[]> {
+  const item = version.items?.find((candidate) => candidate.id === itemId);
+  if (!item) {
+    throw new Error("Item not found");
+  }
+  if (item.productsStatus === "ready" && item.products) {
+    return item.products;
+  }
+
+  await ctx.runMutation(internal.rooms.internalSetItemProducts, {
+    itemId: item.id,
+    status: "pending",
+    versionId: version._id,
+  });
+
+  try {
+    const startedAt = Date.now();
+    const cached = await ctx.runQuery(
+      internal.rooms.internalGetCachedProducts,
+      { query: item.searchQuery }
+    );
+    const products =
+      cached ?? (await searchAmazon(item.searchQuery, PRODUCTS_PER_ITEM));
+    if (!cached) {
+      await ctx.runMutation(internal.rooms.internalCacheProducts, {
+        products,
+        query: item.searchQuery,
+      });
+    }
+
+    // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+    console.info("[roomsAi] products", {
+      cache: cached ? "hit" : "miss",
+      ms: Date.now() - startedAt,
+      query: item.searchQuery,
+    });
+
+    await ctx.runMutation(internal.rooms.internalSetItemProducts, {
+      itemId: item.id,
+      products,
+      status: "ready",
+      versionId: version._id,
+    });
+    return products;
+  } catch (error) {
+    await ctx.runMutation(internal.rooms.internalSetItemProducts, {
+      itemId: item.id,
+      status: "error",
+      versionId: version._id,
+    });
+    throw error;
+  }
+}

@@ -17,6 +17,7 @@ import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { ProductChip } from "./product-chip";
 import type { Anchor, RoomComment } from "./types";
 import {
   errorMessage,
@@ -106,6 +107,10 @@ function CommentRow({
           ) : (
             <p className="text-sm text-white leading-snug">{comment.text}</p>
           )}
+
+          {comment.product ? (
+            <ProductChip product={comment.product} tone="dark" />
+          ) : null}
 
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
             {comment.status === "pending" && <Spinner className="size-3" />}

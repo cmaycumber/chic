@@ -10,7 +10,11 @@ import type { Article, WithContext } from "schema-dts";
 import { GalleryRoomCard } from "@/components/gallery-room-card";
 import { BeforeAfterSlider } from "@/components/share/before-after-slider";
 import { ShareComments } from "@/components/share/share-comments";
-import { ShareShop, shoppableItems } from "@/components/share/share-shop";
+import {
+  inPhotoProductUrls,
+  ShareShop,
+  shoppableItems,
+} from "@/components/share/share-shop";
 import type { PublicRoom } from "@/components/share/types";
 import { UploadRoomButton } from "@/components/upload-room-button";
 import { type GalleryCard, loadGallery } from "@/lib/gallery";
@@ -172,6 +176,7 @@ export default async function SharedRoomPage({ params }: SharedRoomPageProps) {
   const before = room.versions.at(0);
   const after = room.versions.at(-1);
   const items = shoppableItems(room.versions);
+  const inPhotoUrls = inPhotoProductUrls(room.comments);
   const roomType =
     room.roomType && isRoomType(room.roomType) ? room.roomType : undefined;
   const author = creditedAuthor(room.ownerName);
@@ -229,7 +234,7 @@ export default async function SharedRoomPage({ params }: SharedRoomPageProps) {
 
       <ShareComments comments={room.comments} versions={room.versions} />
 
-      <ShareShop items={items} />
+      <ShareShop inPhotoUrls={inPhotoUrls} items={items} />
 
       <section className="mx-auto flex w-full max-w-3xl flex-col items-center gap-4 px-4 pt-6 text-center sm:px-6">
         <p className="font-serif text-2xl text-foreground">

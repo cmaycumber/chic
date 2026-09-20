@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { ProductPreview } from "./product-chip";
 import type { Anchor, CommentPin } from "./types";
 import { toPercent } from "./utils";
 
@@ -61,7 +62,7 @@ export function RoomPins({ onSelectPin, pendingAnchor, pins }: RoomPinsProps) {
           {/* The comment itself, on hover, so the numbers mean something. */}
           <span
             aria-hidden="true"
-            className="liquid-glass liquid-glass-frost pointer-events-none absolute bottom-full left-1/2 mb-2 line-clamp-3 w-max max-w-52 -translate-x-1/2 rounded-xl px-2.5 py-1.5 text-[11px] text-white leading-snug opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
+            className="liquid-glass liquid-glass-frost pointer-events-none absolute bottom-full left-1/2 mb-2 block w-max max-w-52 -translate-x-1/2 rounded-xl px-2.5 py-1.5 text-[11px] text-white leading-snug opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
           >
             {pin.authorInitial === null ||
             pin.authorName === undefined ? null : (
@@ -69,7 +70,8 @@ export function RoomPins({ onSelectPin, pendingAnchor, pins }: RoomPinsProps) {
                 {pin.authorName}
               </span>
             )}
-            {pin.text}
+            <span className="line-clamp-3 block">{pin.text}</span>
+            {pin.product ? <ProductPreview product={pin.product} /> : null}
           </span>
         </div>
       ))}

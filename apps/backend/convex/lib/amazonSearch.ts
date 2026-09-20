@@ -35,6 +35,16 @@ interface SerpApiResponse {
   organic_results?: SerpAmazonResult[];
 }
 
+const WHITESPACE_RUN = /\s+/g;
+
+/**
+ * The cache key for a search. Two detections that differ only in spacing or
+ * capitalisation are the same question, and asking it twice costs real money.
+ */
+export function normalizeSearchQuery(query: string): string {
+  return query.trim().toLowerCase().replace(WHITESPACE_RUN, " ");
+}
+
 function toProduct(item: SerpAmazonResult): AmazonProduct | null {
   const rawUrl = item.link_clean || item.link;
   if (

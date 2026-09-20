@@ -17,6 +17,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { authComponent } from "./auth";
+import { normalizeSearchQuery } from "./lib/amazonSearch";
 import { type RoomType, vRoomStyle, vRoomType } from "./lib/roomTaxonomy";
 import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import {
@@ -31,6 +32,9 @@ import {
 
 const MAX_COMMENT_LENGTH = 1000;
 const MAX_TITLE_LENGTH = 120;
+
+/** How much of a product's name fits in the comment that places it. */
+const PRODUCT_NAME_MAX_LENGTH = 80;
 
 /** Rooms on one gallery page, and the most a caller may ask for. */
 const GALLERY_DEFAULT_LIMIT = 24;
@@ -55,6 +59,19 @@ const ANONYMOUS_ROOM_TTL_MS = ANONYMOUS_ROOM_TTL_DAYS * MS_PER_DAY;
 
 /** Rooms deleted per purge run, so one cron tick cannot blow the time limit. */
 const PURGE_BATCH_SIZE = 50;
+
+/**
+ * How long a cached Amazon search is served instead of a paid one, and how
+ * long the row survives at all. Furniture listings move slowly; the search
+ * behind them is the most expensive thing a session does.
+ */
+const PRODUCT_SEARCH_TTL_DAYS = 14;
+const PRODUCT_SEARCH_TTL_MS = PRODUCT_SEARCH_TTL_DAYS * MS_PER_DAY;
+const PRODUCT_SEARCH_MAX_AGE_DAYS = 30;
+const PRODUCT_SEARCH_MAX_AGE_MS = PRODUCT_SEARCH_MAX_AGE_DAYS * MS_PER_DAY;
+
+/** Cached searches dropped per prune tick. */
+const PRODUCT_SEARCH_PRUNE_BATCH = 100;
 
 const INVITE_TOKEN_BYTES = 24;
 
@@ -167,6 +184,8 @@ const vCommentOut = v.object({
   authorName: v.optional(v.string()),
   baseVersionId: v.id("roomVersions"),
   error: v.optional(v.string()),
+  /** The product this comment asked to put in the room, if it was a product. */
+  product: v.optional(vProduct),
   resultVersionId: v.optional(v.id("roomVersions")),
   status: vCommentStatus,
   text: v.string(),
@@ -198,6 +217,7 @@ const vPublicCommentOut = v.object({
   _id: v.id("roomComments"),
   anchor: v.optional(vAnchor),
   baseVersionId: v.id("roomVersions"),
+  product: v.optional(vProduct),
   resultVersionId: v.optional(v.id("roomVersions")),
   status: vCommentStatus,
   text: v.string(),
@@ -367,6 +387,7 @@ export const get = privateQuery({
       authorName: comment.authorName ?? names.get(comment.userId),
       baseVersionId: comment.baseVersionId,
       error: comment.error,
+      product: comment.product,
       resultVersionId: comment.resultVersionId,
       status: comment.status,
       text: comment.text,
@@ -542,6 +563,7 @@ export const getPublic = publicQuery({
       _id: comment._id,
       anchor: comment.anchor,
       baseVersionId: comment.baseVersionId,
+      product: comment.product,
       resultVersionId: comment.resultVersionId,
       status: comment.status,
       text: comment.text,
@@ -833,6 +855,50 @@ export const galleryCounts = publicQuery({
   }),
 });
 
+/** What a comment asks for, before it is a row. */
+interface CommentRequest {
+  anchor?: Doc<"roomComments">["anchor"];
+  baseVersionId: Id<"roomVersions">;
+  product?: Doc<"roomComments">["product"];
+  text: string;
+}
+
+/**
+ * Record a change request and set the render going.
+ *
+ * Words and products come through here together: one wait-your-turn guard,
+ * one scheduled action. As far as the room is concerned, choosing a sofa off
+ * Amazon is just another comment.
+ */
+async function queueComment(
+  ctx: MutationCtx,
+  room: Doc<"rooms">,
+  author: { name: string; userId: string },
+  request: CommentRequest
+): Promise<Id<"roomComments">> {
+  if (room.status === "generating") {
+    throw new Error("Please wait for the current change to finish");
+  }
+
+  const commentId = await ctx.db.insert("roomComments", {
+    anchor: request.anchor,
+    authorName: author.name,
+    baseVersionId: request.baseVersionId,
+    product: request.product,
+    roomId: room._id,
+    status: "pending",
+    text: request.text,
+    userId: author.userId,
+  });
+
+  await ctx.db.patch(room._id, { error: undefined, status: "generating" });
+  await ctx.scheduler.runAfter(0, internal.roomsAi.applyComment, {
+    commentId,
+  });
+
+  return commentId;
+}
+
 /**
  * Leave a comment asking for a change. The change is applied to the version
  * currently displayed and produces a new version when it finishes.
@@ -849,29 +915,88 @@ export const addComment = privateMutation({
     if (!text) {
       throw new Error("Comment cannot be empty");
     }
-    if (room.status === "generating") {
-      throw new Error("Please wait for the current change to finish");
-    }
     if (!room.currentVersionId) {
       throw new Error("Room has no image yet");
     }
 
-    const commentId = await ctx.db.insert("roomComments", {
-      anchor: args.anchor,
-      authorName: displayName(ctx.user),
-      baseVersionId: room.currentVersionId,
-      roomId: room._id,
-      status: "pending",
-      text,
-      userId: ctx.userId,
-    });
+    return await queueComment(
+      ctx,
+      room,
+      { name: displayName(ctx.user), userId: ctx.userId },
+      {
+        anchor: args.anchor,
+        baseVersionId: room.currentVersionId,
+        text,
+      }
+    );
+  },
+  returns: v.id("roomComments"),
+});
 
-    await ctx.db.patch(room._id, { error: undefined, status: "generating" });
-    await ctx.scheduler.runAfter(0, internal.roomsAi.applyComment, {
-      commentId,
-    });
+/** Half of something: the middle of a box is where its pin goes. */
+const HALF = 0.5;
 
-    return commentId;
+/** A product someone tapped, and the item in the photo it should replace. */
+interface ProductChoice {
+  baseVersionId: Id<"roomVersions">;
+  itemId: string;
+  product: NonNullable<Doc<"roomComments">["product"]>;
+}
+
+/**
+ * Turn a chosen product into a comment on the item it replaces, pinned at the
+ * middle of that item's box so the render and the detection that follows it
+ * both know which object was meant.
+ */
+async function placeProduct(
+  ctx: MutationCtx,
+  room: Doc<"rooms">,
+  author: { name: string; userId: string },
+  choice: ProductChoice
+): Promise<Id<"roomComments">> {
+  const baseVersion = await ctx.db.get(choice.baseVersionId);
+  if (!baseVersion || baseVersion.roomId !== room._id) {
+    throw new ConvexError("Version not found");
+  }
+  const item = baseVersion.items?.find(
+    (candidate) => candidate.id === choice.itemId
+  );
+  if (!item) {
+    throw new ConvexError("Item not found");
+  }
+
+  const name = choice.product.name.slice(0, PRODUCT_NAME_MAX_LENGTH);
+  return await queueComment(ctx, room, author, {
+    anchor: {
+      x: item.box.x + item.box.width * HALF,
+      y: item.box.y + item.box.height * HALF,
+    },
+    baseVersionId: baseVersion._id,
+    product: choice.product,
+    text: `Put this ${item.label.toLowerCase()} in the room: ${name}`,
+  });
+}
+
+/**
+ * Put a product someone tapped into the photo. It reads like a comment they
+ * could have typed, but it carries the listing itself, so the render works
+ * from the product's own photo rather than a description of it.
+ */
+export const addProductComment = privateMutation({
+  args: {
+    baseVersionId: v.id("roomVersions"),
+    itemId: v.string(),
+    product: vProduct,
+    roomId: v.id("rooms"),
+  },
+  handler: async (ctx, args) => {
+    const room = await getEditableRoom(ctx, ctx.userId, args.roomId);
+    return await placeProduct(
+      ctx,
+      room,
+      { name: displayName(ctx.user), userId: ctx.userId },
+      args
+    );
   },
   returns: v.id("roomComments"),
 });
@@ -1259,6 +1384,25 @@ export const internalSetRoomTags = internalMutation({
   returns: v.null(),
 });
 
+/**
+ * The product a comment placed, if it placed one. Detection reads it back to
+ * seed the real listing onto the item it has just found in the new photo.
+ */
+export const internalGetCommentProduct = internalQuery({
+  args: { commentId: v.id("roomComments") },
+  handler: async (ctx, args) => {
+    const comment = await ctx.db.get(args.commentId);
+    if (!comment?.product) {
+      return null;
+    }
+    return { anchor: comment.anchor, product: comment.product };
+  },
+  returns: v.union(
+    v.object({ anchor: v.optional(vAnchor), product: vProduct }),
+    v.null()
+  ),
+});
+
 export const internalGetCommentContext = internalQuery({
   args: { commentId: v.id("roomComments") },
   handler: async (ctx, args) => {
@@ -1381,4 +1525,68 @@ export const internalSetItemProducts = internalMutation({
     return null;
   },
   returns: v.null(),
+});
+
+// ---------------------------------------------------------------------------
+// Cached Amazon searches
+// ---------------------------------------------------------------------------
+
+/** Find a cached search. A fortnight-old answer to "grey linen sofa" is fine. */
+export const internalGetCachedProducts = internalQuery({
+  args: { query: v.string() },
+  handler: async (ctx, args) => {
+    const query = normalizeSearchQuery(args.query);
+    const cached = await ctx.db
+      .query("productSearches")
+      .withIndex("by_query", (q) => q.eq("query", query))
+      .first();
+    if (!cached || Date.now() - cached.fetchedAt > PRODUCT_SEARCH_TTL_MS) {
+      return null;
+    }
+    return cached.products;
+  },
+  returns: v.union(v.array(vProduct), v.null()),
+});
+
+/** Keep what a paid search returned, for whoever asks the same thing next. */
+export const internalCacheProducts = internalMutation({
+  args: { products: v.array(vProduct), query: v.string() },
+  handler: async (ctx, args) => {
+    const query = normalizeSearchQuery(args.query);
+    const fields = {
+      fetchedAt: Date.now(),
+      products: args.products,
+      query,
+    };
+    const existing = await ctx.db
+      .query("productSearches")
+      .withIndex("by_query", (q) => q.eq("query", query))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, fields);
+      return null;
+    }
+    await ctx.db.insert("productSearches", fields);
+    return null;
+  },
+  returns: v.null(),
+});
+
+/**
+ * Drop cached searches nobody has refreshed in a month, a batch at a time.
+ * They stop being served after two weeks; this is what stops the table from
+ * growing forever behind them.
+ */
+export const internalPruneProductSearches = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - PRODUCT_SEARCH_MAX_AGE_MS;
+    const stale = await ctx.db
+      .query("productSearches")
+      .withIndex("by_fetchedAt", (q) => q.lt("fetchedAt", cutoff))
+      .take(PRODUCT_SEARCH_PRUNE_BATCH);
+    await Promise.all(stale.map((row) => ctx.db.delete(row._id)));
+    return { deleted: stale.length };
+  },
+  returns: v.object({ deleted: v.number() }),
 });

@@ -15,4 +15,17 @@ crons.interval(
   {}
 );
 
+/**
+ * Amazon results are shared across rooms and served for a fortnight. This
+ * clears out the ones nothing has asked for in a month, so the cache stays a
+ * cache rather than a log of every search the product has ever run.
+ */
+crons.daily(
+  "prune cached product searches",
+  // biome-ignore lint/style/useNamingConvention: Convex's cron schedule fields
+  { hourUTC: 4, minuteUTC: 15 },
+  internal.rooms.internalPruneProductSearches,
+  {}
+);
+
 export default crons;

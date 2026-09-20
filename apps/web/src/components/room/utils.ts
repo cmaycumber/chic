@@ -1,5 +1,11 @@
 import { ConvexError } from "convex/values";
-import type { Anchor, CommentPin, RoomComment, RoomVersion } from "./types";
+import type {
+  Anchor,
+  CommentPin,
+  RoomComment,
+  RoomRole,
+  RoomVersion,
+} from "./types";
 
 /**
  * liquid-glass-react styles its inner `.glass` node with inline padding, a
@@ -21,6 +27,12 @@ export const CLUSTER_RADIUS = 22;
 const PERCENT = 100;
 const AMAZON_AFFILIATE_TAG = "fitvivo-20";
 
+const MAX_SHORT_NAME = 32;
+/** Below this a word-boundary cut leaves too little to recognise. */
+const MIN_SHORT_NAME = 12;
+/** Amazon packs the specs after the first comma, dash or bracket. */
+const NAME_BREAK = /[,\-\u2013\u2014|(]/;
+
 const priceFormatter = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
@@ -29,6 +41,20 @@ const priceFormatter = new Intl.NumberFormat("en-US", {
 
 export function formatPrice(value: number): string {
   return priceFormatter.format(value);
+}
+
+/** Amazon titles run to a paragraph; a toast only has room for the noun. */
+export function shortProductName(name: string): string {
+  const head = name.split(NAME_BREAK).at(0)?.trim() ?? "";
+  const value = head.length > 0 ? head : name.trim();
+  if (value.length <= MAX_SHORT_NAME) {
+    return value;
+  }
+  // Cutting mid-word reads like a glitch, so back up to the last space.
+  const cut = value.slice(0, MAX_SHORT_NAME);
+  const lastSpace = cut.lastIndexOf(" ");
+  const kept = lastSpace > MIN_SHORT_NAME ? cut.slice(0, lastSpace) : cut;
+  return `${kept.trimEnd()}…`;
 }
 
 export function clamp01(value: number): number {
@@ -54,6 +80,11 @@ export function errorMessage(error: unknown): string {
     return error.message;
   }
   return "Something went wrong. Please try again.";
+}
+
+/** The owner and an invited editor may both change the photo; nobody else. */
+export function canEditRoom(role: RoomRole): boolean {
+  return role === "owner" || role === "collaborator";
 }
 
 /** The one letter that stands in for a person on a pin. */
@@ -125,6 +156,7 @@ export function buildPins(
         authorName: comment.authorName,
         commentId: comment._id,
         number,
+        product: comment.product ?? null,
         status: comment.status,
         text: comment.text,
       });

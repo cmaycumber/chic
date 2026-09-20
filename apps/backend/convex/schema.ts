@@ -143,6 +143,22 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_and_design", ["userId", "likedItem.designId"]),
 
+  /**
+   * Amazon results keyed by the search that found them, shared across every
+   * room. Two people who upload a similar sofa ask the same question, and the
+   * search behind the answer is the dominant cost of a session: paying for it
+   * once a fortnight rather than once a click is most of the bill.
+   */
+  productSearches: defineTable({
+    fetchedAt: v.number(),
+    products: v.array(vProduct),
+    /** Normalized: trimmed, lower-cased, inner whitespace collapsed. */
+    query: v.string(),
+  })
+    .index("by_query", ["query"])
+    // Pruning reads by age, and age is not where the table is written.
+    .index("by_fetchedAt", ["fetchedAt"]),
+
   /** A user comment on a room requesting a change. */
   roomComments: defineTable({
     /** Optional normalized (0..1) point on the image the comment refers to. */
@@ -156,6 +172,11 @@ export default defineSchema({
     /** The version that was displayed when the comment was made. */
     baseVersionId: v.id("roomVersions"),
     error: v.optional(v.string()),
+    /**
+     * Set when the comment is a product the user picked rather than words they
+     * typed: the edit puts this exact item into the photo.
+     */
+    product: v.optional(vProduct),
     resultVersionId: v.optional(v.id("roomVersions")),
     roomId: v.id("rooms"),
     status: vCommentStatus,

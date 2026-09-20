@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ProductChip } from "@/components/room/product-chip";
 import { buildPinNumbers } from "@/components/room/utils";
 import type { PublicComment, PublicVersion } from "./types";
 
@@ -64,9 +65,14 @@ export function ShareComments({ comments, versions }: ShareCommentsProps) {
               <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-brass)] font-medium text-[11px] text-white">
                 {pinNumber ?? "•"}
               </span>
-              <p className="min-w-0 flex-1 text-foreground text-sm leading-snug">
-                {comment.text}
-              </p>
+              <div className="flex min-w-0 flex-1 flex-col items-start">
+                <p className="text-foreground text-sm leading-snug">
+                  {comment.text}
+                </p>
+                {comment.product ? (
+                  <ProductChip product={comment.product} tone="light" />
+                ) : null}
+              </div>
               <ThumbnailFor
                 alt={comment.text}
                 imageUrl={version?.imageUrl ?? null}

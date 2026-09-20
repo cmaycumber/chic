@@ -9,3 +9,6 @@ export type PublicVersion = PublicRoom["versions"][number];
 export type PublicComment = PublicRoom["comments"][number];
 export type PublicItem = PublicVersion["items"][number];
 export type PublicProduct = NonNullable<PublicItem["products"]>[number];
+
+/** The real Amazon piece an "Add to room" comment put into the photo. */
+export type PublicCommentProduct = NonNullable<PublicComment["product"]>;
