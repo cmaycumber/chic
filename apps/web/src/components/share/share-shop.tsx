@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { formatPrice } from "@/components/room/utils";
+import { formatPrice, planProducts } from "@/components/room/utils";
 import { Button } from "@/components/ui/button";
 import type { PublicComment, PublicProduct, PublicVersion } from "./types";
 
@@ -17,8 +17,14 @@ interface ShoppableItem {
 export function inPhotoProductUrls(comments: PublicComment[]): Set<string> {
   const urls = new Set<string>();
   for (const comment of comments) {
-    if (comment.product && comment.resultVersionId !== undefined) {
+    if (comment.resultVersionId === undefined) {
+      continue;
+    }
+    if (comment.product) {
       urls.add(comment.product.productUrl);
+    }
+    for (const product of planProducts(comment)) {
+      urls.add(product.productUrl);
     }
   }
   return urls;

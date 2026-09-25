@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import type {
   Anchor,
   CommentPin,
+  CommentStage,
   RoomComment,
   RoomRole,
   RoomVersion,
@@ -68,6 +69,81 @@ export function toPercent(value: number): string {
 
 export function amazonSearchUrl(query: string): string {
   return `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${AMAZON_AFFILIATE_TAG}`;
+}
+
+/** The least a comment needs for `planProducts` to read its plan. */
+interface PlannedComment<P extends { productUrl: string }> {
+  plan?: { slots: { product?: P | undefined }[] } | undefined;
+  product?: { productUrl: string } | undefined;
+}
+
+/**
+ * The real products a comment's plan has already picked, in slot order, minus
+ * whatever is already shown via `comment.product` — an "Add to room" comment
+ * is a one-slot plan for that same listing, so it would otherwise repeat.
+ */
+export function planProducts<P extends { productUrl: string }>(
+  comment: PlannedComment<P>
+): P[] {
+  const seen = new Set<string>(
+    comment.product ? [comment.product.productUrl] : []
+  );
+  const products: P[] = [];
+  for (const slot of comment.plan?.slots ?? []) {
+    const { product } = slot;
+    if (product === undefined || seen.has(product.productUrl)) {
+      continue;
+    }
+    seen.add(product.productUrl);
+    products.push(product);
+  }
+  return products;
+}
+
+const STAGE_TEXT: Record<Exclude<CommentStage, "rendering">, string> = {
+  detecting: "Reading your room",
+  planning: "Planning the change",
+  searching: "Finding products",
+};
+
+/** "1 product" vs "3 products": Amazon-style plurals stay off the model. */
+function productCountLabel(count: number): string {
+  return count === 1 ? "1 product" : `${count} products`;
+}
+
+/**
+ * What a comment's stage says while it is in flight, or `null` before any
+ * stage has landed (a freeform edit, or a product edit yet to report one).
+ */
+export function stageText(comment: {
+  plan?: { slots: { product?: unknown }[] } | undefined;
+  stage?: CommentStage | undefined;
+}): string | null {
+  const { stage } = comment;
+  if (stage === undefined) {
+    return null;
+  }
+  if (stage === "rendering") {
+    const count = (comment.plan?.slots ?? []).filter(
+      (slot) => slot.product !== undefined
+    ).length;
+    return count > 0
+      ? `Rendering with ${productCountLabel(count)}`
+      : "Rendering";
+  }
+  return STAGE_TEXT[stage];
+}
+
+/**
+ * What the in-flight comment's stage says, or `null` when nothing is pending.
+ * At most one comment is ever pending: `addComment` refuses a second while
+ * the room is generating.
+ */
+export function pendingCommentStageText(
+  comments: readonly RoomComment[]
+): string | null {
+  const pending = comments.find((comment) => comment.status === "pending");
+  return pending ? stageText(pending) : null;
 }
 
 export function errorMessage(error: unknown): string {
@@ -156,6 +232,7 @@ export function buildPins(
         authorName: comment.authorName,
         commentId: comment._id,
         number,
+        planProducts: planProducts(comment),
         product: comment.product ?? null,
         status: comment.status,
         text: comment.text,

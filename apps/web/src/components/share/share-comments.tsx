@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ProductChip } from "@/components/room/product-chip";
-import { buildPinNumbers } from "@/components/room/utils";
+import { buildPinNumbers, planProducts } from "@/components/room/utils";
 import type { PublicComment, PublicVersion } from "./types";
 
 interface ShareCommentsProps {
@@ -72,6 +72,13 @@ export function ShareComments({ comments, versions }: ShareCommentsProps) {
                 {comment.product ? (
                   <ProductChip product={comment.product} tone="light" />
                 ) : null}
+                {planProducts(comment).map((product) => (
+                  <ProductChip
+                    key={product.productUrl}
+                    product={product}
+                    tone="light"
+                  />
+                ))}
               </div>
               <ThumbnailFor
                 alt={comment.text}

@@ -72,6 +72,9 @@ export function RoomPins({ onSelectPin, pendingAnchor, pins }: RoomPinsProps) {
             )}
             <span className="line-clamp-3 block">{pin.text}</span>
             {pin.product ? <ProductPreview product={pin.product} /> : null}
+            {pin.planProducts.map((product) => (
+              <ProductPreview key={product.productUrl} product={product} />
+            ))}
           </span>
         </div>
       ))}

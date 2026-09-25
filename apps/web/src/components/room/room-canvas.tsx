@@ -58,6 +58,8 @@ interface RoomCanvasProps {
   pendingAnchor: Anchor | null;
   pins: CommentPin[];
   selectedItemId: string | null;
+  /** What the in-flight comment's stage says. `null` shows the default text. */
+  stageText: string | null;
   version: RoomVersion | null;
 }
 
@@ -114,6 +116,7 @@ export function RoomCanvas({
   pendingAnchor,
   pins,
   selectedItemId,
+  stageText,
   version,
 }: RoomCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -259,7 +262,7 @@ export function RoomCanvas({
       {Boolean(isGenerating) && (
         <output className="liquid-glass liquid-glass-frost absolute top-24 left-1/2 flex -translate-x-1/2 items-center gap-2.5 rounded-full py-2 pr-4 pl-3 font-sans text-sm text-white shadow-lg">
           <Loader2 className="size-4 animate-spin text-[var(--accent-brass)]" />
-          Rendering your change…
+          {stageText ?? "Rendering your change…"}
         </output>
       )}
     </div>

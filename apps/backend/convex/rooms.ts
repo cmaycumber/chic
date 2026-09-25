@@ -7,7 +7,7 @@
  *     which renders a new version and marks the comment applied.
  *  3. `roomsAi.searchItemProducts` lazily fetches Amazon products for an item.
  */
-import { ConvexError, v } from "convex/values";
+import { ConvexError, type Infer, v } from "convex/values";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
@@ -23,6 +23,9 @@ import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
 import {
   vAnchor,
   vBox,
+  vCommentKind,
+  vCommentPlan,
+  vCommentStage,
   vCommentStatus,
   vItemsStatus,
   vProduct,
@@ -184,9 +187,12 @@ const vCommentOut = v.object({
   authorName: v.optional(v.string()),
   baseVersionId: v.id("roomVersions"),
   error: v.optional(v.string()),
+  kind: v.optional(vCommentKind),
+  plan: v.optional(vCommentPlan),
   /** The product this comment asked to put in the room, if it was a product. */
   product: v.optional(vProduct),
   resultVersionId: v.optional(v.id("roomVersions")),
+  stage: v.optional(vCommentStage),
   status: vCommentStatus,
   text: v.string(),
 });
@@ -217,8 +223,11 @@ const vPublicCommentOut = v.object({
   _id: v.id("roomComments"),
   anchor: v.optional(vAnchor),
   baseVersionId: v.id("roomVersions"),
+  kind: v.optional(vCommentKind),
+  plan: v.optional(vCommentPlan),
   product: v.optional(vProduct),
   resultVersionId: v.optional(v.id("roomVersions")),
+  stage: v.optional(vCommentStage),
   status: vCommentStatus,
   text: v.string(),
 });
@@ -387,8 +396,11 @@ export const get = privateQuery({
       authorName: comment.authorName ?? names.get(comment.userId),
       baseVersionId: comment.baseVersionId,
       error: comment.error,
+      kind: comment.kind,
+      plan: comment.plan,
       product: comment.product,
       resultVersionId: comment.resultVersionId,
+      stage: comment.stage,
       status: comment.status,
       text: comment.text,
     }));
@@ -563,8 +575,11 @@ export const getPublic = publicQuery({
       _id: comment._id,
       anchor: comment.anchor,
       baseVersionId: comment.baseVersionId,
+      kind: comment.kind,
+      plan: comment.plan,
       product: comment.product,
       resultVersionId: comment.resultVersionId,
+      stage: comment.stage,
       status: comment.status,
       text: comment.text,
     }));
@@ -859,6 +874,8 @@ export const galleryCounts = publicQuery({
 interface CommentRequest {
   anchor?: Doc<"roomComments">["anchor"];
   baseVersionId: Id<"roomVersions">;
+  kind?: Doc<"roomComments">["kind"];
+  plan?: Doc<"roomComments">["plan"];
   product?: Doc<"roomComments">["product"];
   text: string;
 }
@@ -884,6 +901,8 @@ async function queueComment(
     anchor: request.anchor,
     authorName: author.name,
     baseVersionId: request.baseVersionId,
+    kind: request.kind,
+    plan: request.plan,
     product: request.product,
     roomId: room._id,
     status: "pending",
@@ -936,6 +955,10 @@ export const addComment = privateMutation({
 /** Half of something: the middle of a box is where its pin goes. */
 const HALF = 0.5;
 
+function boxCentre(box: Infer<typeof vBox>) {
+  return { x: box.x + box.width * HALF, y: box.y + box.height * HALF };
+}
+
 /** A product someone tapped, and the item in the photo it should replace. */
 interface ProductChoice {
   baseVersionId: Id<"roomVersions">;
@@ -946,7 +969,8 @@ interface ProductChoice {
 /**
  * Turn a chosen product into a comment on the item it replaces, pinned at the
  * middle of that item's box so the render and the detection that follows it
- * both know which object was meant.
+ * both know which object was meant. It arrives already planned: one slot,
+ * product picked, so the render starts without a planner or a search.
  */
 async function placeProduct(
   ctx: MutationCtx,
@@ -967,11 +991,20 @@ async function placeProduct(
 
   const name = choice.product.name.slice(0, PRODUCT_NAME_MAX_LENGTH);
   return await queueComment(ctx, room, author, {
-    anchor: {
-      x: item.box.x + item.box.width * HALF,
-      y: item.box.y + item.box.height * HALF,
-    },
+    anchor: boxCentre(item.box),
     baseVersionId: baseVersion._id,
+    kind: "products",
+    plan: {
+      slots: [
+        {
+          action: "replace",
+          itemId: item.id,
+          label: item.label,
+          product: choice.product,
+          searchQuery: item.searchQuery,
+        },
+      ],
+    },
     product: choice.product,
     text: `Put this ${item.label.toLowerCase()} in the room: ${name}`,
   });
@@ -1385,22 +1418,85 @@ export const internalSetRoomTags = internalMutation({
 });
 
 /**
- * The product a comment placed, if it placed one. Detection reads it back to
- * seed the real listing onto the item it has just found in the new photo.
+ * Where each product a comment placed should end up, so detection can hand
+ * the real listing to whatever it finds there in the new photo. A swapped
+ * item is looked for where the old one stood; an added one at the pin, and
+ * not at all without one, since there is nowhere to look.
  */
-export const internalGetCommentProduct = internalQuery({
+export const internalGetCommentPlacements = internalQuery({
   args: { commentId: v.id("roomComments") },
   handler: async (ctx, args) => {
     const comment = await ctx.db.get(args.commentId);
-    if (!comment?.product) {
+    if (!comment) {
+      return [];
+    }
+    const baseVersion = await ctx.db.get(comment.baseVersionId);
+    const baseItems = baseVersion?.items ?? [];
+
+    // Comments placed before plans existed carry the product alone.
+    if (!comment.plan) {
+      return comment.product && comment.anchor
+        ? [{ point: comment.anchor, product: comment.product }]
+        : [];
+    }
+
+    const placements: {
+      label?: string;
+      point: Infer<typeof vAnchor>;
+      product: Infer<typeof vProduct>;
+      searchQuery?: string;
+    }[] = [];
+    for (const slot of comment.plan.slots) {
+      const replaced = baseItems.find((item) => item.id === slot.itemId);
+      const point =
+        slot.action === "replace" && replaced
+          ? boxCentre(replaced.box)
+          : comment.anchor;
+      if (slot.product && point) {
+        placements.push({
+          label: slot.label,
+          point,
+          product: slot.product,
+          searchQuery: slot.searchQuery,
+        });
+      }
+    }
+    return placements;
+  },
+  returns: v.array(
+    v.object({
+      label: v.optional(v.string()),
+      point: vAnchor,
+      product: vProduct,
+      searchQuery: v.optional(v.string()),
+    })
+  ),
+});
+
+/**
+ * Move a pending comment on to its next stage, recording what the planner
+ * made of it as soon as that is known so the page can show the picks early.
+ */
+export const internalSetCommentStage = internalMutation({
+  args: {
+    commentId: v.id("roomComments"),
+    kind: v.optional(vCommentKind),
+    plan: v.optional(vCommentPlan),
+    stage: vCommentStage,
+  },
+  handler: async (ctx, args) => {
+    const comment = await ctx.db.get(args.commentId);
+    if (comment?.status !== "pending") {
       return null;
     }
-    return { anchor: comment.anchor, product: comment.product };
+    await ctx.db.patch(comment._id, {
+      stage: args.stage,
+      ...(args.kind ? { kind: args.kind } : {}),
+      ...(args.plan ? { plan: args.plan } : {}),
+    });
+    return null;
   },
-  returns: v.union(
-    v.object({ anchor: v.optional(vAnchor), product: vProduct }),
-    v.null()
-  ),
+  returns: v.null(),
 });
 
 export const internalGetCommentContext = internalQuery({
@@ -1454,6 +1550,7 @@ export const internalCompleteComment = internalMutation({
     await ctx.db.patch(comment._id, {
       error: undefined,
       resultVersionId: versionId,
+      stage: undefined,
       status: "applied",
     });
     await ctx.db.patch(comment.roomId, {
@@ -1473,7 +1570,11 @@ export const internalFailComment = internalMutation({
     if (!comment) {
       return null;
     }
-    await ctx.db.patch(comment._id, { error: args.error, status: "failed" });
+    await ctx.db.patch(comment._id, {
+      error: args.error,
+      stage: undefined,
+      status: "failed",
+    });
     await ctx.db.patch(comment.roomId, { error: args.error, status: "ready" });
     return null;
   },

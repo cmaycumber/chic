@@ -12,3 +12,10 @@ export type PublicProduct = NonNullable<PublicItem["products"]>[number];
 
 /** The real Amazon piece an "Add to room" comment put into the photo. */
 export type PublicCommentProduct = NonNullable<PublicComment["product"]>;
+
+/** What a product comment planned: one slot per item to replace or add. */
+export type PublicCommentPlan = NonNullable<PublicComment["plan"]>;
+export type PublicCommentPlanSlot = PublicCommentPlan["slots"][number];
+
+/** A real product the plan already picked for a slot. */
+export type PublicPlanProduct = NonNullable<PublicCommentPlanSlot["product"]>;

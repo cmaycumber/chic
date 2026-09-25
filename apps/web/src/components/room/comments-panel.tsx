@@ -25,6 +25,8 @@ import {
   initialOf,
   PANEL_DISPLACEMENT,
   PANEL_RADIUS,
+  planProducts,
+  stageText,
 } from "./utils";
 
 type RetryHandler = (text: string, anchor: Anchor | undefined) => void;
@@ -64,6 +66,8 @@ function CommentRow({
   const time = formatDistanceToNow(new Date(comment._creationTime), {
     addSuffix: true,
   });
+  const pendingStageText =
+    comment.status === "pending" ? stageText(comment) : null;
 
   return (
     <li
@@ -111,9 +115,17 @@ function CommentRow({
           {comment.product ? (
             <ProductChip product={comment.product} tone="dark" />
           ) : null}
+          {planProducts(comment).map((product) => (
+            <ProductChip
+              key={product.productUrl}
+              product={product}
+              tone="dark"
+            />
+          ))}
 
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-white/50">
             {comment.status === "pending" && <Spinner className="size-3" />}
+            {pendingStageText ? <span>{pendingStageText}</span> : null}
             <span>{time}</span>
             {anchorLabel === undefined ? null : (
               <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-brass/30 px-1.5 py-0.5 text-white/80">

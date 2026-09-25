@@ -67,6 +67,38 @@ export const vCommentStatus = v.union(
 
 export const vAnchor = v.object({ x: v.number(), y: v.number() });
 
+/**
+ * What a comment turned out to be: furniture to buy and place, or a change
+ * with nothing to buy (paint, light, mood) that goes straight to the renderer.
+ */
+export const vCommentKind = v.union(
+  v.literal("products"),
+  v.literal("freeform")
+);
+
+/** Where a comment is on its way to a render, for the progress text. */
+export const vCommentStage = v.union(
+  v.literal("planning"),
+  v.literal("searching"),
+  v.literal("rendering"),
+  v.literal("detecting")
+);
+
+/**
+ * One piece of furniture a comment asks for: swap out something already in
+ * the photo (`itemId` on the version the comment was left on) or add
+ * something new. `product` is the listing picked for it, once there is one.
+ */
+export const vPlanSlot = v.object({
+  action: v.union(v.literal("replace"), v.literal("add")),
+  itemId: v.optional(v.string()),
+  label: v.string(),
+  product: v.optional(vProduct),
+  searchQuery: v.string(),
+});
+
+export const vCommentPlan = v.object({ slots: v.array(vPlanSlot) });
+
 export default defineSchema({
   artifacts: defineTable({
     // Do we want to make this a union of different artifact types?
@@ -172,6 +204,10 @@ export default defineSchema({
     /** The version that was displayed when the comment was made. */
     baseVersionId: v.id("roomVersions"),
     error: v.optional(v.string()),
+    /** Set once the planner has read the comment. */
+    kind: v.optional(vCommentKind),
+    /** The furniture a product comment is buying, and what was picked. */
+    plan: v.optional(vCommentPlan),
     /**
      * Set when the comment is a product the user picked rather than words they
      * typed: the edit puts this exact item into the photo.
@@ -179,6 +215,8 @@ export default defineSchema({
     product: v.optional(vProduct),
     resultVersionId: v.optional(v.id("roomVersions")),
     roomId: v.id("rooms"),
+    /** Progress while pending; cleared once the comment is applied or fails. */
+    stage: v.optional(vCommentStage),
     status: vCommentStatus,
     text: v.string(),
     userId: v.string(),

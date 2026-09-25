@@ -33,6 +33,7 @@ import {
   canEditRoom,
   errorMessage,
   findItemLabelAt,
+  pendingCommentStageText,
   resolveCurrentVersion,
 } from "./utils";
 import { VersionStrip } from "./version-strip";
@@ -117,6 +118,10 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   const pendingItemLabel = useMemo(
     () => findItemLabelAt(currentVersion?.items, pendingAnchor),
     [currentVersion, pendingAnchor]
+  );
+  const pendingStageText = useMemo(
+    () => pendingCommentStageText(comments),
+    [comments]
   );
 
   const lastErrorRef = useRef<string | null>(null);
@@ -208,6 +213,7 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
         pendingAnchor={pendingAnchor}
         pins={pins}
         selectedItemId={selectedItemId}
+        stageText={pendingStageText}
         version={currentVersion}
       />
 

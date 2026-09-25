@@ -2,13 +2,15 @@
  * AI actions for rooms.
  *
  * - applyComment: edit the current room image according to a user comment.
+ *   Comments that ask for furniture are planned, shopped for and rendered
+ *   with the real products' photos; everything else is a plain edit.
  * - detectItems: find furniture / decor in an image with bounding boxes.
  * - searchItemProducts: fetch Amazon products for a detected item.
  *
  * Required Convex environment variables:
  * - AI_GATEWAY_API_KEY: Vercel AI Gateway (Muse Image edits the photo,
- *   Gemini 3.1 Flash Lite detects furniture; override with ROOM_EDIT_MODEL
- *   and ROOM_DETECT_MODEL)
+ *   Gemini 3.5 Flash Lite detects furniture and plans comments; override with
+ *   ROOM_EDIT_MODEL, ROOM_DETECT_MODEL and ROOM_PLAN_MODEL)
  * - OPENAI_API_KEY: needed when ROOM_EDIT_MODEL is an openai/ model, and for
  *   putting a bought product into the photo (ROOM_PRODUCT_EDIT_MODEL)
  * - SERPAPI_API_KEY: Amazon product search
@@ -16,12 +18,14 @@
 "use node";
 import { createOpenAI } from "@ai-sdk/openai";
 import { gateway, generateImage, generateObject, type ImageModel } from "ai";
+import type { FunctionReturnType } from "convex/server";
 import { v } from "convex/values";
 import z from "zod";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
 import { type AmazonProduct, searchAmazon } from "./lib/amazonSearch";
+import { type PlannedSlot, pickProducts, planComment } from "./lib/roomPlanner";
 import { ROOM_STYLES, ROOM_TYPES } from "./lib/roomTaxonomy";
 import { privateAction } from "./lib/utils";
 import { vProduct } from "./schema";
@@ -43,6 +47,8 @@ const BOX_SCALE = 1000;
 const PERCENT = 100;
 const ERROR_PREVIEW_LENGTH = 200;
 const OUTPUT_COMPRESSION = 82;
+/** Image 1 is the room; the product photos are numbered from here. */
+const FIRST_PRODUCT_IMAGE = 2;
 
 /**
  * Amazon thumbnails carry their size in the file name
@@ -169,24 +175,71 @@ ${describeAnchor(anchor, item)}
 Apply exactly what the comment asks for and nothing else. Keep the camera angle, room layout, architecture, windows, flooring, lighting direction and everything the comment does not mention identical to the input photo. The result must be photorealistic and look like the same photo with only the requested change.`;
 }
 
-/**
- * The room photo with a product photo beside it, and the words that say what
- * to do with the pair. Written so the model treats the second image as the
- * thing to copy, not as a second room.
- */
-function buildProductPrompt(
-  productName: string,
-  anchor?: AnchorPoint,
-  item?: AnchoredItem | null
+/** One product going into the render, and what it takes the place of. */
+interface RenderSlot {
+  action: "add" | "replace";
+  itemId?: string;
+  label: string;
+  /** Where the planner said an added piece goes. */
+  placement?: string;
+  product: AmazonProduct;
+  /** The item a swap takes out, as detected on the base version. */
+  replaced?: AnchoredItem | null;
+  searchQuery: string;
+}
+
+function describeRegion(box: AnchoredItem["box"]) {
+  const left = Math.round(box.x * PERCENT);
+  const right = Math.round((box.x + box.width) * PERCENT);
+  const top = Math.round(box.y * PERCENT);
+  const bottom = Math.round((box.y + box.height) * PERCENT);
+  return `the region from ${left}% to ${right}% horizontally and ${top}% to ${bottom}% vertically`;
+}
+
+function describeSlot(
+  slot: RenderSlot,
+  imageNumber: number,
+  anchor?: AnchorPoint
 ) {
-  const label = item ? item.label.toLowerCase() : "piece of furniture";
+  const label = slot.label.toLowerCase();
+  const photo = `Image ${imageNumber} is a product photo of a ${label} sold online: "${slot.product.name}".`;
+  if (slot.action === "replace" && slot.replaced) {
+    return `${photo} Replace the ${slot.replaced.label.toLowerCase()} (${slot.replaced.description}), which occupies ${describeRegion(slot.replaced.box)}, with this exact product, placed where the current one is.`;
+  }
+  const where = slot.placement ? ` ${slot.placement}` : "";
+  const pin = anchor
+    ? ` around ${Math.round(anchor.x * PERCENT)}% from the left edge and ${Math.round(anchor.y * PERCENT)}% from the top`
+    : "";
+  return `${photo} Add this exact product to the room${where}${pin}, standing where such a piece naturally would.`;
+}
+
+/**
+ * The room photo with a product photo per piece beside it, and the words
+ * that bind each photo to its place. Numbered so the model treats every extra
+ * image as a thing to copy, not as another room.
+ */
+function buildProductsPrompt(
+  text: string,
+  slots: RenderSlot[],
+  anchor?: AnchorPoint
+) {
+  // The pin says where an added piece goes only when there is one to say it
+  // about; with several, each takes the planner's words instead.
+  const additions = slots.filter(
+    (slot) => slot.action === "add" || !slot.replaced
+  );
+  const pin = additions.length === 1 ? anchor : undefined;
+  const pieces = slots.map((slot, index) =>
+    describeSlot(slot, index + FIRST_PRODUCT_IMAGE, pin)
+  );
+  const count = slots.length === 1 ? "that one item" : "those items";
   return `You are editing a photo of a real room for an interior design app.
 
-The first image is the room. The second image is a product photo of a ${label} sold online: "${productName}".
+Image 1 is the room. The user asked: "${text}"
 
-${describeAnchor(anchor, item)}
+${pieces.join("\n\n")}
 
-Replace that ${label} with this exact product: the same shape, colour, material and proportions as the product photo, scaled realistically to the room and placed where the current ${label} is. Keep everything else in the room photo identical: camera angle, layout, architecture, windows, flooring, lighting and every other object. The result must be photorealistic and look like the same photo with only that one item changed.`;
+Each product must look exactly like its own photo: the same shape, colour, material and proportions, scaled realistically to the room and sitting naturally in its light. Copy only the product itself: product photos are often staged, so leave out anything else in them (throws, cushions, books, cups, plants, people, other furniture). Do not invent any other furniture. Keep everything else in the room photo identical: camera angle, layout, architecture, windows, flooring, lighting and every other object. The result must be photorealistic and look like the same photo with only ${count} changed.`;
 }
 
 /** Fetch a URL, treating any failure as "not there". */
@@ -322,34 +375,302 @@ async function renderEdit(
   return await ctx.storage.store(blob);
 }
 
-/**
- * What one comment asks the image model for: words against the room photo, or
- * a chosen product against the room photo and the product's own photo.
- */
-async function buildEditRequest(
-  comment: Doc<"roomComments">,
-  baseVersion: Doc<"roomVersions">,
-  baseImage: Uint8Array
-): Promise<EditRequest> {
-  const item = comment.anchor
-    ? findAnchoredItem(baseVersion.items, comment.anchor)
-    : null;
-  const { product } = comment;
+type CommentContext = NonNullable<
+  FunctionReturnType<typeof internal.rooms.internalGetCommentContext>
+>;
+type CommentStage = NonNullable<Doc<"roomComments">["stage"]>;
+type StoredPlan = NonNullable<Doc<"roomComments">["plan"]>;
 
-  if (!product) {
-    return {
-      images: [baseImage],
-      ...imageEditModel(),
-      prompt: buildEditPrompt(comment.text, comment.anchor, item),
-    };
+/** How long a comment waits for the upload's own survey before running one. */
+const SURVEY_WAIT_MS = 8000;
+const SURVEY_POLL_MS = 400;
+
+async function setStage(
+  ctx: ActionCtx,
+  commentId: Id<"roomComments">,
+  stage: CommentStage,
+  extra: { kind?: Doc<"roomComments">["kind"]; plan?: StoredPlan } = {}
+) {
+  await ctx.runMutation(internal.rooms.internalSetCommentStage, {
+    commentId,
+    stage,
+    ...extra,
+  });
+}
+
+function toStoredPlan(slots: (PlannedSlot | RenderSlot)[]): StoredPlan {
+  return {
+    slots: slots.map((slot) => ({
+      action: slot.action,
+      itemId: slot.itemId,
+      label: slot.label,
+      product: "product" in slot ? slot.product : undefined,
+      searchQuery: slot.searchQuery,
+    })),
+  };
+}
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/** The version's items once its scheduled survey lands, or null if it won't. */
+async function waitForItems(
+  ctx: ActionCtx,
+  versionId: Id<"roomVersions">,
+  deadline: number
+): Promise<DetectedItem[] | null> {
+  const version = await ctx.runQuery(internal.rooms.internalGetVersion, {
+    versionId,
+  });
+  if (version?.itemsStatus === "ready" && version.items) {
+    return version.items;
+  }
+  if (version?.itemsStatus !== "pending" || Date.now() >= deadline) {
+    return null;
+  }
+  await sleep(SURVEY_POLL_MS);
+  return await waitForItems(ctx, versionId, deadline);
+}
+
+/**
+ * What is in the photo the comment was left on. Usually already known: every
+ * upload and every render is surveyed as it lands. A comment left seconds
+ * after upload waits for that survey; one whose survey failed runs its own.
+ */
+async function surveyedItems(
+  ctx: ActionCtx,
+  commentId: Id<"roomComments">,
+  version: Doc<"roomVersions">
+): Promise<DetectedItem[]> {
+  if (version.itemsStatus === "ready" && version.items) {
+    return version.items;
+  }
+  await setStage(ctx, commentId, "detecting");
+  const landed =
+    version.itemsStatus === "pending"
+      ? await waitForItems(ctx, version._id, Date.now() + SURVEY_WAIT_MS)
+      : null;
+  if (landed) {
+    return landed;
+  }
+  const survey = await surveyImage(ctx, version.imageStorageId);
+  await ctx.runMutation(internal.rooms.internalSetItems, {
+    items: survey.items,
+    status: "ready",
+    versionId: version._id,
+  });
+  return survey.items;
+}
+
+/**
+ * Products that arrive already chosen: "Add to room" plans one slot and picks
+ * its product before the comment exists. Older comments carry the product
+ * alone, pinned on the item it replaces.
+ */
+function presetSlots(
+  comment: Doc<"roomComments">,
+  baseVersion: Doc<"roomVersions">
+): RenderSlot[] {
+  const items = baseVersion.items ?? [];
+  const planned = (comment.plan?.slots ?? []).flatMap((slot) =>
+    slot.product
+      ? [
+          {
+            ...slot,
+            product: slot.product,
+            replaced: items.find((item) => item.id === slot.itemId) ?? null,
+          },
+        ]
+      : []
+  );
+  if (planned.length > 0 || !comment.product) {
+    return planned;
+  }
+  const pinned = comment.anchor
+    ? findAnchoredItem(items, comment.anchor)
+    : null;
+  return [
+    {
+      action: "replace",
+      itemId: pinned?.id,
+      label: pinned?.label ?? "piece of furniture",
+      product: comment.product,
+      replaced: pinned,
+      searchQuery: pinned?.searchQuery ?? "",
+    },
+  ];
+}
+
+/**
+ * Search every slot at once (through the shared cache), then pick one
+ * listing per slot in a single call. Slots whose search fails or comes back
+ * empty drop out.
+ */
+async function shopForSlots(
+  ctx: ActionCtx,
+  text: string,
+  planned: PlannedSlot[],
+  items: DetectedItem[]
+): Promise<RenderSlot[]> {
+  const searches = await Promise.allSettled(
+    planned.map((slot) => searchProductsCached(ctx, slot.searchQuery))
+  );
+  const found = planned.flatMap((slot, index) => {
+    const search = searches.at(index);
+    return search?.status === "fulfilled" && search.value.length > 0
+      ? [{ listings: search.value, slot }]
+      : [];
+  });
+  if (found.length === 0) {
+    return [];
   }
 
-  const productImage = await downloadProductImage(product.imageUrl);
+  const picks = await pickProducts(
+    text,
+    found.map(({ listings, slot }) => ({
+      label: slot.label,
+      listings,
+      maxPrice: slot.maxPrice,
+      searchQuery: slot.searchQuery,
+    }))
+  );
+  return found.flatMap(({ listings, slot }, index) => {
+    const product = listings.at(picks.at(index) ?? 0);
+    if (!product) {
+      return [];
+    }
+    return [
+      {
+        action: slot.action,
+        itemId: slot.itemId,
+        label: slot.label,
+        placement: slot.placement,
+        product,
+        replaced: items.find((item) => item.id === slot.itemId) ?? null,
+        searchQuery: slot.searchQuery,
+      },
+    ];
+  });
+}
+
+/**
+ * The Flare request for a set of products: the room, then each product's
+ * own photo. A product whose photo will not download is left out; null when
+ * none are left, so the caller can decide what to do instead.
+ */
+async function productRequest(
+  comment: Doc<"roomComments">,
+  baseImage: Uint8Array,
+  slots: RenderSlot[]
+): Promise<{ request: EditRequest; slots: RenderSlot[] } | null> {
+  const downloads = await Promise.allSettled(
+    slots.map((slot) => downloadProductImage(slot.product.imageUrl))
+  );
+  const placed: RenderSlot[] = [];
+  const images: Uint8Array[] = [];
+  for (const [index, download] of downloads.entries()) {
+    const slot = slots.at(index);
+    if (slot && download.status === "fulfilled") {
+      placed.push(slot);
+      images.push(download.value);
+    }
+  }
+  if (placed.length === 0) {
+    const failure = downloads.find((entry) => entry.status === "rejected");
+    if (failure?.status === "rejected" && failure.reason instanceof Error) {
+      // biome-ignore lint/suspicious/noConsole: surfaced when every photo fails
+      console.warn("[roomsAi] product photos", failure.reason.message);
+    }
+    return null;
+  }
   return {
-    images: [baseImage, productImage],
-    ...productEditModel(),
-    prompt: buildProductPrompt(product.name, comment.anchor, item),
+    request: {
+      images: [baseImage, ...images],
+      ...productEditModel(),
+      prompt: buildProductsPrompt(comment.text, placed, comment.anchor),
+    },
+    slots: placed,
   };
+}
+
+function freeformRequest(
+  comment: Doc<"roomComments">,
+  baseImage: Uint8Array,
+  item: AnchoredItem | null
+): EditRequest {
+  return {
+    images: [baseImage],
+    ...imageEditModel(),
+    prompt: buildEditPrompt(comment.text, comment.anchor, item),
+  };
+}
+
+/**
+ * Decide what a comment asks the image model for, moving the comment through
+ * its stages on the way:
+ *
+ *   preset product (Add to room) ──────────────────────────────→ Flare
+ *   words → survey → plan ─ freeform ──────────────────────────→ Muse
+ *                          └ products → search → pick ─────────→ Flare
+ *
+ * A product plan that ends up with nothing renderable (no listings, no
+ * photos) falls back to Muse rather than failing the comment.
+ */
+async function buildEditRequest(
+  ctx: ActionCtx,
+  { baseVersion, comment, room }: CommentContext,
+  baseImage: Uint8Array
+): Promise<EditRequest> {
+  const preset = presetSlots(comment, baseVersion);
+  if (preset.length > 0) {
+    await setStage(ctx, comment._id, "rendering");
+    const built = await productRequest(comment, baseImage, preset);
+    if (!built) {
+      throw new Error("Could not open that product's photo");
+    }
+    return built.request;
+  }
+
+  const items = await surveyedItems(ctx, comment._id, baseVersion);
+  const anchoredItem = comment.anchor
+    ? findAnchoredItem(items, comment.anchor)
+    : null;
+
+  await setStage(ctx, comment._id, "planning");
+  const plan = await planComment({
+    anchor: comment.anchor,
+    anchoredItem,
+    items,
+    roomType: room.roomType,
+    style: room.style,
+    text: comment.text,
+  });
+  if (plan.kind === "freeform") {
+    await setStage(ctx, comment._id, "rendering", { kind: "freeform" });
+    return freeformRequest(comment, baseImage, anchoredItem);
+  }
+
+  await setStage(ctx, comment._id, "searching", {
+    kind: "products",
+    plan: toStoredPlan(plan.slots),
+  });
+  const shopped = await shopForSlots(ctx, comment.text, plan.slots, items);
+  const built =
+    shopped.length > 0
+      ? await productRequest(comment, baseImage, shopped)
+      : null;
+  if (!built) {
+    await setStage(ctx, comment._id, "rendering", { kind: "freeform" });
+    return freeformRequest(comment, baseImage, anchoredItem);
+  }
+
+  // Written before the render so the picks show while Flare works.
+  await setStage(ctx, comment._id, "rendering", {
+    plan: toStoredPlan(built.slots),
+  });
+  return built.request;
 }
 
 /**
@@ -367,18 +688,27 @@ export const applyComment = internalAction({
       return null;
     }
     const { comment, baseVersion } = context;
+    const startedAt = Date.now();
 
     try {
       const baseImage = await storageToBytes(ctx, baseVersion.imageStorageId);
-      const imageStorageId = await renderEdit(
-        ctx,
-        await buildEditRequest(comment, baseVersion, baseImage)
-      );
+      const request = await buildEditRequest(ctx, context, baseImage);
+      const renderStartedAt = Date.now();
+      const imageStorageId = await renderEdit(ctx, request);
 
       const versionId = await ctx.runMutation(
         internal.rooms.internalCompleteComment,
         { commentId: comment._id, imageStorageId }
       );
+
+      // biome-ignore lint/suspicious/noConsole: end-to-end latency per comment
+      console.info("[roomsAi] comment", {
+        beforeRenderMs: renderStartedAt - startedAt,
+        images: request.images.length,
+        model: request.modelId,
+        renderMs: Date.now() - renderStartedAt,
+        totalMs: Date.now() - startedAt,
+      });
 
       await ctx.scheduler.runAfter(0, internal.roomsAi.detectItems, {
         versionId,
@@ -446,14 +776,31 @@ interface DetectedItem extends AnchoredItem {
   id: string;
 }
 
+const WORD = /[a-z]+/g;
+const MIN_WORD_LENGTH = 3;
+
+/** "Area rug" and "Rug", "Sofa" and "Leather sofa": one shared word will do. */
+function sameKind(a: string, b?: string): boolean {
+  if (!b) {
+    return false;
+  }
+  const words = new Set(
+    (a.toLowerCase().match(WORD) ?? []).filter(
+      (word) => word.length >= MIN_WORD_LENGTH
+    )
+  );
+  return (b.toLowerCase().match(WORD) ?? []).some((word) => words.has(word));
+}
+
 /**
- * When a version came from someone placing a product, the room already knows
- * what is in it. Hand the real listing to the item detection just found under
- * the pin, so tapping it opens the thing they chose rather than a new search.
+ * When a version came from placing products, the room already knows what is
+ * in it. Hand each real listing to the item detection just found where it
+ * was put, first in line ahead of the rest of that search's results, so
+ * tapping it opens the thing that was chosen rather than a new search.
  *
  * Silent when nothing matches: a seeded product is a nicety, not the edit.
  */
-async function seedPlacedProduct(
+async function seedPlacedProducts(
   ctx: ActionCtx,
   version: Doc<"roomVersions">,
   items: DetectedItem[]
@@ -461,23 +808,118 @@ async function seedPlacedProduct(
   if (!version.commentId) {
     return;
   }
-  const placement = await ctx.runQuery(
-    internal.rooms.internalGetCommentProduct,
+  const placements = await ctx.runQuery(
+    internal.rooms.internalGetCommentPlacements,
     { commentId: version.commentId }
   );
-  if (!placement?.anchor) {
-    return;
-  }
-  const placed = findAnchoredItem(items, placement.anchor);
-  if (!placed) {
-    return;
-  }
-  await ctx.runMutation(internal.rooms.internalSetItemProducts, {
-    itemId: placed.id,
-    products: [placement.product],
-    status: "ready",
-    versionId: version._id,
+
+  // A rug's middle is usually under the coffee table, so each product takes
+  // the item at its spot that shares its name, before any other, and no two
+  // products share an item.
+  const claimed = new Set<string>();
+  const targets = placements.flatMap((placement) => {
+    const free = items.filter((candidate) => !claimed.has(candidate.id));
+    const item =
+      findAnchoredItem(
+        free.filter((candidate) => sameKind(candidate.label, placement.label)),
+        placement.point
+      ) ?? findAnchoredItem(free, placement.point);
+    if (!item) {
+      return [];
+    }
+    claimed.add(item.id);
+    return [{ item, placement }];
   });
+
+  await Promise.all(
+    targets.map(async ({ item, placement }) => {
+      const cached = placement.searchQuery
+        ? await ctx.runQuery(internal.rooms.internalGetCachedProducts, {
+            query: placement.searchQuery,
+          })
+        : null;
+      const alternatives = (cached ?? []).filter(
+        (product) => product.productUrl !== placement.product.productUrl
+      );
+      await ctx.runMutation(internal.rooms.internalSetItemProducts, {
+        itemId: item.id,
+        products: [placement.product, ...alternatives].slice(
+          0,
+          PRODUCTS_PER_ITEM
+        ),
+        status: "ready",
+        versionId: version._id,
+      });
+    })
+  );
+}
+
+interface Survey {
+  items: (DetectedItem & { searchQuery: string })[];
+  roomType: z.infer<typeof roomTypeField>;
+  style: z.infer<typeof styleField>;
+}
+
+/** Find the furniture in a stored image, with boxes, and tag the room. */
+async function surveyImage(
+  ctx: ActionCtx,
+  storageId: Id<"_storage">
+): Promise<Survey> {
+  const image = await storageToDataUrl(ctx, storageId);
+  const detectStartedAt = Date.now();
+  const { object, usage } = await generateObject({
+    messages: [
+      {
+        content: [
+          {
+            data: image,
+            mediaType: "image",
+            type: "file",
+          },
+          {
+            text: `Detect every distinct piece of furniture, lighting, rug, artwork, plant and decor in this room photo that someone could buy. Return at most ${MAX_ITEMS} items, largest and most prominent first. Skip architectural features such as walls, windows, doors, floors and ceilings. For each item give a short label, a one sentence description, a specific Amazon search query, and a tight 2D bounding box as [ymin, xmin, ymax, xmax] on a 0-1000 scale. Also classify the photo itself: the single best-fitting room type and the dominant decor style.`,
+            type: "text",
+          },
+        ],
+        role: "user",
+      },
+    ],
+    model: gateway.languageModel(
+      process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
+    ),
+    // Detection is a lookup, not a reasoning task: turn thinking off so
+    // small models answer in seconds and bill only the answer tokens.
+    providerOptions: {
+      google: { thinkingConfig: { thinkingBudget: 0 } },
+      openai: { reasoningEffort: "minimal" },
+    },
+    schema: detectionSchema,
+  });
+
+  // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+  console.info("[roomsAi] detect", {
+    model: process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL,
+    ms: Date.now() - detectStartedAt,
+    usage,
+  });
+  const items = object.items.map((item, index) => {
+    const [ymin, xmin, ymax, xmax] = item.box_2d;
+    const x = clamp01(xmin);
+    const y = clamp01(ymin);
+    return {
+      box: {
+        height: Math.max(0, clamp01(ymax) - y),
+        width: Math.max(0, clamp01(xmax) - x),
+        x,
+        y,
+      },
+      description: item.description,
+      id: `item-${index + 1}`,
+      label: item.label,
+      searchQuery: item.searchQuery,
+    };
+  });
+  return { items, roomType: object.roomType, style: object.style };
 }
 
 /**
@@ -494,60 +936,10 @@ export const detectItems = internalAction({
     }
 
     try {
-      const image = await storageToDataUrl(ctx, version.imageStorageId);
-      const detectStartedAt = Date.now();
-      const { object, usage } = await generateObject({
-        messages: [
-          {
-            content: [
-              {
-                data: image,
-                mediaType: "image",
-                type: "file",
-              },
-              {
-                text: `Detect every distinct piece of furniture, lighting, rug, artwork, plant and decor in this room photo that someone could buy. Return at most ${MAX_ITEMS} items, largest and most prominent first. Skip architectural features such as walls, windows, doors, floors and ceilings. For each item give a short label, a one sentence description, a specific Amazon search query, and a tight 2D bounding box as [ymin, xmin, ymax, xmax] on a 0-1000 scale. Also classify the photo itself: the single best-fitting room type and the dominant decor style.`,
-                type: "text",
-              },
-            ],
-            role: "user",
-          },
-        ],
-        model: gateway.languageModel(
-          process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
-        ),
-        // Detection is a lookup, not a reasoning task: turn thinking off so
-        // small models answer in seconds and bill only the answer tokens.
-        providerOptions: {
-          google: { thinkingConfig: { thinkingBudget: 0 } },
-          openai: { reasoningEffort: "minimal" },
-        },
-        schema: detectionSchema,
-      });
-
-      // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
-      console.info("[roomsAi] detect", {
-        model: process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL,
-        ms: Date.now() - detectStartedAt,
-        usage,
-      });
-      const items = object.items.map((item, index) => {
-        const [ymin, xmin, ymax, xmax] = item.box_2d;
-        const x = clamp01(xmin);
-        const y = clamp01(ymin);
-        return {
-          box: {
-            height: Math.max(0, clamp01(ymax) - y),
-            width: Math.max(0, clamp01(xmax) - x),
-            x,
-            y,
-          },
-          description: item.description,
-          id: `item-${index + 1}`,
-          label: item.label,
-          searchQuery: item.searchQuery,
-        };
-      });
+      const { items, roomType, style } = await surveyImage(
+        ctx,
+        version.imageStorageId
+      );
 
       await ctx.runMutation(internal.rooms.internalSetItems, {
         items,
@@ -555,7 +947,7 @@ export const detectItems = internalAction({
         versionId: version._id,
       });
 
-      await seedPlacedProduct(ctx, version, items);
+      await seedPlacedProducts(ctx, version, items);
 
       // The photo the room started as decides what the room is. Later edits
       // only re-tag a room that has no tags yet, so an edit that repaints the
@@ -567,8 +959,8 @@ export const detectItems = internalAction({
       if (tags && (isOriginal || !tags.roomType)) {
         await ctx.runMutation(internal.rooms.internalSetRoomTags, {
           roomId: version.roomId,
-          roomType: object.roomType,
-          style: object.style,
+          roomType,
+          style,
         });
       }
     } catch {
@@ -687,27 +1079,7 @@ async function fetchItemProducts(
   });
 
   try {
-    const startedAt = Date.now();
-    const cached = await ctx.runQuery(
-      internal.rooms.internalGetCachedProducts,
-      { query: item.searchQuery }
-    );
-    const products =
-      cached ?? (await searchAmazon(item.searchQuery, PRODUCTS_PER_ITEM));
-    if (!cached) {
-      await ctx.runMutation(internal.rooms.internalCacheProducts, {
-        products,
-        query: item.searchQuery,
-      });
-    }
-
-    // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
-    console.info("[roomsAi] products", {
-      cache: cached ? "hit" : "miss",
-      ms: Date.now() - startedAt,
-      query: item.searchQuery,
-    });
-
+    const products = await searchProductsCached(ctx, item.searchQuery);
     await ctx.runMutation(internal.rooms.internalSetItemProducts, {
       itemId: item.id,
       products,
@@ -723,4 +1095,33 @@ async function fetchItemProducts(
     });
     throw error;
   }
+}
+
+/**
+ * Amazon results for a query: from the shared `productSearches` cache when
+ * someone asked the same thing in the last fortnight, SerpAPI otherwise.
+ */
+async function searchProductsCached(
+  ctx: ActionCtx,
+  query: string
+): Promise<AmazonProduct[]> {
+  const startedAt = Date.now();
+  const cached = await ctx.runQuery(internal.rooms.internalGetCachedProducts, {
+    query,
+  });
+  const products = cached ?? (await searchAmazon(query, PRODUCTS_PER_ITEM));
+  if (!cached) {
+    await ctx.runMutation(internal.rooms.internalCacheProducts, {
+      products,
+      query,
+    });
+  }
+
+  // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+  console.info("[roomsAi] products", {
+    cache: cached ? "hit" : "miss",
+    ms: Date.now() - startedAt,
+    query,
+  });
+  return products;
 }

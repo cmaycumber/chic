@@ -12,6 +12,16 @@ export type RoomProduct = NonNullable<RoomItem["products"]>[number];
 /** The real Amazon piece an "Add to room" comment put into the photo. */
 export type CommentProduct = NonNullable<RoomComment["product"]>;
 
+/** Where an in-flight product comment is in the plan → search → render pipeline. */
+export type CommentStage = NonNullable<RoomComment["stage"]>;
+
+/** What a product comment planned: one slot per item to replace or add. */
+export type CommentPlan = NonNullable<RoomComment["plan"]>;
+export type CommentPlanSlot = CommentPlan["slots"][number];
+
+/** A real product the plan has already picked for a slot, before the render lands. */
+export type PlanProduct = NonNullable<CommentPlanSlot["product"]>;
+
 /** Someone invited to edit this room. The owner is not in this list. */
 export type Collaborator = RoomData["collaborators"][number];
 
@@ -36,6 +46,8 @@ export interface CommentPin {
   authorName: string | undefined;
   commentId: string;
   number: number;
+  /** Real products the plan already picked for this comment, `product` excluded. */
+  planProducts: PlanProduct[];
   /** Set when the comment asked for a real product rather than a change. */
   product: CommentProduct | null;
   status: RoomComment["status"];
