@@ -330,13 +330,9 @@ interface EditRequest extends EditModel {
  * Run the image model and store the first image it returns.
  * Throws with the model's text if no image is produced.
  */
-async function renderEdit(
-  ctx: ActionCtx,
-  request: EditRequest
-): Promise<Id<"_storage">> {
-  const startedAt = Date.now();
-  const result = await generateImage({
-    model: request.model,
+function runEdit(model: ImageModel, request: EditRequest) {
+  return generateImage({
+    model,
     prompt: { images: request.images, text: request.prompt },
     providerOptions: {
       openai: {
@@ -346,11 +342,67 @@ async function renderEdit(
       },
     },
   });
+}
+
+/**
+ * Flare, called directly, for when a gateway editor (Muse) fails. Null when
+ * the request already went to OpenAI or there is no key to fall back with.
+ */
+function fallbackEditModel(request: EditRequest): EditModel | null {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || request.modelId.startsWith(OPENAI_PREFIX)) {
+    return null;
+  }
+  return {
+    model: createOpenAI({ apiKey }).image(
+      DEFAULT_PRODUCT_EDIT_MODEL.slice(OPENAI_PREFIX.length)
+    ),
+    modelId: DEFAULT_PRODUCT_EDIT_MODEL,
+  };
+}
+
+/**
+ * Run the edit on the requested model; if a gateway editor rejects it, retry
+ * once on Flare so a provider outage costs a second rather than the comment.
+ */
+async function generateEdit(request: EditRequest) {
+  try {
+    return {
+      modelId: request.modelId,
+      result: await runEdit(request.model, request),
+    };
+  } catch (error) {
+    const fallback = fallbackEditModel(request);
+    if (!fallback) {
+      throw error;
+    }
+    // biome-ignore lint/suspicious/noConsole: provider outages need to be visible in logs
+    console.warn("[roomsAi] edit fallback", {
+      error:
+        error instanceof Error
+          ? error.message.slice(0, ERROR_PREVIEW_LENGTH)
+          : String(error),
+      from: request.modelId,
+      to: fallback.modelId,
+    });
+    return {
+      modelId: fallback.modelId,
+      result: await runEdit(fallback.model, request),
+    };
+  }
+}
+
+async function renderEdit(
+  ctx: ActionCtx,
+  request: EditRequest
+): Promise<Id<"_storage">> {
+  const startedAt = Date.now();
+  const { modelId, result } = await generateEdit(request);
 
   // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
   console.info("[roomsAi] edit", {
     images: request.images.length,
-    model: request.modelId,
+    model: modelId,
     ms: Date.now() - startedAt,
     usage: result.calls[0]?.usage ?? null,
   });
