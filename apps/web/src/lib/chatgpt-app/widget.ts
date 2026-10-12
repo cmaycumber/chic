@@ -11,7 +11,7 @@
  */
 
 /** Bump when the markup changes: hosts cache templates by URI. */
-export const WIDGET_URI = "ui://widget/chic-room-v1.html";
+export const WIDGET_URI = "ui://widget/chic-room-v2.html";
 
 /** The MCP Apps UI mime type ChatGPT and other hosts render. */
 export const WIDGET_MIME_TYPE = "text/html;profile=mcp-app";
@@ -144,6 +144,8 @@ h1 {
 }
 .cta:hover { background: #9c7a48; }
 .cta:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.disclosure { margin: -6px 0 0; font-size: 11.5px; color: var(--muted); }
+.disclosure[hidden] { display: none; }
 .empty { padding: 28px 16px; text-align: center; color: var(--muted); }
 `;
 
@@ -165,6 +167,7 @@ const SCRIPT = `
     veilText: document.getElementById("veil-text"),
     note: document.getElementById("note"),
     shopTitle: document.getElementById("shop-title"),
+    disclosure: document.getElementById("disclosure"),
     strip: document.getElementById("strip"),
     cta: document.getElementById("cta")
   };
@@ -329,6 +332,7 @@ const SCRIPT = `
       if (card) els.strip.appendChild(card);
     }
     els.shopTitle.hidden = els.strip.childElementCount === 0;
+    els.disclosure.hidden = els.shopTitle.hidden;
 
     var roomUrl = safeUrl(data.roomUrl);
     els.cta.hidden = !roomUrl;
@@ -450,6 +454,7 @@ const BODY = `
   <button id="cta" class="cta" type="button" hidden>Open in Chic</button>
   <h2 id="shop-title" class="section-title" hidden>Shop the look</h2>
   <div id="strip" class="strip"></div>
+  <p id="disclosure" class="disclosure" hidden>Chic may earn a commission from purchases made through these links. Prices and availability are set by each retailer.</p>
 </main>
 `;
 

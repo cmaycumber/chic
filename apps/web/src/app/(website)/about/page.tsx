@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { siteConfig } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   description:
@@ -53,6 +54,9 @@ export default function AboutPage() {
               change, and buy from. Upload a photo, leave a comment on what you
               want different, and watch it happen in about 20 seconds. Free, no
               sign-up required.
+            </p>
+            <p className="mt-4 text-muted-foreground text-sm">
+              Chic is made by {siteConfig.company}.
             </p>
           </div>
         </div>
@@ -119,7 +123,7 @@ export default function AboutPage() {
                     Upload a Photo
                   </Button>
                 </Link>
-                <a href="mailto:chad.maycumber11@gmail.com">
+                <a href={`mailto:${siteConfig.supportEmail}`}>
                   <Button size="lg" variant="outline">
                     Contact Us
                   </Button>

@@ -145,6 +145,10 @@ export function ShareShop({
           />
         ))}
       </ul>
+
+      <p className="mt-4 text-muted-foreground text-xs">
+        Chic may earn a commission when you buy through these links.
+      </p>
     </section>
   );
 }

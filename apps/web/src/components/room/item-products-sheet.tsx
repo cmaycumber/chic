@@ -267,6 +267,10 @@ function ProductsBody({
         <ExternalLink className="size-3" />
         Search Amazon for “{item.searchQuery}”
       </a>
+
+      <p className="text-[11px] text-white/50">
+        Chic may earn a commission when you buy through these links.
+      </p>
     </div>
   );
 }

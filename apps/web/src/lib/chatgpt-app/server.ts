@@ -45,11 +45,48 @@ const SHOP_BUDGET_MS = 14_000;
 
 const UTM = "utm_source=chatgpt&utm_medium=app&utm_campaign=chatgpt_app";
 
+/** Said wherever product links are, in text and in the widget. */
+const AFFILIATE_NOTE =
+  "Links go to third-party retailers; Chic may earn a commission on qualifying purchases.";
+
 const TRAILING_SLASH = /\/$/;
 const WWW_PREFIX = /^www\./;
 
 export const SERVER_INSTRUCTIONS =
-  "Chic redesigns a photo of a real room and makes it shoppable. When the user shares a room photo and asks for a change (paint, furniture, style), call redesign_room with the photo and their request in their words. To change the same room again, pass the roomId from the last result instead of the photo. If status is rendering, wait and call get_room with the roomId. Use shop_item to find products for one piece of furniture in the room. Always give the user the roomUrl so they can open the room on usechic.com.";
+  "Chic redesigns a photo of a real interior room (living room, bedroom, kitchen, office and so on) and makes it shoppable. When the user shares a room photo and asks for a change (paint, furniture, decor, layout, style), call redesign_room with the photo and their request in their words. To change the same room again, pass the roomId from the last result instead of the photo. If status is rendering, call get_room with the roomId rather than calling redesign_room again. Use shop_item to find products for one piece of furniture in the room. Do not use Chic for photos that are not of a room (selfies, people, pets, products, outdoor scenes, documents), for general decorating advice without a photo, or to add people, weapons, drugs or explicit content to a photo. Product links go to third-party retailers, and Chic may earn a commission on purchases. Give the user the roomUrl so they can open the room on usechic.com.";
+
+/**
+ * Requests Chic declines before spending a render: putting people into the
+ * photo, and things ChatGPT apps may not depict or sell (weapons, drugs and
+ * tobacco, explicit or hateful content). Kept narrow on purpose; ordinary
+ * decor words like "nude tones", "kids' room" or "gunmetal" pass.
+ */
+const PERSON_WORDS =
+  "person|people|man|woman|men|women|child|children|kid|kids|baby|boy|girl|guy|lady|myself|me|us|family|wife|husband|son|daughter|mom|dad|mother|father|friend|girlfriend|boyfriend|celebrity";
+const ADD_PERSON = new RegExp(
+  `\\b(?:add|put|place|insert|include|draw|render|paint|photoshop)\\s+(?:(?:a|an|the|some|two|three|several|my|our|\\d+)\\s+)?(?:(?:young|old|little|small|happy|smiling|naked|nude)\\s+)?(?:${PERSON_WORDS})\\b(?![-'’])(?=\\s*$|\\s*[.,!?;]|\\s+(?:sitting|standing|lying|sleeping|reading|cooking|posing|walking|relaxing|working|playing|on|in|at|by|next|near|to|into|who|with|and)\\b)`,
+  "i"
+);
+const DISALLOWED: readonly RegExp[] = [
+  ADD_PERSON,
+  /\b(?:selfie|face swap|my face)\b/i,
+  /\b(?:guns?|firearms?|rifles?|pistols?|shotguns?|handguns?|revolvers?|ammo|ammunition|grenades?|explosives?|ar-?15)\b(?!\s*metal)/i,
+  /(?<!bath\s)\bbombs?\b/i,
+  /\b(?:naked|nudity|porn\w*|sex|sexual|erotic\w*|nsfw|topless|genitals?|fetish\w*|bdsm|dildos?)\b/i,
+  /\bnude\s+(?:person|people|man|woman|men|women|figure|body|bodies|model|photo|picture)/i,
+  /\b(?:bongs?|marijuana|cannabis|cocaine|heroin|meth|crack pipes?|cigarettes?|vapes?|vaping|hookahs?|drug paraphernalia)\b/i,
+  /\b(?:swastikas?|nazi\w*|kkk|corpses?|dead bod(?:y|ies)|gore|gory)\b/i,
+];
+
+const DECLINED =
+  "Chic only changes the room itself: paint, furniture, decor, lighting and layout. It does not add people, weapons, drugs or tobacco, or explicit or hateful content to photos. Ask the user for a different change to the room.";
+
+function isDisallowedRequest(text: string): boolean {
+  return DISALLOWED.some((pattern) => pattern.test(text));
+}
+
+/** Convex document ids: lowercase base32, around 32 characters. */
+const ROOM_ID = /^[a-z0-9]{20,48}$/;
 
 function secret(): string {
   const value = process.env.CHATGPT_APP_SECRET;
@@ -238,7 +275,7 @@ function summary(out: RoomOut): string {
   const count = out.products.length;
   const shop =
     count > 0
-      ? ` ${count} shoppable ${count === 1 ? "product is" : "products are"} in the card.`
+      ? ` ${count} shoppable ${count === 1 ? "product is" : "products are"} in the card. ${AFFILIATE_NOTE}`
       : "";
   return `Here is the room after "${out.request ?? "the change"}".${shop} Open it on Chic: ${out.roomUrl}`;
 }
@@ -250,16 +287,21 @@ function roomResult(out: RoomOut): CallToolResult {
   };
 }
 
+const NOT_FOUND_TEXT =
+  "That room was not found. It may have expired, or it was started in another ChatGPT account. Ask the user to attach the room photo again to start a new room.";
+
+function textError(text: string): CallToolResult {
+  return { content: [{ text, type: "text" }], isError: true };
+}
+
 function errorResult(error: unknown): CallToolResult {
-  const text =
-    error instanceof ConvexError
-      ? String(error.data)
-      : "Chic could not do that right now. Please try again.";
   if (!(error instanceof ConvexError)) {
     // biome-ignore lint/suspicious/noConsole: surfaces unexpected tool failures in server logs
     console.error("[mcp] tool failed", error);
+    return textError("Chic could not do that right now. Please try again.");
   }
-  return { content: [{ text, type: "text" }], isError: true };
+  const text = String(error.data);
+  return textError(text === "Room not found" ? NOT_FOUND_TEXT : text);
 }
 
 // ---------------------------------------------------------------------------
@@ -349,10 +391,7 @@ function subjectOf(ctx: ServerContext): string | undefined {
   return typeof subject === "string" ? subject : undefined;
 }
 
-const notFound: CallToolResult = {
-  content: [{ text: "That room was not found or has expired.", type: "text" }],
-  isError: true,
-};
+const notFound = textError(NOT_FOUND_TEXT);
 
 // ---------------------------------------------------------------------------
 // Server
@@ -416,46 +455,52 @@ export function registerChicApp(server: McpServer) {
         readOnlyHint: false,
       },
       description:
-        "Use this when the user shares a photo of a room and asks to change it: paint, furniture, decor, style. Renders the change into their photo with Chic, returns before/after images and real products to buy, and creates a public link to the room on usechic.com. To change the same room again, pass roomId instead of image.",
+        "Use this when the user shares a photo of an interior room (living room, bedroom, kitchen, office and so on) and asks to change it: wall colour, furniture, decor, lighting, layout or style. Renders the change into their photo, returns before/after images and real products to buy, and saves the room at a link anyone with it can open on usechic.com (it expires after a few days). To change the same room again, pass roomId instead of image. Each call renders a new version and counts toward daily limits, so if status is rendering, call get_room instead of calling this again. Do not use this for photos that are not of a room (selfies, people, pets, single products, outdoor scenes, documents), without a photo, for decorating advice that needs no image, or to add people, weapons, drugs or explicit content.",
       inputSchema: z.object({
         image: openAiFile
           .optional()
           .describe(
-            "The room photo the user attached. Required without roomId."
+            "The photo of the room the user attached in this conversation (JPEG, PNG or WebP, under 20 MB). Required when there is no roomId. Never pass a photo of a person."
           ),
         request: z
           .string()
           .min(1)
           .max(MAX_REQUEST_LENGTH)
-          .describe("What to change, in the user's words"),
+          .describe(
+            "The change to make, in the user's own words, e.g. 'paint the walls sage green and swap the sofa for a leather one'"
+          ),
         roomId: z
           .string()
           .optional()
-          .describe("A roomId from an earlier result, to keep editing it"),
+          .describe(
+            "The roomId from an earlier redesign_room result in this conversation, to change that room again. Omit when starting from a new photo."
+          ),
         title: z
           .string()
           .max(MAX_TITLE_LENGTH)
           .optional()
-          .describe("Short name for the room, e.g. 'Living room'"),
+          .describe(
+            "Short name for a new room, e.g. 'Living room'. Ignored with roomId."
+          ),
       }),
       outputSchema: roomOut,
       title: "Redesign a room",
     },
     async ({ image, request, roomId, title }, ctx) => {
       const subject = subjectOf(ctx);
+      if (isDisallowedRequest(request)) {
+        return textError(DECLINED);
+      }
+      if (roomId && !ROOM_ID.test(roomId)) {
+        return notFound;
+      }
       try {
         let id = roomId;
         if (!id) {
           if (!image) {
-            return {
-              content: [
-                {
-                  text: "Ask the user to attach a photo of their room first.",
-                  type: "text",
-                },
-              ],
-              isError: true,
-            };
+            return textError(
+              "No room photo was attached. Ask the user to attach a photo of the room they want to change (JPEG, PNG or WebP), then try again."
+            );
           }
           const created = await fetchAction(api.chatgpt.createRoomFromImage, {
             imageUrl: image.download_url,
@@ -504,14 +549,19 @@ export function registerChicApp(server: McpServer) {
         readOnlyHint: true,
       },
       description:
-        "Use this to check on a room from redesign_room, for example when its status was rendering. Returns the latest before/after images, products and the room link.",
+        "Use this to check on a room that redesign_room returned in this conversation, for example when its status was rendering, or to show it again. Returns the latest before/after images, products and the room link. Read-only: it never changes the room. Do not use this to find or browse other people's rooms.",
       inputSchema: z.object({
-        roomId: z.string().describe("The roomId from redesign_room"),
+        roomId: z
+          .string()
+          .describe("The roomId from an earlier redesign_room result"),
       }),
       outputSchema: roomOut,
-      title: "Get a room",
+      title: "Check a room",
     },
     async ({ roomId }) => {
+      if (!ROOM_ID.test(roomId)) {
+        return notFound;
+      }
       try {
         const room = await loadRoom(roomId);
         return room ? roomResult(toRoomOut(room)) : notFound;
@@ -535,18 +585,26 @@ export function registerChicApp(server: McpServer) {
         readOnlyHint: true,
       },
       description:
-        "Use this when the user wants to buy a specific piece of furniture or decor seen in a Chic room, such as the sofa or the rug. Returns real products with prices and links.",
+        "Use this when the user wants to buy, or see options for, one specific piece of furniture or decor in a room from redesign_room, such as the sofa or the rug. Returns real products with prices and links to third-party retailers; purchases happen on the retailer's site, and Chic may earn a commission. Do not use this for general shopping without a Chic room, or for items not in the room's items list.",
       inputSchema: z.object({
         item: z
           .string()
           .min(1)
-          .describe("The item's label from the room's items, e.g. 'sofa'"),
-        roomId: z.string().describe("The roomId from redesign_room"),
+          .max(MAX_TITLE_LENGTH)
+          .describe(
+            "The item's label from the room's items list, e.g. 'sofa' or 'area rug'"
+          ),
+        roomId: z
+          .string()
+          .describe("The roomId from an earlier redesign_room result"),
       }),
       outputSchema: shopOut,
-      title: "Shop an item",
+      title: "Shop an item in a room",
     },
     async ({ item, roomId }) => {
+      if (!ROOM_ID.test(roomId)) {
+        return notFound;
+      }
       try {
         const found = await fetchAction(api.chatgpt.shopItem, {
           item,
@@ -566,7 +624,10 @@ export function registerChicApp(server: McpServer) {
         return {
           content: [
             {
-              text: `Products for the ${out.item}:\n${lines.join("\n")}`,
+              text:
+                lines.length > 0
+                  ? `Products for the ${out.item}:\n${lines.join("\n")}\n${AFFILIATE_NOTE}`
+                  : `No products were found for the ${out.item} right now. Try again shortly, or open the room on Chic: ${out.roomUrl}`,
               type: "text",
             },
           ],

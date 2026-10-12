@@ -1,0 +1,39 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "chic",
+  "version": "1.0.0",
+  "description": "Redesign a photo of your room and shop the result. Attach a room photo, say what to change, and Chic renders it into your photo with real products you can buy.",
+  "author": {
+    "name": "Automatons, LLC",
+    "url": "https://www.usechic.com"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Chic Room Redesign",
+        "shortDescription": "Redesign your room, shop it",
+        "category": "Shopping",
+        "capabilities": [
+          "Render paint, furniture, decor and style changes into a photo of your own room",
+          "Show a before/after comparison of the room",
+          "Show real products with prices for the furniture in the redesigned room",
+          "Keep editing the same room across several requests",
+          "Give a link to open the room on usechic.com"
+        ],
+        "defaultPrompt": [
+          "Redesign this room in a warm Japandi style",
+          "Paint these walls sage green and show me what to buy",
+          "Swap this sofa for a cognac leather one"
+        ],
+        "brandColor": "#B08D57",
+        "brandColorDark": "#C9A46C",
+        "websiteURL": "https://www.usechic.com",
+        "supportURL": "https://www.usechic.com/support",
+        "privacyPolicyURL": "https://www.usechic.com/privacy",
+        "termsOfServiceURL": "https://www.usechic.com/terms",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

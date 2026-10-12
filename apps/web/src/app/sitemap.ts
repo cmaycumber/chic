@@ -62,6 +62,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
       url: `${baseUrl}/terms`,
     },
+    {
+      changeFrequency: "monthly",
+      lastModified: new Date(),
+      priority: 0.4,
+      url: siteConfig.supportUrl,
+    },
   ];
 
   // The gallery and the nine room types it is browsed by.

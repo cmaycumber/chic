@@ -96,6 +96,12 @@ export function PublicFooter() {
               >
                 Terms
               </Link>
+              <Link
+                className="transition-colors hover:text-foreground"
+                href="/support"
+              >
+                Support
+              </Link>
             </div>
           </div>
 
@@ -116,7 +122,7 @@ export function PublicFooter() {
               </Link>
               <a
                 className="transition-colors hover:text-foreground"
-                href="mailto:chad.maycumber11@gmail.com"
+                href={`mailto:${siteConfig.supportEmail}`}
               >
                 Contact
               </a>
@@ -126,7 +132,8 @@ export function PublicFooter() {
 
         <div className="border-t pt-8">
           <p className="text-muted-foreground text-sm">
-            © 2026 chic. All rights reserved.
+            © {new Date().getFullYear()} {siteConfig.company}. All rights
+            reserved.
           </p>
         </div>
       </div>

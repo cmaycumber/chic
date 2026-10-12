@@ -1281,3 +1281,57 @@ async function cachedTextProducts(
   );
   return mergeProducts(lists);
 }
+
+const screenSchema = z.object({
+  hasPeople: z
+    .boolean()
+    .describe("True if any person or part of a person is visible"),
+  isRoom: z
+    .boolean()
+    .describe(
+      "True only for a photo or render of an indoor room or outdoor living space (patio, deck) that could be redecorated. False for products, documents, screenshots, food, pets, selfies, landscapes."
+    ),
+});
+
+/**
+ * Check an upload from outside the website (the ChatGPT app) before a room is
+ * made from it: it must be a room, and it must not show people, so the
+ * editor is never asked to change someone's likeness.
+ */
+export const internalScreenUpload = internalAction({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    const image = await storageToDataUrl(ctx, args.storageId);
+    const startedAt = Date.now();
+    const { object, usage } = await generateObject({
+      messages: [
+        {
+          content: [
+            { data: image, mediaType: "image", type: "file" },
+            {
+              text: "Is this a photo of a room someone could redecorate, and are any people visible in it?",
+              type: "text",
+            },
+          ],
+          role: "user",
+        },
+      ],
+      model: gateway.languageModel(
+        process.env.ROOM_DETECT_MODEL || DEFAULT_DETECTION_MODEL
+      ),
+      providerOptions: {
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+        openai: { reasoningEffort: "minimal" },
+      },
+      schema: screenSchema,
+    });
+    // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
+    console.info("[roomsAi] screen", {
+      ...object,
+      ms: Date.now() - startedAt,
+      usage,
+    });
+    return object;
+  },
+  returns: v.object({ hasPeople: v.boolean(), isRoom: v.boolean() }),
+});

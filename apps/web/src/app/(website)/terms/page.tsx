@@ -1,29 +1,33 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { LegalList, LegalSection } from "@/components/legal-section";
+import { siteConfig } from "@/lib/site-config";
+
+const DESCRIPTION =
+  "The terms for using Chic and the Chic app in ChatGPT, operated by Automatons, LLC: your photos, AI-generated images, affiliate links and acceptable use.";
 
 export const metadata: Metadata = {
-  description:
-    "Read the terms of service for using Chic, the free AI interior designer. Understand your rights and responsibilities when using our platform.",
+  alternates: { canonical: "/terms" },
+  description: DESCRIPTION,
   openGraph: {
-    description:
-      "Read the terms of service for using Chic, the free AI interior designer.",
+    description: DESCRIPTION,
     images: [
       {
-        alt: "Chic AI Interior Designer - Terms of Service",
+        alt: "Chic Terms of Service",
         height: 630,
         url: "/images/ai-room-designer-hero.png",
         width: 1200,
       },
     ],
-    title: "Terms of Service - Chic AI Interior Designer",
+    title: "Terms of Service | Chic",
     type: "website",
   },
-  title: "Terms of Service | Chic - AI Interior Designer",
+  title: "Terms of Service | Chic",
   twitter: {
     card: "summary_large_image",
-    description:
-      "Read the terms of service for using Chic, the free AI interior designer.",
+    description: DESCRIPTION,
     images: ["/images/ai-room-designer-hero.png"],
-    title: "Terms of Service - Chic AI Interior Designer",
+    title: "Terms of Service | Chic",
   },
 };
 
@@ -38,165 +42,187 @@ export default function TermsPage() {
               Terms of Service
             </h1>
             <p className="mt-4 text-muted-foreground">
-              Last updated: October 11, 2025
+              Last updated: October 12, 2026
             </p>
           </div>
 
-          <div className="prose prose-neutral dark:prose-invert max-w-none">
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Agreement to Terms</h2>
-              <p className="text-muted-foreground">
-                By accessing or using chic, you agree to be bound by these Terms
-                of Service and all applicable laws and regulations. If you do
-                not agree with any of these terms, you are prohibited from using
-                or accessing this service.
+          <div className="prose prose-neutral dark:prose-invert max-w-none space-y-10">
+            <LegalSection title="Who we are">
+              <p>
+                Chic ({siteConfig.domain}) and the Chic app in ChatGPT are
+                operated by {siteConfig.company} (“we”, “us”). These terms are
+                an agreement between you and {siteConfig.company}. By using
+                Chic, you agree to them. If you do not agree, please do not use
+                Chic.
               </p>
-            </section>
+            </LegalSection>
 
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Use License</h2>
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Permission is granted to temporarily access and use chic for
-                  personal, non-commercial purposes. This license does not
-                  include the right to:
-                </p>
-                <ul className="list-inside list-disc space-y-2 text-muted-foreground">
-                  <li>Modify or copy the materials</li>
-                  <li>
-                    Use the materials for commercial purposes or public display
-                  </li>
-                  <li>Attempt to decompile or reverse engineer any software</li>
-                  <li>
-                    Remove any copyright or proprietary notations from the
-                    materials
-                  </li>
-                  <li>
-                    Transfer the materials to another person or mirror the
-                    materials on any other server
-                  </li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">User Accounts</h2>
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  When you create an account with us, you must provide accurate,
-                  complete, and current information. You are responsible for:
-                </p>
-                <ul className="list-inside list-disc space-y-2 text-muted-foreground">
-                  <li>Maintaining the confidentiality of your account</li>
-                  <li>All activities that occur under your account</li>
-                  <li>
-                    Notifying us immediately of any unauthorized use of your
-                    account
-                  </li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">AI-Generated Content</h2>
-              <p className="text-muted-foreground">
-                chic uses artificial intelligence to generate interior design
-                recommendations. While we strive for accuracy, the suggestions
-                provided are for informational purposes only and should not be
-                considered professional design advice. You should use your own
-                judgment and consult with qualified professionals before making
-                significant design or renovation decisions.
+            <LegalSection title="Using Chic">
+              <p>
+                Chic lets you upload a photo of a room, ask for changes in
+                comments, and find products that look like the furniture in the
+                result. You can use it without an account; rooms made that way
+                are deleted after 7 days unless you sign up. If you create an
+                account, keep your password safe and tell us if you think
+                someone else is using it. You must be at least 13 years old to
+                use Chic.
               </p>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Intellectual Property</h2>
-              <p className="text-muted-foreground">
-                The service and its original content, features, and
-                functionality are owned by chic and are protected by
-                international copyright, trademark, patent, trade secret, and
-                other intellectual property laws.
+              <p>
+                Chic is free today. We may set daily limits, change features, or
+                stop offering parts of the service.
               </p>
-            </section>
+            </LegalSection>
 
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">User-Generated Content</h2>
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  By submitting content to chic, you grant us a worldwide,
-                  non-exclusive, royalty-free license to use, reproduce, modify,
-                  and display that content for the purpose of providing and
-                  improving our service.
-                </p>
-                <p className="text-muted-foreground">
-                  You agree not to submit content that:
-                </p>
-                <ul className="list-inside list-disc space-y-2 text-muted-foreground">
-                  <li>Violates any laws or regulations</li>
-                  <li>Infringes on intellectual property rights</li>
-                  <li>Contains harmful or malicious code</li>
-                  <li>Is offensive, threatening, or harassing</li>
-                </ul>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Disclaimer</h2>
-              <p className="text-muted-foreground">
-                The service is provided "as is" without any warranties,
-                expressed or implied. We do not warrant that the service will be
-                uninterrupted, timely, secure, or error-free. We do not warrant
-                the accuracy or reliability of any information obtained through
-                the service.
+            <LegalSection title="Your content">
+              <p>
+                You own the photos you upload and the comments you write. You
+                must have the right to upload them.
               </p>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">
-                Limitation of Liability
-              </h2>
-              <p className="text-muted-foreground">
-                In no event shall chic or its suppliers be liable for any
-                damages arising out of the use or inability to use the service,
-                even if we have been notified of the possibility of such
-                damages.
+              <p>
+                You give {siteConfig.company} a worldwide, non-exclusive,
+                royalty-free license to store, copy, process and modify your
+                content, and to send it to our service providers, in order to
+                run Chic for you. That includes generating edited images and
+                searching for products. If you share a room or list it in the
+                public gallery, the license also covers displaying it, its
+                comments and its images to the people who can see it, including
+                in previews and search results. The license ends when you delete
+                the content, except for copies others have already made or that
+                remain in backups for a limited time.
               </p>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Termination</h2>
-              <p className="text-muted-foreground">
-                We may terminate or suspend your account and access to the
-                service immediately, without prior notice or liability, for any
-                reason, including if you breach these Terms of Service.
+              <p>
+                You may use the images Chic generates for you for any lawful
+                purpose, subject to the rights of anyone else in the original
+                photo.
               </p>
-            </section>
+            </LegalSection>
 
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Changes to Terms</h2>
-              <p className="text-muted-foreground">
-                We reserve the right to modify or replace these Terms at any
-                time. If a revision is material, we will provide at least 30
-                days' notice before any new terms take effect.
+            <LegalSection title="AI-generated images">
+              <p>
+                Edited photos are made by AI models and are illustrations, not
+                plans. They may not be to scale, may not match real products
+                exactly, and may contain mistakes. Do not rely on them for
+                measurements, construction, safety or purchase decisions without
+                checking for yourself.
               </p>
-            </section>
+            </LegalSection>
 
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Governing Law</h2>
-              <p className="text-muted-foreground">
-                These Terms shall be governed by and construed in accordance
-                with the laws of the United States, without regard to its
-                conflict of law provisions.
+            <LegalSection title="Products, retailers and affiliate links">
+              <p>
+                {siteConfig.company} does not sell products. Product matches are
+                found automatically and may not be the exact item in an image.
+                Prices, availability and details come from retailers and search
+                services, can change at any time, and may differ from what Chic
+                shows. When you buy something, you buy it from the retailer
+                under its terms; returns, shipping and warranties are between
+                you and the retailer.
               </p>
-            </section>
+              <p>
+                Product links are affiliate links, including through Amazon
+                Associates and, for other retailers, affiliate networks such as
+                Sovrn Commerce or Skimlinks. We may earn a commission when you
+                buy through them, at no extra cost to you. As an Amazon
+                Associate, we earn from qualifying purchases.
+              </p>
+            </LegalSection>
 
-            <section className="space-y-4">
-              <h2 className="font-semibold text-2xl">Contact Us</h2>
-              <p className="text-muted-foreground">
-                If you have any questions about these Terms of Service, please
-                contact us at legal@chic.ai
+            <LegalSection title="Acceptable use">
+              <p>Do not use Chic to:</p>
+              <LegalList>
+                <li>
+                  Upload or create anything illegal, sexual, violent, hateful,
+                  or that infringes someone else's rights.
+                </li>
+                <li>Upload photos of people without their consent.</li>
+                <li>Harass, deceive or impersonate anyone.</li>
+                <li>
+                  Scrape Chic, access it with bots outside the published ChatGPT
+                  app, or get around usage limits or security measures.
+                </li>
+                <li>
+                  Overload, disrupt, or attempt to break into Chic or the
+                  services it runs on.
+                </li>
+              </LegalList>
+              <p>
+                We may remove content, take rooms out of the gallery, or limit
+                access when we believe these rules have been broken.
               </p>
-            </section>
+            </LegalSection>
+
+            <LegalSection title="The Chic app in ChatGPT">
+              <p>
+                When you use Chic inside ChatGPT, ChatGPT sends us the image you
+                attach and the change you ask for. We create a room that is
+                viewable by anyone with its link, is never listed in the
+                gallery, and is deleted after 7 days. Your use of ChatGPT itself
+                is governed by OpenAI's terms; {siteConfig.company} is not
+                affiliated with OpenAI. These terms and our{" "}
+                <Link href="/privacy">Privacy Policy</Link> apply to what Chic
+                does with your request.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Disclaimers">
+              <p>
+                Chic is provided “as is” and “as available”. To the fullest
+                extent the law allows, {siteConfig.company} disclaims all
+                warranties, express or implied, including merchantability,
+                fitness for a particular purpose, and non-infringement. We do
+                not promise that Chic will be uninterrupted, error-free, or that
+                rooms will be stored forever. Keep your own copy of anything you
+                care about.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Limitation of liability">
+              <p>
+                To the fullest extent the law allows, {siteConfig.company} will
+                not be liable for any indirect, incidental, special,
+                consequential or punitive damages, or for lost profits, data or
+                goodwill, arising from your use of Chic or from products you buy
+                from retailers. Our total liability for any claim about Chic is
+                limited to the greater of the amount you paid us in the past 12
+                months or US$50.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Ending your use">
+              <p>
+                You can stop using Chic at any time, delete your rooms, and ask
+                us to delete your account. We may suspend or end your access if
+                you break these terms or if we stop offering Chic. Sections that
+                by their nature should survive, such as disclaimers and
+                limitation of liability, survive the end of these terms.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Governing law">
+              {/* TODO(owner): name the state */}
+              <p>
+                These terms are governed by the laws of the state in which{" "}
+                {siteConfig.company} is organized, without regard to
+                conflict-of-law rules.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Changes to these terms">
+              <p>
+                We may update these terms. We will post the new version here and
+                update the date at the top. If you keep using Chic after a
+                change takes effect, the new terms apply.
+              </p>
+            </LegalSection>
+
+            <LegalSection title="Contact">
+              <p>
+                {siteConfig.company}, operator of Chic. Email{" "}
+                <a href={`mailto:${siteConfig.supportEmail}`}>
+                  {siteConfig.supportEmail}
+                </a>{" "}
+                or visit our <Link href="/support">support page</Link>.
+              </p>
+            </LegalSection>
           </div>
         </div>
       </div>

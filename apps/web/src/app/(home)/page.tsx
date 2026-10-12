@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { HomeShowcase } from "@/components/home-showcase";
 import { RoomComposerBar } from "@/components/room-composer-bar";
+import { siteConfig } from "@/lib/site-config";
 
 const FOOTER_LINKS = [
   { href: "/ideas", label: "Room ideas" },
   { href: "/blog", label: "Blog" },
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
+  { href: "/support", label: "Support" },
 ] as const;
 
 export default function HomePage() {
@@ -19,7 +21,9 @@ export default function HomePage() {
         <RoomComposerBar className="mx-auto w-full max-w-2xl" />
 
         <footer className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-white/50 text-xs">
-          <span>© Chic</span>
+          <span>
+            © {new Date().getFullYear()} {siteConfig.company}
+          </span>
           {FOOTER_LINKS.map((link) => (
             <Link
               className="hover:text-white/80"

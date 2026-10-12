@@ -376,6 +376,17 @@ export const createRoomFromImage = action({
       internal.imageNormalize.normalizeUpload,
       { storageId: uploadedId }
     );
+    const screen = await ctx.runAction(internal.roomsAi.internalScreenUpload, {
+      storageId: imageStorageId,
+    });
+    if (!screen.isRoom || screen.hasPeople) {
+      await ctx.storage.delete(imageStorageId);
+      throw new ConvexError(
+        screen.isRoom
+          ? "Chic only edits rooms without people in them. Send a photo of the room with nobody in it."
+          : "That photo doesn't look like a room. Send a photo of a room you'd like to redesign."
+      );
+    }
     const roomId = await ctx.runMutation(internal.chatgpt.internalCreateRoom, {
       imageStorageId,
       title: args.title,
