@@ -11,8 +11,9 @@
  * - AI_GATEWAY_API_KEY: Vercel AI Gateway (Muse Image edits the photo,
  *   Gemini 3.5 Flash Lite detects furniture and plans comments; override with
  *   ROOM_EDIT_MODEL, ROOM_DETECT_MODEL and ROOM_PLAN_MODEL)
- * - OPENAI_API_KEY: needed when ROOM_EDIT_MODEL is an openai/ model, and for
- *   putting a bought product into the photo (ROOM_PRODUCT_EDIT_MODEL)
+ * - OPENAI_API_KEY: sends openai/ image models (Flare: product placements, and
+ *   the fallback when Muse fails) straight to OpenAI for WebP output. Set
+ *   ROOM_IMAGE_ROUTE=gateway to bill them to the AI Gateway instead.
  * - SERPAPI_API_KEY: Amazon product search
  */
 "use node";
@@ -281,14 +282,15 @@ interface EditModel {
 }
 
 /**
- * Resolve the edit model. OpenAI models go through the OpenAI provider when
- * its key is present, because the AI Gateway drops image provider options
- * (WebP output). Everything else, e.g. `meta/muse-image-1.0`, uses the gateway.
+ * Pick the provider for an image model. OpenAI models go straight to OpenAI
+ * when there is a key, because only that path honours WebP output; setting
+ * ROOM_IMAGE_ROUTE=gateway sends them through the AI Gateway instead (billed
+ * to gateway credit, PNG output). Everything else, e.g. Muse, uses the gateway.
  */
-function imageEditModel(): EditModel {
-  const modelId = process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL;
+function resolveImageModel(modelId: string): EditModel {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (apiKey && modelId.startsWith(OPENAI_PREFIX)) {
+  const viaGateway = process.env.ROOM_IMAGE_ROUTE === "gateway";
+  if (apiKey && !viaGateway && modelId.startsWith(OPENAI_PREFIX)) {
     return {
       model: createOpenAI({ apiKey }).image(
         modelId.slice(OPENAI_PREFIX.length)
@@ -299,25 +301,18 @@ function imageEditModel(): EditModel {
   return { model: gateway.imageModel(modelId), modelId };
 }
 
-/**
- * Resolve the model that puts a bought product in the room. Two input images
- * are the whole point here, so an openai/ id without a key is a dead end
- * rather than something to quietly fall back from.
- */
+/** The editor for typed comments (override with ROOM_EDIT_MODEL). */
+function imageEditModel(): EditModel {
+  return resolveImageModel(
+    process.env.ROOM_EDIT_MODEL || DEFAULT_IMAGE_EDIT_MODEL
+  );
+}
+
+/** The editor that places a bought product (override with ROOM_PRODUCT_EDIT_MODEL). */
 function productEditModel(): EditModel {
-  const modelId =
-    process.env.ROOM_PRODUCT_EDIT_MODEL || DEFAULT_PRODUCT_EDIT_MODEL;
-  if (!modelId.startsWith(OPENAI_PREFIX)) {
-    return { model: gateway.imageModel(modelId), modelId };
-  }
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("Product previews are not set up yet");
-  }
-  return {
-    model: createOpenAI({ apiKey }).image(modelId.slice(OPENAI_PREFIX.length)),
-    modelId,
-  };
+  return resolveImageModel(
+    process.env.ROOM_PRODUCT_EDIT_MODEL || DEFAULT_PRODUCT_EDIT_MODEL
+  );
 }
 
 interface EditRequest extends EditModel {
@@ -345,20 +340,14 @@ function runEdit(model: ImageModel, request: EditRequest) {
 }
 
 /**
- * Flare, called directly, for when a gateway editor (Muse) fails. Null when
- * the request already went to OpenAI or there is no key to fall back with.
+ * Flare, for when another editor (Muse) fails. Null when the failed request
+ * already went to Flare, so a Flare outage is reported rather than repeated.
  */
 function fallbackEditModel(request: EditRequest): EditModel | null {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || request.modelId.startsWith(OPENAI_PREFIX)) {
+  if (request.modelId === DEFAULT_PRODUCT_EDIT_MODEL) {
     return null;
   }
-  return {
-    model: createOpenAI({ apiKey }).image(
-      DEFAULT_PRODUCT_EDIT_MODEL.slice(OPENAI_PREFIX.length)
-    ),
-    modelId: DEFAULT_PRODUCT_EDIT_MODEL,
-  };
+  return resolveImageModel(DEFAULT_PRODUCT_EDIT_MODEL);
 }
 
 /**
