@@ -17,7 +17,7 @@
     "dev:web": "turbo -F web dev",
     "fix": "bun x ultracite fix",
     "native": "bun run --filter @furnish/native",
-    "prepare": "lefthook install",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && lefthook install || true",
     "web": "bun run --filter './apps/web'"
   },
   "lint-staged": {
