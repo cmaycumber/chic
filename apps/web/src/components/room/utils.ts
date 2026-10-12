@@ -67,6 +67,52 @@ export function toPercent(value: number): string {
   return `${value * PERCENT}%`;
 }
 
+/**
+ * Product photo hosts next/image optimizes (see `images.remotePatterns` in
+ * next.config.ts): Amazon's catalogue and Google's thumbnail CDN. Shops found
+ * by picture serve from anywhere, so those load as they are.
+ */
+const OPTIMIZED_IMAGE_HOST = /(^|\.)(media-amazon\.com|gstatic\.com)$/;
+const AMAZON_HOST = /(^|\.)amazon\.[a-z.]+$/;
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+interface ListedProduct {
+  imageUrl: string;
+  productUrl: string;
+  retailer?: string;
+  thumbnailUrl?: string;
+}
+
+/** The photo to show in a list: the small copy when there is one. */
+export function productImage(product: ListedProduct): {
+  src: string;
+  unoptimized: boolean;
+} {
+  const src = product.thumbnailUrl ?? product.imageUrl;
+  return { src, unoptimized: !OPTIMIZED_IMAGE_HOST.test(hostOf(src)) };
+}
+
+/** Who sells it. Products saved before retailers were recorded are Amazon's. */
+export function retailerName(product: ListedProduct): string | undefined {
+  if (product.retailer) {
+    return product.retailer;
+  }
+  return AMAZON_HOST.test(hostOf(product.productUrl)) ? "Amazon" : undefined;
+}
+
+/** "View on Wayfair", or "View product" when the shop is unknown. */
+export function viewProductLabel(product: ListedProduct): string {
+  const retailer = retailerName(product);
+  return retailer ? `View on ${retailer}` : "View product";
+}
+
 export function amazonSearchUrl(query: string): string {
   return `https://www.amazon.com/s?k=${encodeURIComponent(query)}&tag=${AMAZON_AFFILIATE_TAG}`;
 }

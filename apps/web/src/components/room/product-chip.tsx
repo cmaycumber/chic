@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { formatPrice } from "./utils";
+import { formatPrice, productImage, retailerName } from "./utils";
 
 /**
  * All a chip shows. Comment products carry ratings and review counts too, but
@@ -11,6 +11,8 @@ export interface ChipProduct {
   name: string;
   price: number;
   productUrl: string;
+  retailer?: string;
+  thumbnailUrl?: string;
 }
 
 const TONES = {
@@ -18,7 +20,8 @@ const TONES = {
   light: "border border-border bg-muted/60 text-foreground hover:bg-muted",
 } as const;
 
-function Thumbnail({ imageUrl }: { imageUrl: string }) {
+function Thumbnail({ product }: { product: ChipProduct }) {
+  const image = productImage(product);
   return (
     <span className="relative size-7 shrink-0 overflow-hidden rounded-full bg-white">
       <Image
@@ -26,7 +29,8 @@ function Thumbnail({ imageUrl }: { imageUrl: string }) {
         className="object-contain"
         fill
         sizes="28px"
-        src={imageUrl}
+        src={image.src}
+        unoptimized={image.unoptimized}
       />
     </span>
   );
@@ -45,6 +49,8 @@ export function ProductChip({
   product: ChipProduct;
   tone: keyof typeof TONES;
 }) {
+  const retailer = retailerName(product);
+
   return (
     <a
       className={cn(
@@ -56,8 +62,13 @@ export function ProductChip({
       rel="noopener noreferrer"
       target="_blank"
     >
-      <Thumbnail imageUrl={product.imageUrl} />
+      <Thumbnail product={product} />
       <span className="truncate text-xs leading-snug">{product.name}</span>
+      {retailer ? (
+        <span className="max-w-24 shrink-0 truncate text-[10px] opacity-60">
+          {retailer}
+        </span>
+      ) : null}
       <span className="shrink-0 font-medium text-xs">
         {formatPrice(product.price)}
       </span>
@@ -69,7 +80,7 @@ export function ProductChip({
 export function ProductPreview({ product }: { product: ChipProduct }) {
   return (
     <span className="mt-1.5 flex items-center gap-2 rounded-full bg-white/15 py-1 pr-2.5 pl-1">
-      <Thumbnail imageUrl={product.imageUrl} />
+      <Thumbnail product={product} />
       <span className="truncate">{product.name}</span>
     </span>
   );

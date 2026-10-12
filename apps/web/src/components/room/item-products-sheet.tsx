@@ -27,7 +27,10 @@ import {
   GLASS_RESET,
   PANEL_DISPLACEMENT,
   PANEL_RADIUS,
+  productImage,
+  retailerName,
   shortProductName,
+  viewProductLabel,
 } from "./utils";
 
 const SKELETON_KEYS = ["first", "second", "third"] as const;
@@ -83,7 +86,9 @@ function useAddProduct({
           price: product.price,
           productUrl: product.productUrl,
           rating: product.rating,
+          retailer: product.retailer,
           reviewCount: product.reviewCount,
+          thumbnailUrl: product.thumbnailUrl,
         },
         roomId,
       })
@@ -139,6 +144,9 @@ function ProductCard({
   add: AddState;
   product: RoomProduct;
 }) {
+  const image = productImage(product);
+  const retailer = retailerName(product);
+
   return (
     <li className="flex gap-3 rounded-2xl bg-white/5 p-2.5">
       <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-white">
@@ -147,15 +155,21 @@ function ProductCard({
           className="object-contain"
           fill
           sizes="64px"
-          src={product.imageUrl}
+          src={image.src}
+          unoptimized={image.unoptimized}
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="line-clamp-2 text-sm text-white leading-snug">
           {product.name}
         </p>
-        <p className="font-medium text-sm text-white">
-          {formatPrice(product.price)}
+        <p className="flex min-w-0 items-baseline gap-2 text-sm">
+          <span className="shrink-0 font-medium text-white">
+            {formatPrice(product.price)}
+          </span>
+          {retailer ? (
+            <span className="truncate text-white/50 text-xs">{retailer}</span>
+          ) : null}
         </p>
         {product.rating !== undefined && (
           <p className="flex items-center gap-1 text-white/60 text-xs">
@@ -176,7 +190,7 @@ function ProductCard({
             rel="noopener noreferrer"
             target="_blank"
           >
-            View on Amazon
+            {viewProductLabel(product)}
             <ExternalLink className="size-3" />
           </a>
         </div>

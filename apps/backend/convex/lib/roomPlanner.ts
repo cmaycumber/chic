@@ -15,7 +15,7 @@ import {
   tool,
 } from "ai";
 import z from "zod";
-import type { AmazonProduct } from "./amazonSearch";
+import type { Product } from "./productSearch";
 
 const DEFAULT_PLAN_MODEL = "google/gemini-3.5-flash-lite";
 /** Models reached only through a forced tool call. */
@@ -40,9 +40,17 @@ interface StructuredCall<T> {
   modelId: string;
   prompt: string;
   schema: z.ZodType<T>;
+  /** Give up after this long; callers with a fallback should set it. */
+  timeoutMs?: number;
   toolDescription: string;
   toolName: string;
 }
+
+/**
+ * Picking a listing has a rule-based fallback, so a slow model reply should
+ * cost at most this long instead of holding the whole render (seen: 8 s).
+ */
+const PICK_TIMEOUT_MS = 3000;
 
 /**
  * One structured answer from the planning model: `generateObject` where the
@@ -58,9 +66,13 @@ async function callStructured<T>(
     google: { thinkingConfig: { thinkingBudget: 0 } },
     openai: { reasoningEffort: "minimal" },
   };
+  const limits = call.timeoutMs
+    ? { abortSignal: AbortSignal.timeout(call.timeoutMs), maxRetries: 0 }
+    : {};
 
   if (!call.modelId.startsWith(TOOL_CALL_PREFIX)) {
     const { object, usage } = await generateObject({
+      ...limits,
       model,
       prompt: call.prompt,
       providerOptions,
@@ -70,6 +82,7 @@ async function callStructured<T>(
   }
 
   const result = await generateText({
+    ...limits,
     model,
     prompt: call.prompt,
     providerOptions,
@@ -285,12 +298,14 @@ const pickSchema = z.object({
 
 export interface PickSlot {
   label: string;
-  listings: AmazonProduct[];
+  listings: Product[];
+  /** Listings found from a photo of the piece this slot replaces. */
+  lookalikeUrls?: Set<string>;
   maxPrice?: number;
   searchQuery: string;
 }
 
-const isCleanShot = (product: AmazonProduct) =>
+const isCleanShot = (product: Product) =>
   CLEAN_PRODUCT_SHOT.test(product.imageUrl);
 
 /**
@@ -319,7 +334,7 @@ function buildPickPrompt(comment: string, slots: PickSlot[]) {
   const sections = slots.map((slot, slotIndex) => {
     const listings = slot.listings.map(
       (product, index) =>
-        `  ${index}. ${product.name} | $${product.price} | ${product.rating ?? "?"} stars, ${product.reviewCount ?? 0} reviews | ${isCleanShot(product) ? "catalogue photo" : "photo type unknown"}`
+        `  ${index}. ${product.name} | ${product.retailer ?? "Amazon"} | $${product.price} | ${product.rating ?? "?"} stars, ${product.reviewCount ?? 0} reviews | ${isCleanShot(product) ? "catalogue photo" : "photo type unknown"}${slot.lookalikeUrls?.has(product.productUrl) ? " | looks like the current piece" : ""}`
     );
     const budget =
       slot.maxPrice === undefined ? "" : ` (budget $${slot.maxPrice})`;
@@ -327,7 +342,7 @@ function buildPickPrompt(comment: string, slots: PickSlot[]) {
   });
   return `A shopper commented on a photo of their room: "${comment}"
 
-For each slot, choose the one listing that best matches what they asked for. Prefer, in order: a faithful match to the requested style, colour and material; within budget; a clean catalogue photo of the product alone; a good rating with many reviews. Answer with one pick per slot.
+For each slot, choose the one listing that best matches what they asked for. Listings come from several shops. Those marked "looks like the current piece" were found from a photo of the piece being replaced: take one only when the comment keeps its look (a similar or cheaper one, the same in another colour), never when it asks for something different. Prefer, in order: a faithful match to the requested style, colour and material; within budget; a clean catalogue photo of the product alone; a good rating with many reviews. Answer with one pick per slot.
 
 ${sections.join("\n\n")}`;
 }
@@ -350,6 +365,7 @@ export async function pickProducts(
       modelId,
       prompt: buildPickPrompt(comment, slots),
       schema: pickSchema,
+      timeoutMs: PICK_TIMEOUT_MS,
       toolDescription: "Submit the chosen listing for each slot.",
       toolName: "submit_picks",
     });

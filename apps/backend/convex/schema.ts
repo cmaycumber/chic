@@ -16,14 +16,18 @@ const likedDesign = v.object({
   type: v.literal("design"),
 });
 
-/** A shoppable product found on Amazon for a detected item. */
+/** A shoppable product found for a detected item, at any retailer. */
 export const vProduct = v.object({
   imageUrl: v.string(),
   name: v.string(),
   price: v.number(),
   productUrl: v.string(),
   rating: v.optional(v.number()),
+  /** The shop selling it ("Amazon", "Wayfair"); older rows are all Amazon. */
+  retailer: v.optional(v.string()),
   reviewCount: v.optional(v.number()),
+  /** A small copy of the photo for lists, when `imageUrl` is the full one. */
+  thumbnailUrl: v.optional(v.string()),
 });
 
 /** Normalized (0..1) bounding box relative to the image. */
@@ -105,6 +109,21 @@ export default defineSchema({
     artifact: v.union(design),
     threadId: v.string(),
   }).index("by_threadId", ["threadId"]),
+
+  /**
+   * Who may edit a room besides its owner. A row per person rather than an
+   * array on the room, because Convex cannot index array membership and the
+   * rooms list has to find "rooms shared with me" by user id.
+   */
+  /**
+   * Daily counters behind the ChatGPT app's spending caps: one row per key
+   * ("rooms" or "comments") per UTC day, across every ChatGPT user.
+   */
+  chatgptUsage: defineTable({
+    count: v.number(),
+    day: v.string(),
+    key: v.string(),
+  }).index("by_key_day", ["key", "day"]),
   designs: defineTable({
     budget: v.optional(v.number()),
     description: v.string(),
@@ -222,11 +241,6 @@ export default defineSchema({
     userId: v.string(),
   }).index("by_room", ["roomId"]),
 
-  /**
-   * Who may edit a room besides its owner. A row per person rather than an
-   * array on the room, because Convex cannot index array membership and the
-   * rooms list has to find "rooms shared with me" by user id.
-   */
   roomMembers: defineTable({
     roomId: v.id("rooms"),
     userId: v.string(),

@@ -52,6 +52,8 @@ Web (`apps/web/.env.local`, and the Vercel project):
 | `NEXT_PUBLIC_CONVEX_SITE_URL` | Convex HTTP actions URL (`https://<name>.convex.site`), used by auth |
 | `CONVEX_DEPLOY_KEY` | Lets the Vercel build push Convex functions |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Optional analytics |
+| `CHATGPT_APP_SECRET` | Shared secret the `/mcp` endpoint (the ChatGPT app) sends to `api.chatgpt.*`; must match the Convex value |
+| `SITE_URL` | Optional origin for the share links the ChatGPT app hands out (defaults to `https://www.usechic.com`; set it to a tunnel URL when testing a dev deployment) |
 
 Convex (`bunx convex env set NAME value` from `apps/backend`):
 
@@ -67,6 +69,7 @@ Convex (`bunx convex env set NAME value` from `apps/backend`):
 | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Optional Pinterest OAuth |
 | `RESEND_API_KEY` | Sends password reset emails via Resend |
 | `EMAIL_FROM` | Optional sender override (defaults to `Chic <hello@usechic.com>`) |
+| `CHATGPT_APP_SECRET` | Same value as the web app's; without it every `api.chatgpt.*` call is refused |
 
 ### Local development without a Convex account
 
@@ -77,6 +80,12 @@ Convex (`bunx convex env set NAME value` from `apps/backend`):
 1. `bun run check-types` and `bun run build` must pass (the pre-push hook runs the type-check).
 2. Deploy Convex first (`bunx convex deploy` from `apps/backend`, or let the Vercel build do it via `CONVEX_DEPLOY_KEY`), then the web app.
 3. Set the Convex environment variables above on the production deployment before the first deploy; image edits and shopping fail without the gateway and SerpAPI keys.
+
+### ChatGPT app
+
+`apps/web/src/app/mcp/route.ts` serves an MCP server (Streamable HTTP) at `/mcp` with three tools, `redesign_room`, `get_room` and `shop_item`, and a before/after widget (`apps/web/src/lib/chatgpt-app`). It calls `apps/backend/convex/chatgpt.ts` with `CHATGPT_APP_SECRET`; rooms it makes are shared by link, unlisted, and expire after 7 days like a guest's.
+
+To try it in ChatGPT, expose the endpoint over public HTTPS (production `https://www.usechic.com/mcp`, or a tunnel such as `ngrok http 3001` in development), then in ChatGPT open Plugins, add a custom MCP server with that URL including `/mcp`, choose no authentication, and start a chat with it selected via `@`. `npx @modelcontextprotocol/inspector` (Streamable HTTP, `http://localhost:3001/mcp`) lists and calls the tools locally.
 
 
 

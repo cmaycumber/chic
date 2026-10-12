@@ -161,7 +161,11 @@ async function namesByUserId(
   const unique = [...new Set(userIds)];
   const entries = await Promise.all(
     unique.map(async (id) => {
-      const user = await authComponent.getAnyUserById(ctx, id);
+      // Rooms made by the ChatGPT app belong to service ids that are not
+      // Better Auth users, and looking one up throws. They are guests too.
+      const user = await authComponent
+        .getAnyUserById(ctx, id)
+        .catch(() => null);
       return [id, displayName(user)] as const;
     })
   );
@@ -887,7 +891,7 @@ interface CommentRequest {
  * one scheduled action. As far as the room is concerned, choosing a sofa off
  * Amazon is just another comment.
  */
-async function queueComment(
+export async function queueComment(
   ctx: MutationCtx,
   room: Doc<"rooms">,
   author: { name: string; userId: string },

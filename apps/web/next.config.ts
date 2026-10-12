@@ -26,6 +26,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       new URL(`${process.env.NEXT_PUBLIC_CONVEX_URL}/**`),
       new URL("https://m.media-amazon.com/**"),
+      // Google Lens and Shopping thumbnails (encrypted-tbn0..3.gstatic.com).
+      { hostname: "*.gstatic.com", pathname: "/**", protocol: "https" },
     ],
   },
   // The design gallery these paths served is gone; the room gallery replaced

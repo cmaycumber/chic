@@ -1,5 +1,11 @@
 import Image from "next/image";
-import { formatPrice, planProducts } from "@/components/room/utils";
+import {
+  formatPrice,
+  planProducts,
+  productImage,
+  retailerName,
+  viewProductLabel,
+} from "@/components/room/utils";
 import { Button } from "@/components/ui/button";
 import type { PublicComment, PublicProduct, PublicVersion } from "./types";
 
@@ -58,6 +64,8 @@ function ProductCard({
   item: ShoppableItem;
 }) {
   const { product } = item;
+  const image = productImage(product);
+  const retailer = retailerName(product);
 
   return (
     <li className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card">
@@ -67,7 +75,8 @@ function ProductCard({
           className="object-contain p-3"
           fill
           sizes="(max-width: 640px) 45vw, 240px"
-          src={product.imageUrl}
+          src={image.src}
+          unoptimized={image.unoptimized}
         />
         {isInPhoto ? (
           <span className="absolute top-2 left-2 rounded-full bg-[var(--accent-brass)] px-2 py-0.5 font-medium text-[10px] text-white">
@@ -82,8 +91,15 @@ function ProductCard({
         <p className="line-clamp-2 text-foreground text-sm leading-snug">
           {product.name}
         </p>
-        <p className="font-medium text-foreground text-sm">
-          {formatPrice(product.price)}
+        <p className="flex min-w-0 items-baseline gap-2 text-sm">
+          <span className="shrink-0 font-medium text-foreground">
+            {formatPrice(product.price)}
+          </span>
+          {retailer ? (
+            <span className="truncate text-muted-foreground text-xs">
+              {retailer}
+            </span>
+          ) : null}
         </p>
         <Button asChild className="mt-2 w-full" size="sm" variant="brass">
           <a
@@ -91,7 +107,7 @@ function ProductCard({
             rel="noopener noreferrer"
             target="_blank"
           >
-            View on Amazon
+            {viewProductLabel(product)}
           </a>
         </Button>
       </div>
@@ -117,7 +133,7 @@ export function ShareShop({
         Shop this look
       </h2>
       <p className="mt-1 text-muted-foreground text-sm">
-        Found on Amazon to match the furniture in the photo.
+        Found across shops to match the furniture in the photo.
       </p>
 
       <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">

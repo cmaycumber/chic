@@ -5,7 +5,8 @@
  *   Comments that ask for furniture are planned, shopped for and rendered
  *   with the real products' photos; everything else is a plain edit.
  * - detectItems: find furniture / decor in an image with bounding boxes.
- * - searchItemProducts: fetch Amazon products for a detected item.
+ * - searchItemProducts: find products for a detected item, by its picture
+ *   (Google Lens on a crop of it) and by its words (Amazon, Google Shopping).
  *
  * Required Convex environment variables:
  * - AI_GATEWAY_API_KEY: Vercel AI Gateway (Muse Image edits the photo,
@@ -14,7 +15,9 @@
  * - OPENAI_API_KEY: sends openai/ image models (Flare: product placements, and
  *   the fallback when Muse fails) straight to OpenAI for WebP output. Set
  *   ROOM_IMAGE_ROUTE=gateway to bill them to the AI Gateway instead.
- * - SERPAPI_API_KEY: Amazon product search
+ * - SERPAPI_API_KEY: product search (Lens, Amazon, Google Shopping); pick the
+ *   providers with PRODUCT_PROVIDERS, e.g. "lens,amazon" (the default)
+ * - SOVRN_API_KEY or SKIMLINKS_PUBLISHER_ID: affiliate non-Amazon links
  */
 "use node";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -25,7 +28,18 @@ import z from "zod";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { type ActionCtx, internalAction } from "./_generated/server";
-import { type AmazonProduct, searchAmazon } from "./lib/amazonSearch";
+import { cropImage, cropKey } from "./lib/imageCrop";
+import {
+  configuredProviders,
+  MAX_PRODUCTS,
+  mergeProducts,
+  type Product,
+  type ProductCache,
+  type ProviderRun,
+  type SearchImage,
+  searchProducts,
+  textCacheKey,
+} from "./lib/productSearch";
 import { type PlannedSlot, pickProducts, planComment } from "./lib/roomPlanner";
 import { ROOM_STYLES, ROOM_TYPES } from "./lib/roomTaxonomy";
 import { privateAction } from "./lib/utils";
@@ -43,7 +57,6 @@ const OPENAI_PREFIX = "openai/";
 /** Gateway id of the vision model that finds furniture (override with ROOM_DETECT_MODEL). */
 const DEFAULT_DETECTION_MODEL = "google/gemini-3.5-flash-lite";
 const MAX_ITEMS = 12;
-const PRODUCTS_PER_ITEM = 6;
 const BOX_SCALE = 1000;
 const PERCENT = 100;
 const ERROR_PREVIEW_LENGTH = 200;
@@ -183,7 +196,7 @@ interface RenderSlot {
   label: string;
   /** Where the planner said an added piece goes. */
   placement?: string;
-  product: AmazonProduct;
+  product: Product;
   /** The item a swap takes out, as detected on the base version. */
   replaced?: AnchoredItem | null;
   searchQuery: string;
@@ -243,31 +256,49 @@ ${pieces.join("\n\n")}
 Each product must look exactly like its own photo: the same shape, colour, material and proportions, scaled realistically to the room and sitting naturally in its light. Copy only the product itself: product photos are often staged, so leave out anything else in them (throws, cushions, books, cups, plants, people, other furniture). Do not invent any other furniture. Keep everything else in the room photo identical: camera angle, layout, architecture, windows, flooring, lighting and every other object. The result must be photorealistic and look like the same photo with only ${count} changed.`;
 }
 
-/** Fetch a URL, treating any failure as "not there". */
+/**
+ * Fetch an image URL, treating any failure as "not there". A shop that
+ * answers with a web page (hot-link protection, a login wall) counts too.
+ */
 async function fetchImage(url: string): Promise<Response | null> {
   try {
     const response = await fetch(url);
-    return response.ok ? response : null;
+    const isImage = (response.headers.get("content-type") ?? "").startsWith(
+      "image/"
+    );
+    return response.ok && isImage ? response : null;
   } catch {
     return null;
   }
 }
 
+/** The first of `urls` that answers with an image, tried one at a time. */
+async function firstImage(urls: string[]): Promise<Response | null> {
+  const [url, ...rest] = urls;
+  if (!url) {
+    return null;
+  }
+  return (await fetchImage(url)) ?? (await firstImage(rest));
+}
+
 /**
- * The product's own photo, at the largest size Amazon will serve. The listing
- * hands back a thumbnail; a 320px sofa is not enough for the model to copy a
- * material off, so the size modifier is stripped and the original asked for.
+ * The product's own photo, at the largest size the shop will serve. Amazon's
+ * listing hands back a thumbnail; a 320px sofa is not enough for the model to
+ * copy a material off, so the size modifier is stripped and the original
+ * asked for. Other shops' photos are used as found, falling back to the
+ * search's thumbnail when the shop will not serve its own.
  */
-async function downloadProductImage(imageUrl: string): Promise<Uint8Array> {
+async function downloadProductImage(
+  product: Pick<Product, "imageUrl" | "thumbnailUrl">
+): Promise<Uint8Array> {
+  const { imageUrl, thumbnailUrl } = product;
   const fullSize = imageUrl.replace(AMAZON_IMAGE_SIZE_MODIFIER, ".");
-  const response =
-    (fullSize === imageUrl ? null : await fetchImage(fullSize)) ??
-    (await fetchImage(imageUrl));
+  const candidates = [
+    ...new Set([fullSize, imageUrl, thumbnailUrl ?? imageUrl]),
+  ];
+  const response = await firstImage(candidates);
   if (!response) {
     throw new Error("Could not open that product's photo");
-  }
-  if (!(response.headers.get("content-type") ?? "").startsWith("image/")) {
-    throw new Error("That product's link did not return a photo");
   }
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.byteLength > MAX_PRODUCT_IMAGE_BYTES) {
@@ -546,23 +577,42 @@ function presetSlots(
 
 /**
  * Search every slot at once (through the shared cache), then pick one
- * listing per slot in a single call. Slots whose search fails or comes back
- * empty drop out.
+ * listing per slot in a single call. A swap also searches by a crop of the
+ * piece it replaces, so the new one is found in the same shape; an addition
+ * has nothing to crop and searches by words alone. Slots whose search fails
+ * or comes back empty drop out.
  */
 async function shopForSlots(
   ctx: ActionCtx,
   text: string,
   planned: PlannedSlot[],
-  items: DetectedItem[]
+  base: { items: DetectedItem[]; storageId: Id<"_storage"> }
 ): Promise<RenderSlot[]> {
   const searches = await Promise.allSettled(
-    planned.map((slot) => searchProductsCached(ctx, slot.searchQuery))
+    planned.map((slot) => {
+      const replaced = base.items.find((item) => item.id === slot.itemId);
+      const piece =
+        slot.action === "replace" && replaced
+          ? {
+              box: replaced.box,
+              label: replaced.label,
+              storageId: base.storageId,
+            }
+          : undefined;
+      return searchPiece(ctx, slot.searchQuery, piece);
+    })
   );
   const found = planned.flatMap((slot, index) => {
     const search = searches.at(index);
-    return search?.status === "fulfilled" && search.value.length > 0
-      ? [{ listings: search.value, slot }]
-      : [];
+    if (search?.status !== "fulfilled" || search.value.products.length === 0) {
+      return [];
+    }
+    const lookalikeUrls = new Set(
+      search.value.runs
+        .filter((run) => run.provider === "lens")
+        .flatMap((run) => run.products.map((product) => product.productUrl))
+    );
+    return [{ listings: search.value.products, lookalikeUrls, slot }];
   });
   if (found.length === 0) {
     return [];
@@ -570,9 +620,10 @@ async function shopForSlots(
 
   const picks = await pickProducts(
     text,
-    found.map(({ listings, slot }) => ({
+    found.map(({ listings, lookalikeUrls, slot }) => ({
       label: slot.label,
       listings,
+      lookalikeUrls,
       maxPrice: slot.maxPrice,
       searchQuery: slot.searchQuery,
     }))
@@ -589,7 +640,7 @@ async function shopForSlots(
         label: slot.label,
         placement: slot.placement,
         product,
-        replaced: items.find((item) => item.id === slot.itemId) ?? null,
+        replaced: base.items.find((item) => item.id === slot.itemId) ?? null,
         searchQuery: slot.searchQuery,
       },
     ];
@@ -607,7 +658,7 @@ async function productRequest(
   slots: RenderSlot[]
 ): Promise<{ request: EditRequest; slots: RenderSlot[] } | null> {
   const downloads = await Promise.allSettled(
-    slots.map((slot) => downloadProductImage(slot.product.imageUrl))
+    slots.map((slot) => downloadProductImage(slot.product))
   );
   const placed: RenderSlot[] = [];
   const images: Uint8Array[] = [];
@@ -697,7 +748,10 @@ async function buildEditRequest(
     kind: "products",
     plan: toStoredPlan(plan.slots),
   });
-  const shopped = await shopForSlots(ctx, comment.text, plan.slots, items);
+  const shopped = await shopForSlots(ctx, comment.text, plan.slots, {
+    items,
+    storageId: baseVersion.imageStorageId,
+  });
   const built =
     shopped.length > 0
       ? await productRequest(comment, baseImage, shopped)
@@ -875,19 +929,11 @@ async function seedPlacedProducts(
   await Promise.all(
     targets.map(async ({ item, placement }) => {
       const cached = placement.searchQuery
-        ? await ctx.runQuery(internal.rooms.internalGetCachedProducts, {
-            query: placement.searchQuery,
-          })
-        : null;
-      const alternatives = (cached ?? []).filter(
-        (product) => product.productUrl !== placement.product.productUrl
-      );
+        ? await cachedTextProducts(ctx, placement.searchQuery)
+        : [];
       await ctx.runMutation(internal.rooms.internalSetItemProducts, {
         itemId: item.id,
-        products: [placement.product, ...alternatives].slice(
-          0,
-          PRODUCTS_PER_ITEM
-        ),
+        products: mergeProducts([[placement.product], cached], MAX_PRODUCTS),
         status: "ready",
         versionId: version._id,
       });
@@ -1077,20 +1123,40 @@ export const internalClassifyRoom = internalAction({
 });
 
 /**
- * Fetch Amazon products for a detected item.
+ * Find products for a detected item: Lens on a crop of it, then its search
+ * query on the text providers.
  *
- * Two caches sit in front of the paid search: the products written onto the
+ * Two caches sit in front of the paid searches: the products written onto the
  * item, which makes a second click on the same sofa free, and `productSearches`
- * keyed by the query itself, which makes the first click free for everyone
- * after the first person who ever asked for a grey linen sofa.
+ * keyed per provider (the crop's photo and box for Lens, the query for the
+ * rest), which makes the first click free for everyone after the first person
+ * who ever asked for a grey linen sofa.
  */
 export const searchItemProducts = privateAction({
   args: { itemId: v.string(), versionId: v.id("roomVersions") },
-  handler: async (ctx, args): Promise<AmazonProduct[]> => {
+  handler: async (ctx, args): Promise<Product[]> => {
     const version: Doc<"roomVersions"> | null = await ctx.runQuery(
       internal.rooms.internalAssertVersionEditor,
       { userId: ctx.userId, versionId: args.versionId }
     );
+    if (!version) {
+      throw new Error("Version not found");
+    }
+    return await fetchItemProducts(ctx, version, args.itemId);
+  },
+  returns: v.array(vProduct),
+});
+
+/**
+ * The same search for callers that have already checked who may see the room
+ * (the ChatGPT app's tools).
+ */
+export const internalSearchItemProducts = internalAction({
+  args: { itemId: v.string(), versionId: v.id("roomVersions") },
+  handler: async (ctx, args): Promise<Product[]> => {
+    const version = await ctx.runQuery(internal.rooms.internalGetVersion, {
+      versionId: args.versionId,
+    });
     if (!version) {
       throw new Error("Version not found");
     }
@@ -1104,7 +1170,7 @@ async function fetchItemProducts(
   ctx: ActionCtx,
   version: Doc<"roomVersions">,
   itemId: string
-): Promise<AmazonProduct[]> {
+): Promise<Product[]> {
   const item = version.items?.find((candidate) => candidate.id === itemId);
   if (!item) {
     throw new Error("Item not found");
@@ -1120,7 +1186,11 @@ async function fetchItemProducts(
   });
 
   try {
-    const products = await searchProductsCached(ctx, item.searchQuery);
+    const { products } = await searchPiece(ctx, item.searchQuery, {
+      box: item.box,
+      label: item.label,
+      storageId: version.imageStorageId,
+    });
     await ctx.runMutation(internal.rooms.internalSetItemProducts, {
       itemId: item.id,
       products,
@@ -1138,31 +1208,76 @@ async function fetchItemProducts(
   }
 }
 
+/** The shared `productSearches` table, as the search's cache. */
+function productCache(ctx: ActionCtx): ProductCache {
+  return {
+    get: (key) =>
+      ctx.runQuery(internal.rooms.internalGetCachedProducts, { query: key }),
+    set: async (key, products) => {
+      await ctx.runMutation(internal.rooms.internalCacheProducts, {
+        products,
+        query: key,
+      });
+    },
+  };
+}
+
+/** A piece of a stored photo to search by picture. */
+interface PhotoPiece {
+  box: AnchoredItem["box"];
+  label: string;
+  storageId: Id<"_storage">;
+}
+
 /**
- * Amazon results for a query: from the shared `productSearches` cache when
- * someone asked the same thing in the last fortnight, SerpAPI otherwise.
+ * Search for one piece: by a crop of it when there is a photo to cut it from,
+ * and by its words. The crop is only made on a cache miss, and it lives in
+ * storage just long enough for Lens to fetch it.
  */
-async function searchProductsCached(
+async function searchPiece(
+  ctx: ActionCtx,
+  query: string,
+  piece?: PhotoPiece
+): Promise<{ products: Product[]; runs: ProviderRun[] }> {
+  let cropId: Id<"_storage"> | null = null;
+  const image: SearchImage | undefined = piece && {
+    cacheKey: cropKey(piece.storageId, piece.box),
+    hint: piece.label,
+    resolveUrl: async () => {
+      const photo = await storageToBytes(ctx, piece.storageId);
+      cropId = await ctx.storage.store(await cropImage(photo, piece.box));
+      const url = await ctx.storage.getUrl(cropId);
+      if (!url) {
+        throw new Error("Could not share the crop with the search");
+      }
+      return url;
+    },
+  };
+  try {
+    return await searchProducts({ image, query }, productCache(ctx));
+  } finally {
+    if (cropId) {
+      await ctx.storage.delete(cropId);
+    }
+  }
+}
+
+/**
+ * Whatever the text providers already found for a query, merged, without
+ * paying for a new search. Empty when nobody has asked.
+ */
+async function cachedTextProducts(
   ctx: ActionCtx,
   query: string
-): Promise<AmazonProduct[]> {
-  const startedAt = Date.now();
-  const cached = await ctx.runQuery(internal.rooms.internalGetCachedProducts, {
-    query,
-  });
-  const products = cached ?? (await searchAmazon(query, PRODUCTS_PER_ITEM));
-  if (!cached) {
-    await ctx.runMutation(internal.rooms.internalCacheProducts, {
-      products,
-      query,
-    });
-  }
-
-  // biome-ignore lint/suspicious/noConsole: usage telemetry for cost tracking
-  console.info("[roomsAi] products", {
-    cache: cached ? "hit" : "miss",
-    ms: Date.now() - startedAt,
-    query,
-  });
-  return products;
+): Promise<Product[]> {
+  const cache = productCache(ctx);
+  const lists = await Promise.all(
+    configuredProviders()
+      .filter((provider) => provider !== "lens")
+      .map(
+        async (provider) =>
+          (await cache.get(textCacheKey(provider, query))) ?? []
+      )
+  );
+  return mergeProducts(lists);
 }
