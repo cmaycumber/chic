@@ -110,7 +110,8 @@ export const vCreditReason = v.union(
   v.literal("refund"),
   v.literal("purchase"),
   v.literal("transfer"),
-  v.literal("admin")
+  v.literal("admin"),
+  v.literal("refund_purchase")
 );
 
 export default defineSchema({
@@ -150,7 +151,8 @@ export default defineSchema({
 
   /**
    * Every change to a balance, and why. `ref` names what caused it (a comment
-   * id for renders and refunds, a Polar order id for purchases), which is how
+   * id for renders and refunds, a Stripe Checkout Session id for purchases
+   * and their refunds), which is how
    * a retried webhook or a second failure report is told apart from a new one.
    */
   creditLedger: defineTable({

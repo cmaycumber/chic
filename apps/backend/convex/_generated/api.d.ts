@@ -41,6 +41,7 @@ import type * as playground from "../playground.js";
 import type * as rooms from "../rooms.js";
 import type * as roomsAi from "../roomsAi.js";
 import type * as streamAbort from "../streamAbort.js";
+import type * as stripe from "../stripe.js";
 import type * as threads from "../threads.js";
 import type * as utils from "../utils.js";
 
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   rooms: typeof rooms;
   roomsAi: typeof roomsAi;
   streamAbort: typeof streamAbort;
+  stripe: typeof stripe;
   threads: typeof threads;
   utils: typeof utils;
 }>;

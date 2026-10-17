@@ -10,9 +10,9 @@ import { EDITS_PACK } from "./credits";
 
 const TRACKED_KEY_PREFIX = "chic:purchase-tracked:";
 
-/** Count each checkout once, however often the page is reloaded. */
-function trackPurchaseOnce(checkoutId: string | null) {
-  const key = `${TRACKED_KEY_PREFIX}${checkoutId ?? "unknown"}`;
+/** Count each Checkout Session once, however often the page is reloaded. */
+function trackPurchaseOnce(sessionId: string | null) {
+  const key = `${TRACKED_KEY_PREFIX}${sessionId ?? "unknown"}`;
   try {
     if (sessionStorage.getItem(key)) {
       return;
@@ -25,15 +25,15 @@ function trackPurchaseOnce(checkoutId: string | null) {
 }
 
 interface PurchaseConfirmationProps {
-  checkoutId: string | null;
   returnTo: string;
+  sessionId: string | null;
 }
 
 export function PurchaseConfirmation({
-  checkoutId,
   returnTo,
+  sessionId,
 }: PurchaseConfirmationProps) {
-  useEffect(() => trackPurchaseOnce(checkoutId), [checkoutId]);
+  useEffect(() => trackPurchaseOnce(sessionId), [sessionId]);
 
   const backToRoom = returnTo.startsWith("/room/");
 

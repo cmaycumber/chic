@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { track } from "@/lib/analytics";
-import { CHECKOUT_PARAM, EDITS_PACK, startCheckout } from "./credits";
+import { CHECKOUT_PARAM, EDITS_PACK, useStartCheckout } from "./credits";
 
 const CTA_LABEL = `Get ${EDITS_PACK.credits} edits — $${EDITS_PACK.priceUsd}`;
 
@@ -53,6 +53,7 @@ export function useOutOfCredits(): OutOfCreditsContextValue {
 
 function CheckoutButton({ returnTo }: { returnTo: string }) {
   const [isStarting, setIsStarting] = useState(false);
+  const startCheckout = useStartCheckout();
 
   return (
     <Button
@@ -156,6 +157,7 @@ function useResumeCheckout() {
   const router = useRouter();
   const isAnonymous = useIsAnonymous();
   const started = useRef(false);
+  const startCheckout = useStartCheckout();
   const wantsCheckout = searchParams.get(CHECKOUT_PARAM) === EDITS_PACK.slug;
 
   useEffect(() => {
@@ -163,12 +165,12 @@ function useResumeCheckout() {
       return;
     }
     started.current = true;
-    // Drop the param first so coming back from Polar does not start again.
+    // Drop the param first so coming back from Stripe does not start again.
     router.replace(pathname as Route);
     startCheckout(pathname).catch((error: unknown) =>
       toast.error(error instanceof Error ? error.message : "Checkout failed")
     );
-  }, [isAnonymous, pathname, router, wantsCheckout]);
+  }, [isAnonymous, pathname, router, startCheckout, wantsCheckout]);
 }
 
 /** Holds the out-of-credits dialog for everything that can start a render. */

@@ -2,7 +2,7 @@
  * Edit credits: one credit buys one render.
  *
  * Everyone gets `FREE_EDITS` once, the first time they render. After that a
- * render needs a purchased credit (Polar, 50 for $5, never expire). Product
+ * render needs a purchased credit (Stripe, 50 for $5, never expire). Product
  * search and shopping never cost anything; only the render does.
  *
  * Abuse note: the free grant is once per user id, and an anonymous session is
@@ -21,19 +21,21 @@ import { vCreditReason } from "./schema";
 
 const DEFAULT_FREE_EDITS = 3;
 
-/** Credits in the one pack on sale, keyed by its Polar product env var. */
-const EDITS_PACK_CREDITS = 50;
+/** Credits in the one pack on sale, the Stripe price `STRIPE_PRICE_EDITS_50`. */
+export const EDITS_PACK_CREDITS = 50;
 
 /** The error code the web app opens the out-of-credits dialog on. */
 export const OUT_OF_CREDITS = "OUT_OF_CREDITS";
 
 /**
- * Charging is on only once the pack can actually be bought: with no Polar
- * product configured, nobody could pay their way past the paywall, so renders
- * stay free and the UI shows no balance.
+ * Charging is on only once the pack can actually be bought: with no Stripe
+ * key or price configured, nobody could pay their way past the paywall, so
+ * renders stay free and the UI shows no balance.
  */
 export function billingEnabled(): boolean {
-  return Boolean(process.env.POLAR_PRODUCT_EDITS_50);
+  return Boolean(
+    process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_EDITS_50
+  );
 }
 
 /** Free renders for a new person; `FREE_EDITS` overrides the default. */
@@ -272,40 +274,89 @@ export const internalGrantCredits = internalMutation({
 });
 
 /**
- * Credit a paid Polar order. Called from the `order.paid` webhook, which
- * Polar retries, so the order id makes a second delivery a no-op. Orders for
- * products other than the edits pack are acknowledged and ignored.
+ * Credit a paid purchase. Called from the Stripe webhook, which Stripe
+ * retries and which fires twice for a delayed payment (completed, then
+ * async_payment_succeeded), so `ref` (the Checkout Session id) makes every
+ * delivery after the first a no-op.
  */
 export const internalGrantPurchase = internalMutation({
   args: {
-    orderId: v.string(),
-    productId: v.union(v.string(), v.null()),
-    userId: v.union(v.string(), v.null()),
+    credits: v.number(),
+    ref: v.string(),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
-    const packProductId = process.env.POLAR_PRODUCT_EDITS_50;
-    if (!(packProductId && args.productId === packProductId)) {
-      return "ignored_product" as const;
+    if (!Number.isInteger(args.credits) || args.credits <= 0) {
+      throw new Error("Credits must be a positive whole number");
     }
-    if (!args.userId) {
-      // Checkout always sets the external customer id from the session, so
-      // this is an order made outside the app (e.g. a dashboard test).
-      return "unknown_customer" as const;
-    }
-    if (await hasLedgerEntry(ctx, args.orderId, "purchase")) {
+    if (await hasLedgerEntry(ctx, args.ref, "purchase")) {
       return "duplicate" as const;
     }
     await addCredits(ctx, args.userId, {
-      amount: EDITS_PACK_CREDITS,
+      amount: args.credits,
       reason: "purchase",
-      ref: args.orderId,
+      ref: args.ref,
     });
     return "granted" as const;
   },
-  returns: v.union(
-    v.literal("granted"),
-    v.literal("duplicate"),
-    v.literal("ignored_product"),
-    v.literal("unknown_customer")
-  ),
+  returns: v.union(v.literal("granted"), v.literal("duplicate")),
+});
+
+/**
+ * Take back the credits a refunded purchase granted, in proportion to how
+ * much of it was refunded. `ref` is the purchase's Checkout Session id; the
+ * credits come off whoever the purchase was granted to.
+ *
+ * Idempotent across retries and repeated partial refunds: what was already
+ * taken back for this purchase is subtracted from what is owed now. Credits
+ * already spent are not clawed back past zero; the balance never goes
+ * negative, and the shortfall is owed again only if a later refund event for
+ * the same purchase arrives after they bought more.
+ */
+export const internalRefundPurchase = internalMutation({
+  args: {
+    amount: v.number(),
+    amountRefunded: v.number(),
+    ref: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const entries = await ctx.db
+      .query("creditLedger")
+      .withIndex("by_ref", (q) => q.eq("ref", args.ref))
+      .collect();
+    const purchase = entries.find((entry) => entry.reason === "purchase");
+    if (!purchase) {
+      return { removed: 0, status: "unknown_purchase" as const };
+    }
+    const fraction =
+      args.amount > 0 ? Math.min(1, args.amountRefunded / args.amount) : 1;
+    const owed = Math.round(purchase.delta * fraction);
+    let taken = 0;
+    for (const entry of entries) {
+      if (entry.reason === "refund_purchase") {
+        taken -= entry.delta;
+      }
+    }
+    const account = await findAccount(ctx, purchase.userId);
+    const removed = Math.min(owed - taken, account?.balance ?? 0);
+    if (!account || removed <= 0) {
+      return { removed: 0, status: "nothing_to_remove" as const };
+    }
+    await ctx.db.patch(account._id, { balance: account.balance - removed });
+    await writeLedger(ctx, {
+      delta: -removed,
+      reason: "refund_purchase",
+      ref: args.ref,
+      userId: purchase.userId,
+    });
+    return { removed, status: "removed" as const };
+  },
+  returns: v.object({
+    removed: v.number(),
+    status: v.union(
+      v.literal("removed"),
+      v.literal("nothing_to_remove"),
+      v.literal("unknown_purchase")
+    ),
+  }),
 });

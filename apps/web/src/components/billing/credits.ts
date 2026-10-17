@@ -1,12 +1,13 @@
 "use client";
 
 import { api } from "@furnish/backend/convex/_generated/api";
-import { useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
+import { useCallback } from "react";
 import { track } from "@/lib/analytics";
-import { authClient } from "@/lib/auth-client";
 import { safeReturnPath } from "./return-path";
 
-/** The one pack on sale. Must match the checkout product in `auth.ts`. */
+/** The one pack on sale. Must match `STRIPE_PRICE_EDITS_50` in `stripe.ts`. */
 export const EDITS_PACK = {
   credits: 50,
   priceUsd: 5,
@@ -65,24 +66,43 @@ export function takeDraft(roomId: string): string | null {
   }
 }
 
-/**
- * Send a signed-in person to Polar's checkout for the edits pack. Polar sends
- * them to `/success`, which links back to `returnTo`.
- */
-export async function startCheckout(returnTo: string): Promise<void> {
-  track("checkout_started", {
-    credits: EDITS_PACK.credits,
-    priceUsd: EDITS_PACK.priceUsd,
-  });
-  const back = safeReturnPath(returnTo);
-  const { data, error } = await authClient.checkout({
-    redirect: false,
-    returnUrl: back,
-    slug: EDITS_PACK.slug,
-    successUrl: `/success?checkout_id={CHECKOUT_ID}&returnTo=${encodeURIComponent(back)}`,
-  });
-  if (error || !data?.url) {
-    throw new Error("Checkout is unavailable right now. Please try again.");
+/** The message a checkout failure should show, from the server if it said. */
+function checkoutErrorMessage(error: unknown): string {
+  if (
+    error instanceof ConvexError &&
+    typeof error.data === "object" &&
+    error.data !== null &&
+    "message" in error.data &&
+    typeof error.data.message === "string"
+  ) {
+    return error.data.message;
   }
-  window.location.assign(data.url);
+  return "Checkout is unavailable right now. Please try again.";
+}
+
+/**
+ * Sends a signed-in person to Stripe Checkout for the edits pack. Stripe
+ * sends them to `/success`, which links back to `returnTo`.
+ */
+export function useStartCheckout(): (returnTo: string) => Promise<void> {
+  const createCheckoutSession = useAction(api.stripe.createCheckoutSession);
+
+  return useCallback(
+    async (returnTo: string) => {
+      track("checkout_started", {
+        credits: EDITS_PACK.credits,
+        priceUsd: EDITS_PACK.priceUsd,
+      });
+      let url: string;
+      try {
+        ({ url } = await createCheckoutSession({
+          returnTo: safeReturnPath(returnTo),
+        }));
+      } catch (error) {
+        throw new Error(checkoutErrorMessage(error), { cause: error });
+      }
+      window.location.assign(url);
+    },
+    [createCheckoutSession]
+  );
 }

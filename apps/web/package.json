@@ -12,8 +12,6 @@
     "@convex-dev/better-auth": "^0.12.5",
     "@furnish/backend": "workspace:*",
     "@modelcontextprotocol/server": "^2.0.0",
-    "@polar-sh/better-auth": "^1.8.4",
-    "@polar-sh/sdk": "^0.49.0",
     "@radix-ui/react-accordion": "^1.2.20",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-dialog": "^1.1.23",

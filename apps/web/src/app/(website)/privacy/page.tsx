@@ -65,8 +65,8 @@ const PROCESSORS = [
     use: "product analytics and error reports, described below.",
   },
   {
-    name: "Polar",
-    use: "payments. Chic does not sell anything today; if that changes, Polar will process payment details and we will not see your card number.",
+    name: "Stripe",
+    use: "payments for edit packs. Stripe processes your payment details; we never see or store your card number.",
   },
   {
     name: "Amazon Associates, Sovrn Commerce and Skimlinks",

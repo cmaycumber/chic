@@ -65,7 +65,10 @@ Convex (`bunx convex env set NAME value` from `apps/backend`):
 | `ROOM_EDIT_MODEL`, `ROOM_DETECT_MODEL` | Optional gateway model ids to swap either step (e.g. `openai/gpt-image-2.5-flare`) |
 | `OPENAI_API_KEY` | Only when `ROOM_EDIT_MODEL` is an `openai/` model; edits then go direct so WebP output works |
 | `SERPAPI_API_KEY` | Amazon product search for shoppable items |
-| `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER` | Billing (optional; sign-up works without them) |
+| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_live_…`/`sk_test_…`). Billing is on only when this and `STRIPE_PRICE_EDITS_50` are set; otherwise renders are free |
+| `STRIPE_PRICE_EDITS_50` | Stripe price id (`price_…`) of the one-time $5 pack of 50 edits |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret (`whsec_…`) of the webhook endpoint `${CONVEX_SITE_URL}/stripe/webhook` |
+| `STRIPE_AUTOMATIC_TAX` | Optional; `true` turns on Stripe Tax in Checkout (requires Stripe Tax to be set up) |
 | `PINTEREST_CLIENT_ID`, `PINTEREST_CLIENT_SECRET` | Optional Pinterest OAuth |
 | `RESEND_API_KEY` | Sends password reset emails via Resend |
 | `EMAIL_FROM` | Optional sender override (defaults to `Chic <hello@usechic.com>`) |

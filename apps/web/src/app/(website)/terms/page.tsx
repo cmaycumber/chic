@@ -160,9 +160,8 @@ export default function TermsPage() {
                 Searching for and shopping products does not use edits.
               </p>
               <p>
-                Payments are processed by Polar (polar.sh), which acts as the
-                merchant of record and handles payment details, sales tax and
-                receipts. For questions about a purchase, contact{" "}
+                Payments are processed by Stripe. We do not store your card
+                details. For questions about a purchase, contact{" "}
                 <a href={`mailto:${siteConfig.supportEmail}`}>
                   {siteConfig.supportEmail}
                 </a>

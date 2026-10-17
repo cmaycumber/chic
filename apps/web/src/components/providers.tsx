@@ -21,12 +21,12 @@ export default function Providers({
   return (
     <>
       {/*
-        `authClient` combines the Convex, Polar, and admin Better Auth client
-        plugins. The provider's `AuthClient` type can't fully express that
-        combination (TypeScript's structural check on `useSession` bottoms
-        out to `never` once Polar's Zod-derived endpoint types are folded
-        in), so we assert the type at this boundary only. `authClient` keeps
-        its full inferred type everywhere else it's used.
+        `authClient` combines the Convex, admin, and anonymous Better Auth
+        client plugins. The provider's `AuthClient` type can't fully express
+        that combination (TypeScript's structural check on `useSession`
+        bottoms out to `never` once the plugins' user fields are folded in),
+        so we assert the type at this boundary only. `authClient` keeps its
+        full inferred type everywhere else it's used.
       */}
       <ConvexBetterAuthProvider
         authClient={authClient as unknown as AuthClient}

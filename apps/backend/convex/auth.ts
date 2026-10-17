@@ -1,13 +1,5 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
-import {
-  checkout,
-  polar,
-  portal,
-  usage,
-  webhooks,
-} from "@polar-sh/better-auth";
-import { Polar } from "@polar-sh/sdk";
 import type { OAuth2Tokens } from "better-auth";
 import { type BetterAuthOptions, betterAuth } from "better-auth/minimal";
 import { nextCookies } from "better-auth/next-js";
@@ -21,11 +13,6 @@ import authSchema from "./betterAuth/schema";
 import { passwordResetEmail, sendEmail } from "./lib/email";
 
 const siteUrl = process.env.SITE_URL || "http://localhost:3001";
-
-const polarClient = new Polar({
-  accessToken: process.env.POLAR_ACCESS_TOKEN || "",
-  server: process.env.POLAR_SERVER === "production" ? "production" : "sandbox",
-});
 
 export const authComponent = createClient<DataModel, typeof authSchema>(
   components.betterAuth,
@@ -107,48 +94,6 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
             toUserName: newUser.user.name,
           });
         },
-      }),
-      polar({
-        client: polarClient,
-        // Never let a Polar outage or expired token block account creation.
-        // Checkout passes the user id as Polar's external customer id, which
-        // creates the customer on first purchase and is what `onOrderPaid`
-        // maps back to the user.
-        createCustomerOnSignUp: false,
-        use: [
-          checkout({
-            // Guests sign up first: credits bought on an anonymous session
-            // would be lost with its cookie.
-            authenticatedUsersOnly: true,
-            products: [
-              {
-                productId: process.env.POLAR_PRODUCT_EDITS_50 || "",
-                slug: "edits-50",
-              },
-            ],
-            successUrl:
-              process.env.POLAR_SUCCESS_URL ||
-              `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
-          }),
-          portal(),
-          usage(),
-          // Served at `${CONVEX_SITE_URL}/api/auth/polar/webhooks`.
-          webhooks({
-            onOrderPaid: async ({ data: order }) => {
-              // Throwing answers Polar with an error, so it retries later
-              // rather than marking a paid order delivered with no credits.
-              if (!canRunMutation(ctx)) {
-                throw new Error("Cannot grant credits outside an action");
-              }
-              await ctx.runMutation(internal.billing.internalGrantPurchase, {
-                orderId: order.id,
-                productId: order.productId,
-                userId: order.customer.externalId ?? null,
-              });
-            },
-            secret: process.env.POLAR_WEBHOOK_SECRET || "",
-          }),
-        ],
       }),
       admin(),
       genericOAuth({

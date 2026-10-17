@@ -2,10 +2,18 @@ import { httpRouter } from "convex/server";
 import type { Id } from "./_generated/dataModel";
 import { httpAction } from "./_generated/server";
 import { authComponent, createAuth } from "./auth";
+import { webhook as stripeWebhook } from "./stripe";
 
 const http = httpRouter();
 
 authComponent.registerRoutes(http, createAuth);
+
+// Credits edit packs paid through Stripe Checkout.
+http.route({
+  handler: stripeWebhook,
+  method: "POST",
+  path: "/stripe/webhook",
+});
 
 // Serve files from storage
 http.route({
