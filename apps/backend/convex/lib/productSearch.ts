@@ -103,6 +103,12 @@ interface SerpResponse {
 }
 // biome-ignore-end lint/style/useNamingConvention: SerpAPI uses snake_case
 
+/**
+ * Lens normally answers in 5–17 s; a stuck search (seen: 91 s, then a 503)
+ * must not hold a render, and Amazon fills the list without it.
+ */
+const SERPAPI_TIMEOUT_MS = 20_000;
+
 async function serpApi(params: Record<string, string>): Promise<SerpResponse> {
   const apiKey = process.env.SERPAPI_API_KEY;
   if (!apiKey) {
@@ -115,7 +121,9 @@ async function serpApi(params: Record<string, string>): Promise<SerpResponse> {
     // biome-ignore lint/style/useNamingConvention: SerpAPI parameter
     api_key: apiKey,
   });
-  const response = await fetch(`${SERPAPI_URL}?${search}`);
+  const response = await fetch(`${SERPAPI_URL}?${search}`, {
+    signal: AbortSignal.timeout(SERPAPI_TIMEOUT_MS),
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(

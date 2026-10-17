@@ -8,6 +8,9 @@ const ERROR_TEXT_MAX_LENGTH = 200;
 /** Amazon "4 stars & up" filter. */
 const DEFAULT_FILTERS = "p_72:1248897011";
 
+/** Amazon searches answer in under 3 s; give up well before a render would. */
+const AMAZON_SEARCH_TIMEOUT_MS = 10_000;
+
 export interface AmazonProduct {
   imageUrl: string;
   name: string;
@@ -89,7 +92,9 @@ export async function searchAmazon(
     rh: filters,
   });
 
-  const response = await fetch(`https://serpapi.com/search?${params}`);
+  const response = await fetch(`https://serpapi.com/search?${params}`, {
+    signal: AbortSignal.timeout(AMAZON_SEARCH_TIMEOUT_MS),
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(
