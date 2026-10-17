@@ -12,10 +12,19 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import {
+  creditsLabel,
+  saveDraft,
+  takeDraft,
+  useCredits,
+} from "@/components/billing/credits";
+import { isOutOfCreditsError } from "@/components/billing/errors";
+import { useOutOfCredits } from "@/components/billing/out-of-credits-dialog";
 import { Button } from "@/components/ui/button";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { track } from "@/lib/analytics";
 import { anchorChipLabel } from "./pin-composer";
 import type { Anchor } from "./types";
 import {
@@ -61,12 +70,23 @@ export function CommentComposer({
   roomId,
 }: CommentComposerProps) {
   const addComment = useMutation(api.rooms.addComment);
+  const credits = useCredits();
+  const outOfCredits = useOutOfCredits();
   const isMobile = useIsMobile();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   // Seeded with the token we mounted on, so remounting never steals focus.
   const handledFocusToken = useRef(focusToken);
+
+  // A comment refused for want of credits waits here through sign-up and
+  // checkout, so buying more never means typing it again.
+  useEffect(() => {
+    const draft = takeDraft(roomId);
+    if (draft) {
+      setText(draft);
+    }
+  }, [roomId]);
 
   useEffect(() => {
     if (focusToken === handledFocusToken.current) {
@@ -77,6 +97,12 @@ export function CommentComposer({
   }, [focusToken]);
 
   const isBusy = isGenerating || isSending;
+  const hint = [
+    pendingAnchor ? null : "Tap the photo to pin your comment",
+    credits ? creditsLabel(credits) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const canSend = text.trim().length > 0 && !isBusy;
 
   const resize = () => {
@@ -94,6 +120,11 @@ export function CommentComposer({
     if (!value || isBusy) {
       return;
     }
+    if (credits?.balance === 0) {
+      saveDraft(roomId, value);
+      outOfCredits.show("composer");
+      return;
+    }
     setIsSending(true);
     addComment({
       anchor: pendingAnchor ?? undefined,
@@ -101,11 +132,23 @@ export function CommentComposer({
       text: value,
     })
       .then(() => {
+        track("comment_submitted", {
+          anchored: pendingAnchor !== null,
+          roomId,
+          source: "composer",
+        });
         setText("");
         onSubmitted();
         requestAnimationFrame(resize);
       })
-      .catch((error: unknown) => toast.error(errorMessage(error)))
+      .catch((error: unknown) => {
+        if (isOutOfCreditsError(error)) {
+          saveDraft(roomId, value);
+          outOfCredits.show("composer");
+          return;
+        }
+        toast.error(errorMessage(error));
+      })
       .finally(() => setIsSending(false));
   };
 
@@ -118,9 +161,9 @@ export function CommentComposer({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-center gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      {!pendingAnchor && (
+      {hint && (
         <p className="pointer-events-none rounded-full bg-black/35 px-3 py-1 text-[11px] text-white/70 backdrop-blur-sm">
-          Tap the photo to pin your comment
+          {hint}
         </p>
       )}
 

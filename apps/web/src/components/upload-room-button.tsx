@@ -7,8 +7,10 @@ import { Loader2, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useIsAnonymous } from "@/components/sign-up-to-save";
 import { Button } from "@/components/ui/button";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
+import { track } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { cn, fixImageOrientation } from "@/lib/utils";
 
@@ -126,7 +128,7 @@ export interface UploadController {
    * clipboard. Takes the same path as a drop: validation, an anonymous
    * session if there is none yet, then the upload. Ignored while busy.
    */
-  submitFile: (file: File) => void;
+  submitFile: (file: File, source?: string) => void;
 }
 
 export interface UploadControllerOptions {
@@ -144,6 +146,7 @@ export function useUploadController(
   const { initialComment } = options ?? {};
   const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
+  const isAnonymous = useIsAnonymous();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const createRoom = useMutation(api.rooms.create);
   const addComment = useMutation(api.rooms.addComment);
@@ -162,6 +165,14 @@ export function useUploadController(
     initialCommentRef.current = initialComment;
   }, [initialComment]);
 
+  // Same reasoning: the anonymous sign-in this room was made under can land
+  // after `uploadFile` was created, so `room_created` reads the latest value
+  // rather than one captured when the callback was built.
+  const isAnonymousRef = useRef(isAnonymous);
+  useEffect(() => {
+    isAnonymousRef.current = isAnonymous;
+  }, [isAnonymous]);
+
   const uploadFile = useCallback(
     async (file: File) => {
       try {
@@ -171,6 +182,10 @@ export function useUploadController(
         const roomId = await createRoom({
           imageStorageId: storageId as Id<"_storage">,
           title: roomTitleForFile(file),
+        });
+        track("room_created", {
+          anonymous: Boolean(isAnonymousRef.current),
+          roomId,
         });
 
         const comment = initialCommentRef.current?.trim();
@@ -198,12 +213,13 @@ export function useUploadController(
   }, []);
 
   const startUpload = useCallback(
-    async (file: File) => {
+    async (file: File, source: string) => {
       const validationError = validateImageFile(file);
       if (validationError) {
         toast.error(validationError);
         return;
       }
+      track("upload_started", { source });
 
       if (isAuthenticated) {
         await uploadFile(file);
@@ -265,16 +281,16 @@ export function useUploadController(
       const file = event.target.files?.[0];
       event.target.value = "";
       if (file) {
-        startUpload(file);
+        startUpload(file, "picker");
       }
     },
     [startUpload]
   );
 
   const submitFile = useCallback(
-    (file: File) => {
+    (file: File, source = "paste") => {
       if (!isBusy) {
-        startUpload(file);
+        startUpload(file, source);
       }
     },
     [isBusy, startUpload]
@@ -286,7 +302,7 @@ export function useUploadController(
       setIsDragActive(false);
       const file = event.dataTransfer.files?.[0];
       if (file) {
-        submitFile(file);
+        submitFile(file, "drag-drop");
       }
     },
     [submitFile]

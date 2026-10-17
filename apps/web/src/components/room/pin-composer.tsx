@@ -12,9 +12,13 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
+import { saveDraft } from "@/components/billing/credits";
+import { isOutOfCreditsError } from "@/components/billing/errors";
+import { useOutOfCredits } from "@/components/billing/out-of-credits-dialog";
 import { Button } from "@/components/ui/button";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Spinner } from "@/components/ui/spinner";
+import { track } from "@/lib/analytics";
 import type { Anchor } from "./types";
 import { errorMessage, GLASS_RESET, PIN_POPOVER_RADIUS } from "./utils";
 
@@ -48,6 +52,7 @@ export function PinComposer({
   roomId,
 }: PinComposerProps) {
   const addComment = useMutation(api.rooms.addComment);
+  const outOfCredits = useOutOfCredits();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -84,10 +89,18 @@ export function PinComposer({
     setIsSending(true);
     addComment({ anchor, roomId, text: value })
       .then(() => {
+        track("comment_submitted", { anchored: true, roomId, source: "pin" });
         setText("");
         onSubmitted();
       })
-      .catch((error: unknown) => toast.error(errorMessage(error)))
+      .catch((error: unknown) => {
+        if (isOutOfCreditsError(error)) {
+          saveDraft(roomId, value);
+          outOfCredits.show("pin");
+          return;
+        }
+        toast.error(errorMessage(error));
+      })
       .finally(() => setIsSending(false));
   };
 

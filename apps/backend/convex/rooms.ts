@@ -17,6 +17,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { authComponent } from "./auth";
+import { chargeRender, refundRender, transferCredits } from "./billing";
 import { normalizeSearchQuery } from "./lib/amazonSearch";
 import { type RoomType, vRoomStyle, vRoomType } from "./lib/roomTaxonomy";
 import { privateMutation, privateQuery, publicQuery } from "./lib/utils";
@@ -885,21 +886,33 @@ interface CommentRequest {
 }
 
 /**
+ * Who pays for a render: the author, from their edit credits, or nobody
+ * (the ChatGPT app, which is held to daily caps of its own instead).
+ */
+export type RenderBilling = "credits" | "free";
+
+/**
  * Record a change request and set the render going.
  *
  * Words and products come through here together: one wait-your-turn guard,
- * one scheduled action. As far as the room is concerned, choosing a sofa off
- * Amazon is just another comment.
+ * one credit, one scheduled action. As far as the room is concerned, choosing
+ * a sofa off Amazon is just another comment.
  */
 export async function queueComment(
   ctx: MutationCtx,
   room: Doc<"rooms">,
   author: { name: string; userId: string },
-  request: CommentRequest
+  request: CommentRequest,
+  billing: RenderBilling
 ): Promise<Id<"roomComments">> {
   if (room.status === "generating") {
     throw new Error("Please wait for the current change to finish");
   }
+
+  // Throws OUT_OF_CREDITS before the comment exists, so an unpaid request
+  // never shows up in the room or reaches the renderer.
+  const recordCharge =
+    billing === "credits" ? await chargeRender(ctx, author.userId) : null;
 
   const commentId = await ctx.db.insert("roomComments", {
     anchor: request.anchor,
@@ -913,6 +926,7 @@ export async function queueComment(
     text: request.text,
     userId: author.userId,
   });
+  await recordCharge?.(commentId);
 
   await ctx.db.patch(room._id, { error: undefined, status: "generating" });
   await ctx.scheduler.runAfter(0, internal.roomsAi.applyComment, {
@@ -950,7 +964,8 @@ export const addComment = privateMutation({
         anchor: args.anchor,
         baseVersionId: room.currentVersionId,
         text,
-      }
+      },
+      "credits"
     );
   },
   returns: v.id("roomComments"),
@@ -994,24 +1009,30 @@ async function placeProduct(
   }
 
   const name = choice.product.name.slice(0, PRODUCT_NAME_MAX_LENGTH);
-  return await queueComment(ctx, room, author, {
-    anchor: boxCentre(item.box),
-    baseVersionId: baseVersion._id,
-    kind: "products",
-    plan: {
-      slots: [
-        {
-          action: "replace",
-          itemId: item.id,
-          label: item.label,
-          product: choice.product,
-          searchQuery: item.searchQuery,
-        },
-      ],
+  return await queueComment(
+    ctx,
+    room,
+    author,
+    {
+      anchor: boxCentre(item.box),
+      baseVersionId: baseVersion._id,
+      kind: "products",
+      plan: {
+        slots: [
+          {
+            action: "replace",
+            itemId: item.id,
+            label: item.label,
+            product: choice.product,
+            searchQuery: item.searchQuery,
+          },
+        ],
+      },
+      product: choice.product,
+      text: `Put this ${item.label.toLowerCase()} in the room: ${name}`,
     },
-    product: choice.product,
-    text: `Put this ${item.label.toLowerCase()} in the room: ${name}`,
-  });
+    "credits"
+  );
 }
 
 /**
@@ -1349,6 +1370,9 @@ export const internalTransferOwnership = internalMutation({
       likes.map((like) => ctx.db.patch(like._id, { userId: args.toUserId }))
     );
 
+    // Unused edits come along; the free ones are never granted twice.
+    await transferCredits(ctx, args.fromUserId, args.toUserId);
+
     return { likes: likes.length, rooms: rooms.length };
   },
   returns: v.object({ likes: v.number(), rooms: v.number() }),
@@ -1579,6 +1603,8 @@ export const internalFailComment = internalMutation({
       stage: undefined,
       status: "failed",
     });
+    // A render that never arrived is not one anybody pays for.
+    await refundRender(ctx, comment);
     await ctx.db.patch(comment.roomId, { error: args.error, status: "ready" });
     return null;
   },

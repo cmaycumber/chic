@@ -2,6 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
+import { track } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -46,6 +47,7 @@ export default function SignUpForm({
             toast.error(error.error.message || error.error.statusText);
           },
           onSuccess: () => {
+            track("signup_completed", { method: "email" });
             toast.success("Sign up successful");
             leaveFor(callbackUrl);
           },

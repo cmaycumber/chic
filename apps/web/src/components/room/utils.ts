@@ -1,4 +1,5 @@
 import { ConvexError } from "convex/values";
+import { isOutOfCreditsError } from "@/components/billing/errors";
 import type {
   Anchor,
   CommentPin,
@@ -197,6 +198,11 @@ export function errorMessage(error: unknown): string {
   // arrives wrapped in request ids and stack noise.
   if (error instanceof ConvexError && typeof error.data === "string") {
     return error.data;
+  }
+  // Callers that can open the paywall check `isOutOfCreditsError` first;
+  // anything else that hits it still says what happened.
+  if (isOutOfCreditsError(error)) {
+    return "You're out of edits.";
   }
   if (error instanceof Error) {
     return error.message;

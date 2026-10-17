@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { formatPrice, productImage, retailerName } from "./utils";
 
@@ -43,10 +44,13 @@ function Thumbnail({ product }: { product: ChipProduct }) {
 export function ProductChip({
   className,
   product,
+  source = "room",
   tone,
 }: {
   className?: string;
   product: ChipProduct;
+  /** Where this chip is shown: a live room, or the public share page. */
+  source?: "room" | "share";
   tone: keyof typeof TONES;
 }) {
   const retailer = retailerName(product);
@@ -59,6 +63,9 @@ export function ProductChip({
         className
       )}
       href={product.productUrl}
+      onClick={() =>
+        track("product_clicked", { price: product.price, retailer, source })
+      }
       rel="noopener noreferrer"
       target="_blank"
     >

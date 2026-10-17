@@ -6,6 +6,8 @@ import { useMutation } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { MapPin, X } from "lucide-react";
 import { toast } from "sonner";
+import { isOutOfCreditsError } from "@/components/billing/errors";
+import { useOutOfCredits } from "@/components/billing/out-of-credits-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -215,12 +217,17 @@ export function CommentsPanel({
 }: CommentsPanelProps) {
   const isMobile = useIsMobile();
   const addComment = useMutation(api.rooms.addComment);
+  const outOfCredits = useOutOfCredits();
   const newestFirst = [...comments].reverse();
 
   const handleRetry: RetryHandler = (text, anchor) => {
-    addComment({ anchor, roomId, text }).catch((error: unknown) =>
-      toast.error(errorMessage(error))
-    );
+    addComment({ anchor, roomId, text }).catch((error: unknown) => {
+      if (isOutOfCreditsError(error)) {
+        outOfCredits.show("retry");
+        return;
+      }
+      toast.error(errorMessage(error));
+    });
   };
 
   const list = (

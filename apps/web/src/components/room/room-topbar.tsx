@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import {
   CollaboratorStack,
@@ -95,6 +96,18 @@ function badgeLabel(count: number): string {
 const PUBLISHED_MESSAGE =
   "Anyone with the link can open this room. It's also in the Chic gallery.";
 
+/**
+ * Which path `share()` is about to take, for analytics only — it decides
+ * before `deliverShareLink` does, by the same signal: a coarse pointer that
+ * can actually show the OS share sheet.
+ */
+function likelyShareMethod(): "clipboard" | "share-sheet" {
+  const hasShareSheet =
+    typeof navigator.share === "function" &&
+    window.matchMedia("(pointer: coarse)").matches;
+  return hasShareSheet ? "share-sheet" : "clipboard";
+}
+
 interface RoomShare {
   dismissFallback: () => void;
   /** Set when the link could not be delivered and needs the manual dialog. */
@@ -122,6 +135,7 @@ function useRoomShare(room: Room, title: string): RoomShare {
 
   const share = useCallback(() => {
     const url = `${window.location.origin}/r/${roomId}`;
+    track("room_shared", { method: likelyShareMethod(), roomId });
     const run = async () => {
       if (!isPublic) {
         await setPublic({ isPublic: true, roomId });

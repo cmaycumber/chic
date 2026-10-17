@@ -7,6 +7,7 @@ import {
   viewProductLabel,
 } from "@/components/room/utils";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import type { PublicComment, PublicProduct, PublicVersion } from "./types";
 
 interface ShoppableItem {
@@ -104,6 +105,13 @@ function ProductCard({
         <Button asChild className="mt-2 w-full" size="sm" variant="brass">
           <a
             href={product.productUrl}
+            onClick={() =>
+              track("product_clicked", {
+                price: product.price,
+                retailer,
+                source: "share",
+              })
+            }
             rel="noopener noreferrer"
             target="_blank"
           >

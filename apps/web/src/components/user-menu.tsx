@@ -2,7 +2,7 @@
 
 import { api } from "@furnish/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { LayoutGrid, LogOut } from "lucide-react";
+import { LayoutGrid, LogOut, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -13,12 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import { creditsLabel, useCredits } from "./billing/credits";
 import { SignUpToSaveButton } from "./sign-up-to-save";
 import { Button } from "./ui/button";
 
 export default function UserMenu() {
   const router = useRouter();
   const user = useQuery(api.auth.getCurrentUser);
+  const credits = useCredits(Boolean(user && !user.isAnonymous));
 
   // Anonymous visitors have no account to manage yet — offer them one.
   if (user?.isAnonymous) {
@@ -40,6 +42,12 @@ export default function UserMenu() {
         <DropdownMenuItem className="text-muted-foreground" disabled>
           {user?.email}
         </DropdownMenuItem>
+        {credits ? (
+          <DropdownMenuItem className="text-muted-foreground" disabled>
+            <Sparkles className="mr-2 size-4" />
+            {creditsLabel(credits)}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push("/rooms")}>
           <LayoutGrid className="mr-2 size-4" />

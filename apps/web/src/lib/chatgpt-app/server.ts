@@ -15,6 +15,7 @@ import type {
 import { fetchAction, fetchMutation, fetchQuery } from "convex/nextjs";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
+import { PostHog } from "posthog-node";
 import { z } from "zod";
 import { siteConfig } from "@/lib/site-config";
 import { WIDGET_HTML, WIDGET_MIME_TYPE, WIDGET_URI } from "./widget";
@@ -394,6 +395,83 @@ function subjectOf(ctx: ServerContext): string | undefined {
 const notFound = textError(NOT_FOUND_TEXT);
 
 // ---------------------------------------------------------------------------
+// Analytics
+// ---------------------------------------------------------------------------
+
+/** Mirrors `ownerFor`'s hash in `convex/chatgpt.ts`, so a subject's distinct_id
+ * lines up with the Convex `userId` their rooms are stored under. */
+const SUBJECT_HASH_LENGTH = 32;
+const HEX_RADIX = 16;
+const BYTE_HEX_WIDTH = 2;
+/**
+ * Unlike `ownerFor`'s shared `chatgpt-app` id, a subjectless call here gets
+ * its own distinct_id rather than sharing one with every other anonymous
+ * caller, so PostHog doesn't fold them all into a single "user".
+ */
+const ANON_DISTINCT_ID = "chatgpt-anon";
+
+async function chatgptDistinctId(subject: string | undefined): Promise<string> {
+  const trimmed = subject?.trim();
+  if (!trimmed) {
+    return ANON_DISTINCT_ID;
+  }
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(trimmed)
+  );
+  const hex = [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(HEX_RADIX).padStart(BYTE_HEX_WIDTH, "0"))
+    .join("");
+  return `chatgpt:${hex.slice(0, SUBJECT_HASH_LENGTH)}`;
+}
+
+let posthogClient: PostHog | null = null;
+
+/** `null` when PostHog is not configured, so callers can no-op cleanly. */
+function posthogForServer(): PostHog | null {
+  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+  if (!key) {
+    return null;
+  }
+  posthogClient ??= new PostHog(key, { host: "https://us.i.posthog.com" });
+  return posthogClient;
+}
+
+/**
+ * Records one ChatGPT tool call. Awaited and flushed immediately rather than
+ * left on `posthog-node`'s usual timer, because this route runs in a
+ * serverless function that can freeze right after the response goes out.
+ * Never throws: a PostHog outage must not fail `redesign_room`, `get_room`
+ * or `shop_item`.
+ */
+async function trackToolCall(
+  tool: string,
+  subject: string | undefined,
+  outcome: { isError: boolean; ms: number; products?: number }
+): Promise<void> {
+  const client = posthogForServer();
+  if (!client) {
+    return;
+  }
+  try {
+    client.capture({
+      distinctId: await chatgptDistinctId(subject),
+      event: "chatgpt_tool_called",
+      properties: {
+        isError: outcome.isError,
+        ms: outcome.ms,
+        products: outcome.products,
+        status: outcome.isError ? "error" : "ok",
+        tool,
+      },
+    });
+    await client.flush();
+  } catch {
+    // Analytics must never break a tool call.
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
 
@@ -488,6 +566,7 @@ export function registerChicApp(server: McpServer) {
     },
     async ({ image, request, roomId, title }, ctx) => {
       const subject = subjectOf(ctx);
+      const startedAt = Date.now();
       if (isDisallowedRequest(request)) {
         return textError(DECLINED);
       }
@@ -526,8 +605,17 @@ export function registerChicApp(server: McpServer) {
         if (out.status === "ready" && out.products.length === 0) {
           out.products = await shopTopItems(room);
         }
+        await trackToolCall("redesign_room", subject, {
+          isError: false,
+          ms: Date.now() - startedAt,
+          products: out.products.length,
+        });
         return roomResult(out);
       } catch (error) {
+        await trackToolCall("redesign_room", subject, {
+          isError: true,
+          ms: Date.now() - startedAt,
+        });
         return errorResult(error);
       }
     }
@@ -558,14 +646,29 @@ export function registerChicApp(server: McpServer) {
       outputSchema: roomOut,
       title: "Check a room",
     },
-    async ({ roomId }) => {
+    async ({ roomId }, ctx) => {
+      const subject = subjectOf(ctx);
+      const startedAt = Date.now();
       if (!ROOM_ID.test(roomId)) {
         return notFound;
       }
       try {
         const room = await loadRoom(roomId);
-        return room ? roomResult(toRoomOut(room)) : notFound;
+        if (!room) {
+          return notFound;
+        }
+        const out = toRoomOut(room);
+        await trackToolCall("get_room", subject, {
+          isError: false,
+          ms: Date.now() - startedAt,
+          products: out.products.length,
+        });
+        return roomResult(out);
       } catch (error) {
+        await trackToolCall("get_room", subject, {
+          isError: true,
+          ms: Date.now() - startedAt,
+        });
         return errorResult(error);
       }
     }
@@ -601,7 +704,9 @@ export function registerChicApp(server: McpServer) {
       outputSchema: shopOut,
       title: "Shop an item in a room",
     },
-    async ({ item, roomId }) => {
+    async ({ item, roomId }, ctx) => {
+      const subject = subjectOf(ctx);
+      const startedAt = Date.now();
       if (!ROOM_ID.test(roomId)) {
         return notFound;
       }
@@ -621,6 +726,11 @@ export function registerChicApp(server: McpServer) {
           (product) =>
             `- ${product.name} — $${product.price.toFixed(2)} (${product.retailer}): ${product.url}`
         );
+        await trackToolCall("shop_item", subject, {
+          isError: false,
+          ms: Date.now() - startedAt,
+          products: out.products.length,
+        });
         return {
           content: [
             {
@@ -634,6 +744,10 @@ export function registerChicApp(server: McpServer) {
           structuredContent: out,
         };
       } catch (error) {
+        await trackToolCall("shop_item", subject, {
+          isError: true,
+          ms: Date.now() - startedAt,
+        });
         return errorResult(error);
       }
     }

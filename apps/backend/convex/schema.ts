@@ -103,6 +103,16 @@ export const vPlanSlot = v.object({
 
 export const vCommentPlan = v.object({ slots: v.array(vPlanSlot) });
 
+/** Why a credit balance moved. */
+export const vCreditReason = v.union(
+  v.literal("free_grant"),
+  v.literal("render"),
+  v.literal("refund"),
+  v.literal("purchase"),
+  v.literal("transfer"),
+  v.literal("admin")
+);
+
 export default defineSchema({
   artifacts: defineTable({
     // Do we want to make this a union of different artifact types?
@@ -124,6 +134,34 @@ export default defineSchema({
     day: v.string(),
     key: v.string(),
   }).index("by_key_day", ["key", "day"]),
+
+  /**
+   * How many renders a person can still ask for. Created the first time they
+   * render, carrying the free edits; `freeGranted` is what stops a second
+   * free grant when an anonymous visitor's balance moves to their account.
+   */
+  creditAccounts: defineTable({
+    balance: v.number(),
+    freeGranted: v.boolean(),
+    /** Credits ever bought or granted by support; absent while on free edits. */
+    purchased: v.optional(v.number()),
+    userId: v.string(),
+  }).index("by_user", ["userId"]),
+
+  /**
+   * Every change to a balance, and why. `ref` names what caused it (a comment
+   * id for renders and refunds, a Polar order id for purchases), which is how
+   * a retried webhook or a second failure report is told apart from a new one.
+   */
+  creditLedger: defineTable({
+    createdAt: v.number(),
+    delta: v.number(),
+    reason: vCreditReason,
+    ref: v.optional(v.string()),
+    userId: v.string(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_ref", ["ref"]),
   designs: defineTable({
     budget: v.optional(v.number()),
     description: v.string(),

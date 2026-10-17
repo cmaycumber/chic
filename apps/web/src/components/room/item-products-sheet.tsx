@@ -5,8 +5,10 @@ import type { Id } from "@furnish/backend/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { ExternalLink, Sparkles, Star, X } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { isOutOfCreditsError } from "@/components/billing/errors";
+import { useOutOfCredits } from "@/components/billing/out-of-credits-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -18,6 +20,7 @@ import { LiquidGlass } from "@/components/ui/liquid-glass";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { track } from "@/lib/analytics";
 import type { RoomItem, RoomProduct } from "./types";
 import { useItemProducts } from "./use-item-products";
 import {
@@ -72,6 +75,7 @@ function useAddProduct({
   roomId: Id<"rooms">;
 }) {
   const addProductComment = useMutation(api.rooms.addProductComment);
+  const outOfCredits = useOutOfCredits();
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
 
   const onAdd = useCallback(
@@ -93,15 +97,25 @@ function useAddProduct({
         roomId,
       })
         .then(() => {
+          track("product_added_to_room", {
+            retailer: retailerName(product),
+            roomId,
+          });
           toast.success(
             `Rendering ${shortProductName(product.name)} into your room`
           );
           onClose();
         })
-        .catch((error: unknown) => toast.error(errorMessage(error)))
+        .catch((error: unknown) => {
+          if (isOutOfCreditsError(error)) {
+            outOfCredits.show("add_to_room");
+            return;
+          }
+          toast.error(errorMessage(error));
+        })
         .finally(() => setPendingUrl(null));
     },
-    [addProductComment, baseVersionId, itemId, onClose, roomId]
+    [addProductComment, baseVersionId, itemId, onClose, outOfCredits, roomId]
   );
 
   return { onAdd, pendingUrl };
@@ -187,6 +201,13 @@ function ProductCard({
           <a
             className="inline-flex items-center gap-1 text-white/60 text-xs underline-offset-4 hover:text-white hover:underline"
             href={product.productUrl}
+            onClick={() =>
+              track("product_clicked", {
+                price: product.price,
+                retailer: retailerName(product),
+                source: "room",
+              })
+            }
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -312,6 +333,10 @@ export function ItemProductsSheet({
     roomId,
   });
   const add: AddState = { canEdit, isGenerating, onAdd, pendingUrl };
+
+  useEffect(() => {
+    track("product_sheet_opened", { item: item.label, roomId });
+  }, [item.label, roomId]);
 
   if (isMobile) {
     return (

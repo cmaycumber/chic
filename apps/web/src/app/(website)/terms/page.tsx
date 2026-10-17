@@ -150,6 +150,26 @@ export default function TermsPage() {
               </p>
             </LegalSection>
 
+            <LegalSection title="Edits and payments">
+              <p>
+                Each change Chic renders into a photo uses one edit. Everyone
+                gets a small number of free edits; after that, edits are sold in
+                one-time packs. Packs are not subscriptions, edits do not
+                expire, and they cannot be transferred or exchanged for cash. If
+                a render fails, the edit is returned to you automatically.
+                Searching for and shopping products does not use edits.
+              </p>
+              <p>
+                Payments are processed by Polar (polar.sh), which acts as the
+                merchant of record and handles payment details, sales tax and
+                receipts. For questions about a purchase, contact{" "}
+                <a href={`mailto:${siteConfig.supportEmail}`}>
+                  {siteConfig.supportEmail}
+                </a>
+                . We may change free allowances and prices for future purchases.
+              </p>
+            </LegalSection>
+
             <LegalSection title="The Chic app in ChatGPT">
               <p>
                 When you use Chic inside ChatGPT, ChatGPT sends us the image you

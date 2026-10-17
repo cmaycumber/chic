@@ -1,33 +1,28 @@
-import { CheckCircle } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import type { Metadata } from "next";
+import { PurchaseConfirmation } from "@/components/billing/purchase-confirmation";
+import { safeReturnPath } from "@/components/billing/return-path";
 
-export default function SuccessPage() {
+export const metadata: Metadata = {
+  robots: { index: false },
+  title: "Edits added",
+};
+
+interface SuccessPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function single(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+/** Where Polar sends someone after paying for the edits pack. */
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  const query = await searchParams;
+
   return (
-    <div className="container mx-auto flex h-[80vh] items-center justify-center px-4">
-      <Card className="w-full max-w-md text-center">
-        <CardHeader>
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-muted">
-            <CheckCircle className="h-10 w-10 text-success" />
-          </div>
-          <CardTitle className="text-2xl">Thanks! You're all set.</CardTitle>
-          <CardDescription>You're ready to start designing.</CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-center">
-          <Link href="/rooms">
-            <Button className="w-full bg-amber-700 hover:bg-amber-800">
-              Start Designing
-            </Button>
-          </Link>
-        </CardFooter>
-      </Card>
-    </div>
+    <PurchaseConfirmation
+      checkoutId={single(query.checkout_id)}
+      returnTo={safeReturnPath(single(query.returnTo))}
+    />
   );
 }

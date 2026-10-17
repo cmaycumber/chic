@@ -110,19 +110,42 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       }),
       polar({
         client: polarClient,
-        // The product is free for now: never let a Polar outage or expired
-        // token block account creation. Checkout creates the customer later.
+        // Never let a Polar outage or expired token block account creation.
+        // Checkout passes the user id as Polar's external customer id, which
+        // creates the customer on first purchase and is what `onOrderPaid`
+        // maps back to the user.
         createCustomerOnSignUp: false,
         use: [
           checkout({
+            // Guests sign up first: credits bought on an anonymous session
+            // would be lost with its cookie.
             authenticatedUsersOnly: true,
+            products: [
+              {
+                productId: process.env.POLAR_PRODUCT_EDITS_50 || "",
+                slug: "edits-50",
+              },
+            ],
             successUrl:
               process.env.POLAR_SUCCESS_URL ||
               `${siteUrl}/success?checkout_id={CHECKOUT_ID}`,
           }),
           portal(),
           usage(),
+          // Served at `${CONVEX_SITE_URL}/api/auth/polar/webhooks`.
           webhooks({
+            onOrderPaid: async ({ data: order }) => {
+              // Throwing answers Polar with an error, so it retries later
+              // rather than marking a paid order delivered with no credits.
+              if (!canRunMutation(ctx)) {
+                throw new Error("Cannot grant credits outside an action");
+              }
+              await ctx.runMutation(internal.billing.internalGrantPurchase, {
+                orderId: order.id,
+                productId: order.productId,
+                userId: order.customer.externalId ?? null,
+              });
+            },
             secret: process.env.POLAR_WEBHOOK_SECRET || "",
           }),
         ],

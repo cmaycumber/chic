@@ -438,11 +438,15 @@ export const addComment = mutation({
     }
     await consumeDaily(ctx, "comments");
 
+    // ChatGPT app renders stay free for now: the app is an acquisition
+    // channel, and its spend is bounded by the daily caps above rather than
+    // by edit credits. `chatgpt:*` users never get a credit account.
     const commentId = await queueComment(
       ctx,
       room,
       { name: "ChatGPT", userId },
-      { baseVersionId: room.currentVersionId, text }
+      { baseVersionId: room.currentVersionId, text },
+      "free"
     );
     return { commentId };
   },

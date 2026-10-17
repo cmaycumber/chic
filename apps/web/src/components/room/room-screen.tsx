@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { OutOfCreditsProvider } from "@/components/billing/out-of-credits-dialog";
 import { useIsAnonymous } from "@/components/sign-up-to-save";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -190,94 +191,96 @@ export function RoomScreen({ roomId }: { roomId: Id<"rooms"> }) {
   );
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-ink">
-      <RoomCanvas
-        anchorPopover={
-          pinComposerOpen && pendingAnchor ? (
-            <PinComposer
-              anchor={pendingAnchor}
-              isGenerating={isGenerating}
-              itemLabel={pendingItemLabel}
-              onCancel={() => setPendingAnchor(null)}
-              onSubmitted={() => setPendingAnchor(null)}
-              roomId={roomId}
-            />
-          ) : null
-        }
-        isGenerating={isGenerating}
-        isSheetOpen={isMobile && selectedItem !== null}
-        mode={mode}
-        onPickAnchor={handlePickAnchor}
-        onSelectItem={handleSelectItem}
-        onSelectPin={handleSelectPin}
-        pendingAnchor={pendingAnchor}
-        pins={pins}
-        selectedItemId={selectedItemId}
-        stageText={pendingStageText}
-        version={currentVersion}
-      />
-
-      <RoomTopBar
-        commentCount={comments.length}
-        commentsOpen={commentsOpen}
-        historyOpen={historyOpen}
-        imageUrl={currentVersion?.imageUrl ?? null}
-        itemsFailed={currentVersion?.itemsStatus === "error"}
-        mode={mode}
-        onModeChange={setMode}
-        onToggleComments={() => setCommentsOpen((open) => !open)}
-        onToggleHistory={() => setHistoryOpen((open) => !open)}
-        owner={data.owner}
-        people={people}
-        room={data.room}
-        versionCount={versions.length}
-        versionIndex={Math.max(versionIndex, 0)}
-      />
-
-      {Boolean(historyOpen) && (
-        <VersionStrip
-          currentVersionId={currentVersionId}
-          hasComposer={mode === "comment"}
-          onSelect={handleSelectVersion}
-          versions={versions}
-        />
-      )}
-
-      {mode === "comment" && !pinComposerOpen && (
-        <CommentComposer
-          focusToken={composerFocusToken}
+    <OutOfCreditsProvider>
+      <main className="relative h-dvh w-full overflow-hidden bg-ink">
+        <RoomCanvas
+          anchorPopover={
+            pinComposerOpen && pendingAnchor ? (
+              <PinComposer
+                anchor={pendingAnchor}
+                isGenerating={isGenerating}
+                itemLabel={pendingItemLabel}
+                onCancel={() => setPendingAnchor(null)}
+                onSubmitted={() => setPendingAnchor(null)}
+                roomId={roomId}
+              />
+            ) : null
+          }
           isGenerating={isGenerating}
-          itemLabel={pendingItemLabel}
-          onClearAnchor={() => setPendingAnchor(null)}
-          onSubmitted={() => setPendingAnchor(null)}
+          isSheetOpen={isMobile && selectedItem !== null}
+          mode={mode}
+          onPickAnchor={handlePickAnchor}
+          onSelectItem={handleSelectItem}
+          onSelectPin={handleSelectPin}
           pendingAnchor={pendingAnchor}
-          roomId={roomId}
+          pins={pins}
+          selectedItemId={selectedItemId}
+          stageText={pendingStageText}
+          version={currentVersion}
         />
-      )}
 
-      {Boolean(commentsOpen) && (
-        <CommentsPanel
-          anchorLabels={anchorLabels}
-          comments={comments}
-          currentVersionId={currentVersionId}
-          onClose={() => setCommentsOpen(false)}
-          onJump={handleSelectVersion}
-          pinNumbers={pinNumbers}
-          roomId={roomId}
-          showAuthors={showAuthors}
+        <RoomTopBar
+          commentCount={comments.length}
+          commentsOpen={commentsOpen}
+          historyOpen={historyOpen}
+          imageUrl={currentVersion?.imageUrl ?? null}
+          itemsFailed={currentVersion?.itemsStatus === "error"}
+          mode={mode}
+          onModeChange={setMode}
+          onToggleComments={() => setCommentsOpen((open) => !open)}
+          onToggleHistory={() => setHistoryOpen((open) => !open)}
+          owner={data.owner}
+          people={people}
+          room={data.room}
+          versionCount={versions.length}
+          versionIndex={Math.max(versionIndex, 0)}
         />
-      )}
 
-      {selectedItem && currentVersion ? (
-        <ItemProductsSheet
-          canEdit={canEdit}
-          isGenerating={isGenerating}
-          item={selectedItem}
-          onClose={() => setSelectedItemId(null)}
-          roomId={roomId}
-          versionId={currentVersion._id}
-        />
-      ) : null}
-    </main>
+        {Boolean(historyOpen) && (
+          <VersionStrip
+            currentVersionId={currentVersionId}
+            hasComposer={mode === "comment"}
+            onSelect={handleSelectVersion}
+            versions={versions}
+          />
+        )}
+
+        {mode === "comment" && !pinComposerOpen && (
+          <CommentComposer
+            focusToken={composerFocusToken}
+            isGenerating={isGenerating}
+            itemLabel={pendingItemLabel}
+            onClearAnchor={() => setPendingAnchor(null)}
+            onSubmitted={() => setPendingAnchor(null)}
+            pendingAnchor={pendingAnchor}
+            roomId={roomId}
+          />
+        )}
+
+        {Boolean(commentsOpen) && (
+          <CommentsPanel
+            anchorLabels={anchorLabels}
+            comments={comments}
+            currentVersionId={currentVersionId}
+            onClose={() => setCommentsOpen(false)}
+            onJump={handleSelectVersion}
+            pinNumbers={pinNumbers}
+            roomId={roomId}
+            showAuthors={showAuthors}
+          />
+        )}
+
+        {selectedItem && currentVersion ? (
+          <ItemProductsSheet
+            canEdit={canEdit}
+            isGenerating={isGenerating}
+            item={selectedItem}
+            onClose={() => setSelectedItemId(null)}
+            roomId={roomId}
+            versionId={currentVersion._id}
+          />
+        ) : null}
+      </main>
+    </OutOfCreditsProvider>
   );
 }

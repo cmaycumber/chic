@@ -70,12 +70,17 @@ export function ShareComments({ comments, versions }: ShareCommentsProps) {
                   {comment.text}
                 </p>
                 {comment.product ? (
-                  <ProductChip product={comment.product} tone="light" />
+                  <ProductChip
+                    product={comment.product}
+                    source="share"
+                    tone="light"
+                  />
                 ) : null}
                 {planProducts(comment).map((product) => (
                   <ProductChip
                     key={product.productUrl}
                     product={product}
+                    source="share"
                     tone="light"
                   />
                 ))}

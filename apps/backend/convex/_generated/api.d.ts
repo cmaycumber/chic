@@ -19,6 +19,7 @@ import type * as agents_tools_searchProducts from "../agents/tools/searchProduct
 import type * as agents_tools_updateDesign from "../agents/tools/updateDesign.js";
 import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
+import type * as billing from "../billing.js";
 import type * as chatgpt from "../chatgpt.js";
 import type * as crons from "../crons.js";
 import type * as designs from "../designs.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   "agents/tools/updateDesign": typeof agents_tools_updateDesign;
   artifacts: typeof artifacts;
   auth: typeof auth;
+  billing: typeof billing;
   chatgpt: typeof chatgpt;
   crons: typeof crons;
   designs: typeof designs;
