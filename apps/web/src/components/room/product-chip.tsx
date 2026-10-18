@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";

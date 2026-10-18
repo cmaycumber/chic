@@ -6,8 +6,7 @@ import {
   retailerName,
   viewProductLabel,
 } from "@/components/room/utils";
-import { Button } from "@/components/ui/button";
-import { track } from "@/lib/analytics";
+import { ProductCardLink } from "./product-card-link";
 import type { PublicComment, PublicProduct, PublicVersion } from "./types";
 
 interface ShoppableItem {
@@ -102,22 +101,12 @@ function ProductCard({
             </span>
           ) : null}
         </p>
-        <Button asChild className="mt-2 w-full" size="sm" variant="brass">
-          <a
-            href={product.productUrl}
-            onClick={() =>
-              track("product_clicked", {
-                price: product.price,
-                retailer,
-                source: "share",
-              })
-            }
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            {viewProductLabel(product)}
-          </a>
-        </Button>
+        <ProductCardLink
+          href={product.productUrl}
+          label={viewProductLabel(product)}
+          price={product.price}
+          retailer={retailer}
+        />
       </div>
     </li>
   );
