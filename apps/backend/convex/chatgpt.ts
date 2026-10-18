@@ -581,6 +581,58 @@ export const getRoom = query({
   returns: v.union(vRoomOut, v.null()),
 });
 
+/** The current photo of a public room, for `roomPreview`. */
+export const internalCurrentImage = internalQuery({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!(room?.isPublic && room.currentVersionId)) {
+      return null;
+    }
+    const version = await ctx.db.get(room.currentVersionId);
+    return version?.imageStorageId ?? null;
+  },
+  returns: v.union(v.id("_storage"), v.null()),
+});
+
+/**
+ * The room's current photo as a ~1024 px base64 JPEG, for the MCP `image`
+ * block that hosts without the widget (Codex) show instead of the card.
+ */
+export const roomPreview = action({
+  args: { roomId: v.id("rooms"), secret: v.string() },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{
+    data: string;
+    height: number;
+    mimeType: "image/jpeg";
+    width: number;
+  } | null> => {
+    assertSecret(args.secret);
+    const storageId = await ctx.runQuery(
+      internal.chatgpt.internalCurrentImage,
+      { roomId: args.roomId }
+    );
+    if (!storageId) {
+      return null;
+    }
+    return await ctx.runAction(internal.chatgptPreview.previewImage, {
+      storageId,
+    });
+  },
+  returns: v.union(
+    v.object({
+      data: v.string(),
+      height: v.number(),
+      mimeType: v.literal("image/jpeg"),
+      width: v.number(),
+    }),
+    v.null()
+  ),
+});
+
 export const internalGetShoppableItem = internalQuery({
   args: { item: v.string(), roomId: v.id("rooms") },
   handler: async (ctx, args) => {

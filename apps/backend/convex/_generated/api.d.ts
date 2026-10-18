@@ -21,6 +21,7 @@ import type * as artifacts from "../artifacts.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as chatgpt from "../chatgpt.js";
+import type * as chatgptPreview from "../chatgptPreview.js";
 import type * as crons from "../crons.js";
 import type * as designs from "../designs.js";
 import type * as files from "../files.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   billing: typeof billing;
   chatgpt: typeof chatgpt;
+  chatgptPreview: typeof chatgptPreview;
   crons: typeof crons;
   designs: typeof designs;
   files: typeof files;

@@ -43,6 +43,11 @@ const MAX_TITLE_LENGTH = 120;
 const SHOP_ITEMS = 3;
 const SHOP_PRODUCTS_PER_ITEM = 2;
 const SHOP_BUDGET_MS = 14_000;
+/**
+ * How long to wait for the preview JPEG before answering without it. It runs
+ * alongside the product search, so it rarely adds to a redesign.
+ */
+const PREVIEW_BUDGET_MS = 6000;
 
 const UTM = "utm_source=chatgpt&utm_medium=app&utm_campaign=chatgpt_app";
 
@@ -266,9 +271,9 @@ function toRoomOut(room: RoomSnapshot, request?: string): RoomOut {
   };
 }
 
-function summary(out: RoomOut): string {
+function summary(out: RoomOut, hasImage: boolean): string {
   if (out.status === "rendering") {
-    return `Chic is still rendering "${out.request ?? "the change"}". Room: ${out.roomUrl}`;
+    return `Chic is still rendering "${out.request ?? "the change"}". Call get_room with roomId ${out.roomId} shortly. Room: ${out.roomUrl}`;
   }
   if (out.status === "failed") {
     return `The change failed: ${out.message}. Room: ${out.roomUrl}`;
@@ -276,16 +281,28 @@ function summary(out: RoomOut): string {
   const count = out.products.length;
   const shop =
     count > 0
-      ? ` ${count} shoppable ${count === 1 ? "product is" : "products are"} in the card. ${AFFILIATE_NOTE}`
+      ? ` ${count} shoppable ${count === 1 ? "product is" : "products are"} in the card and on the room page. ${AFFILIATE_NOTE}`
       : "";
-  return `Here is the room after "${out.request ?? "the change"}".${shop} Open it on Chic: ${out.roomUrl}`;
+  const image = hasImage
+    ? " The redesigned photo is attached to this result; do not embed it as a markdown image."
+    : "";
+  return `Here is the room after "${out.request ?? "the change"}".${image}${shop} Open it on Chic: ${out.roomUrl}`;
 }
 
-function roomResult(out: RoomOut): CallToolResult {
-  return {
-    content: [{ text: summary(out), type: "text" }],
-    structuredContent: out,
-  };
+type Preview = NonNullable<FunctionReturnType<typeof api.chatgpt.roomPreview>>;
+
+function roomResult(out: RoomOut, preview: Preview | null): CallToolResult {
+  const content: CallToolResult["content"] = [
+    { text: summary(out, preview !== null), type: "text" },
+  ];
+  if (preview) {
+    content.push({
+      data: preview.data,
+      mimeType: preview.mimeType,
+      type: "image",
+    });
+  }
+  return { content, structuredContent: out };
 }
 
 const NOT_FOUND_TEXT =
@@ -384,6 +401,26 @@ async function shopTopItems(
     after(SHOP_BUDGET_MS, [] as Product[][]),
   ]);
   return results.flat().slice(0, MAX_PRODUCTS).map(toProduct);
+}
+
+/**
+ * The room's current photo, small enough to inline as an MCP `image` block,
+ * for hosts that show the result without the widget. Only for a finished
+ * render; a slow or failed preview just leaves the image out.
+ */
+async function loadPreview(out: RoomOut): Promise<Preview | null> {
+  if (out.status !== "ready" || !out.afterUrl) {
+    return null;
+  }
+  const preview = fetchAction(api.chatgpt.roomPreview, {
+    roomId: out.roomId as Id<"rooms">,
+    secret: secret(),
+  }).catch((error: unknown) => {
+    // biome-ignore lint/suspicious/noConsole: a missing preview should be visible in server logs
+    console.error("[mcp] preview failed", error);
+    return null;
+  });
+  return await Promise.race([preview, after(PREVIEW_BUDGET_MS, null)]);
 }
 
 /** The anonymized ChatGPT user id OpenAI attaches to each tool call. */
@@ -602,15 +639,21 @@ export function registerChicApp(server: McpServer) {
           return notFound;
         }
         const out = toRoomOut(room, request);
-        if (out.status === "ready" && out.products.length === 0) {
-          out.products = await shopTopItems(room);
+        const [preview, shopped] = await Promise.all([
+          loadPreview(out),
+          out.status === "ready" && out.products.length === 0
+            ? shopTopItems(room)
+            : null,
+        ]);
+        if (shopped) {
+          out.products = shopped;
         }
         await trackToolCall("redesign_room", subject, {
           isError: false,
           ms: Date.now() - startedAt,
           products: out.products.length,
         });
-        return roomResult(out);
+        return roomResult(out, preview);
       } catch (error) {
         await trackToolCall("redesign_room", subject, {
           isError: true,
@@ -658,12 +701,13 @@ export function registerChicApp(server: McpServer) {
           return notFound;
         }
         const out = toRoomOut(room);
+        const preview = await loadPreview(out);
         await trackToolCall("get_room", subject, {
           isError: false,
           ms: Date.now() - startedAt,
           products: out.products.length,
         });
-        return roomResult(out);
+        return roomResult(out, preview);
       } catch (error) {
         await trackToolCall("get_room", subject, {
           isError: true,
