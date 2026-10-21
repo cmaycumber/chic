@@ -153,8 +153,15 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
 export const createAuth = (ctx: GenericCtx<DataModel>) =>
   betterAuth(createAuthOptions(ctx));
 
+/**
+ * The signed-in user, or null. Never throws: a session that is still loading,
+ * renewing or signed out is a normal state for the header, and a throwing
+ * query takes the whole page down in the browser.
+ */
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) =>
-    authComponent.getAuthUser(ctx as unknown as GenericCtx<DataModel>),
+    (await authComponent.safeGetAuthUser(
+      ctx as unknown as GenericCtx<DataModel>
+    )) ?? null,
 });
