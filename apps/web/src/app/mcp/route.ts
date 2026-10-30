@@ -1,5 +1,10 @@
 import { createMcpHandler } from "mcp-handler";
-import { registerChicApp, SERVER_INSTRUCTIONS } from "@/lib/chatgpt-app/server";
+import { after } from "next/server";
+import {
+  flushAnalytics,
+  registerChicApp,
+  SERVER_INSTRUCTIONS,
+} from "@/lib/chatgpt-app/server";
 
 /**
  * The MCP endpoint for the Chic app in ChatGPT (Streamable HTTP). Stateless:
@@ -13,4 +18,14 @@ const handler = createMcpHandler(registerChicApp, {
 /** `redesign_room` waits up to 45 s for a render before answering. */
 export const maxDuration = 60;
 
-export { handler as DELETE, handler as GET, handler as POST };
+/** Every request flushes PostHog MCP analytics once its response is done. */
+function withAnalyticsFlush(request: Request): Promise<Response> {
+  after(flushAnalytics);
+  return handler(request);
+}
+
+export {
+  withAnalyticsFlush as DELETE,
+  withAnalyticsFlush as GET,
+  withAnalyticsFlush as POST,
+};

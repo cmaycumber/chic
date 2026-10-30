@@ -12,6 +12,7 @@ import type {
   McpServer,
   ServerContext,
 } from "@modelcontextprotocol/server";
+import { instrument } from "@posthog/mcp";
 import { fetchAction, fetchMutation, fetchQuery } from "convex/nextjs";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -508,6 +509,27 @@ async function trackToolCall(
   }
 }
 
+/**
+ * Send any queued analytics. The route calls this through `after()`, once the
+ * response (including a streamed one) has finished, because the serverless
+ * function can freeze before posthog-node's own timer fires.
+ */
+export async function flushAnalytics(): Promise<void> {
+  try {
+    await posthogForServer()?.flush();
+  } catch {
+    // Analytics must never break a request.
+  }
+}
+
+/** ChatGPT's anonymized user id, from a raw MCP request's `_meta`. */
+function requestSubject(params: unknown): string | undefined {
+  const meta = (params as { _meta?: Record<string, unknown> } | undefined)
+    ?._meta;
+  const subject = meta?.["openai/subject"];
+  return typeof subject === "string" ? subject : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Server
 // ---------------------------------------------------------------------------
@@ -518,6 +540,20 @@ const widgetMeta = {
 };
 
 export function registerChicApp(server: McpServer) {
+  const posthog = posthogForServer();
+  if (posthog) {
+    // PostHog MCP analytics: $mcp_tool_call per call, on the same hashed
+    // ChatGPT user id as chatgpt_tool_called. No extra `context` or
+    // `conversation_id` arguments, so the tool schemas ChatGPT reviews stay
+    // exactly as submitted.
+    instrument(server, posthog, {
+      context: false,
+      enableConversationId: false,
+      identify: async (request) => ({
+        distinctId: await chatgptDistinctId(requestSubject(request.params)),
+      }),
+    });
+  }
   server.registerResource(
     "chic-room-widget",
     WIDGET_URI,
