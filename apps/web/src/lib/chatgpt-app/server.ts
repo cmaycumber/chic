@@ -543,10 +543,11 @@ export function registerChicApp(server: McpServer) {
   const posthog = posthogForServer();
   if (posthog) {
     // PostHog MCP analytics: $mcp_tool_call per call, on the same hashed
-    // ChatGPT user id as chatgpt_tool_called. No extra `context` or
-    // `conversation_id` arguments, so the tool schemas ChatGPT reviews stay
-    // exactly as submitted.
+    // ChatGPT user id as chatgpt_tool_called. No extra `context`,
+    // `conversation_id` or `llm_model` arguments, so the tool schemas ChatGPT
+    // reviews stay exactly as submitted.
     instrument(server, posthog, {
+      captureModel: false,
       context: false,
       enableConversationId: false,
       identify: async (request) => ({
