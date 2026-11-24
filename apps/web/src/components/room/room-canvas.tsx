@@ -66,11 +66,18 @@ interface RoomCanvasProps {
 interface ImageLayerProps {
   alt: string;
   className?: string;
+  onError?: () => void;
   onReady?: (size: NaturalSize) => void;
   src: string;
 }
 
-function ImageLayer({ alt, className, onReady, src }: ImageLayerProps) {
+function ImageLayer({
+  alt,
+  className,
+  onError,
+  onReady,
+  src,
+}: ImageLayerProps) {
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const { naturalHeight, naturalWidth } = event.currentTarget;
     onReady?.({ height: naturalHeight, width: naturalWidth });
@@ -82,6 +89,7 @@ function ImageLayer({ alt, className, onReady, src }: ImageLayerProps) {
       className={cn("object-contain", className)}
       draggable={false}
       fill
+      onError={onError}
       onLoad={handleLoad}
       priority
       sizes="100vw"
@@ -123,10 +131,12 @@ export function RoomCanvas({
   const [natural, setNatural] = useState<NaturalSize | null>(null);
   const [readyUrl, setReadyUrl] = useState<string | null>(null);
   const [displayUrl, setDisplayUrl] = useState<string | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const rect = useImageRect(containerRef, natural);
 
   const imageUrl = version?.imageUrl ?? null;
   const isReady = imageUrl !== null && readyUrl === imageUrl;
+  const hasFailed = imageUrl !== null && failedUrl === imageUrl && !isReady;
 
   // Keep the previous version on screen until the new one has painted.
   useEffect(() => {
@@ -194,6 +204,7 @@ export function RoomCanvas({
             imageOpacityClass(isReady, isGenerating)
           )}
           key={imageUrl}
+          onError={() => setFailedUrl(imageUrl)}
           onReady={handleReady}
           src={imageUrl}
         />
@@ -204,6 +215,14 @@ export function RoomCanvas({
           This room has no photo yet.
         </p>
       )}
+
+      {/* Without this an unreadable photo is an endless black screen. */}
+      {hasFailed ? (
+        <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/60">
+          This photo couldn't be shown. Reload to try again, or start a new room
+          with a JPEG or PNG.
+        </p>
+      ) : null}
 
       {rect.width > 0 && (
         <div

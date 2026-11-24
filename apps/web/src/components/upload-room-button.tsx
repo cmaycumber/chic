@@ -66,12 +66,22 @@ function roomTitleForFile(file: File): string {
   return humanizeFileName(file.name);
 }
 
+const NOT_AN_IMAGE_MESSAGE =
+  "That file isn't a photo. Choose a JPEG, PNG or WebP image of your room.";
+const TOO_LARGE_MESSAGE = `That photo is over ${MAX_FILE_SIZE_MB} MB. Choose a smaller copy, or take a screenshot of it.`;
+const UNREADABLE_MESSAGE =
+  "We couldn't read that photo. HEIC and RAW files often don't open in this browser, so try a JPEG or PNG, or a screenshot of it.";
+const UPLOAD_FAILED_MESSAGE =
+  "Your photo didn't upload. Check your connection and try again.";
+const CREATE_FAILED_MESSAGE =
+  "Your photo uploaded, but we couldn't open a room for it. Please try again.";
+
 function validateImageFile(file: File): string | null {
   if (!file.type.startsWith("image/")) {
-    return "Please choose an image file.";
+    return NOT_AN_IMAGE_MESSAGE;
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    return "Images must be under 20MB.";
+    return TOO_LARGE_MESSAGE;
   }
   return null;
 }
@@ -80,11 +90,10 @@ async function uploadPhotoFile(
   file: File,
   generateUploadUrl: () => Promise<string>
 ): Promise<string> {
-  const correctedFile = await fixImageOrientation(file);
   const uploadUrl = await generateUploadUrl();
   const uploadResult = await fetch(uploadUrl, {
-    body: correctedFile,
-    headers: { "Content-Type": correctedFile.type },
+    body: file,
+    headers: { "Content-Type": file.type },
     method: "POST",
   });
 
@@ -175,9 +184,16 @@ export function useUploadController(
 
   const uploadFile = useCallback(
     async (file: File) => {
+      setBusy("uploading");
+      let storageId: string;
       try {
-        setBusy("uploading");
-        const storageId = await uploadPhotoFile(file, generateUploadUrl);
+        storageId = await uploadPhotoFile(file, generateUploadUrl);
+      } catch {
+        toast.error(UPLOAD_FAILED_MESSAGE);
+        setBusy("idle");
+        return;
+      }
+      try {
         setBusy("opening");
         const roomId = await createRoom({
           imageStorageId: storageId as Id<"_storage">,
@@ -199,7 +215,7 @@ export function useUploadController(
 
         router.push(`/room/${roomId}`);
       } catch {
-        toast.error("Something went wrong. Please try again.");
+        toast.error(CREATE_FAILED_MESSAGE);
         setBusy("idle");
       }
     },
@@ -221,16 +237,27 @@ export function useUploadController(
       }
       track("upload_started", { source });
 
+      // Decode first: a photo the browser cannot read is refused before it
+      // costs a session or an upload, and never becomes a blank room.
+      setBusy("preparing");
+      let photo: File;
+      try {
+        photo = await fixImageOrientation(file);
+      } catch {
+        setBusy("idle");
+        toast.error(UNREADABLE_MESSAGE);
+        return;
+      }
+
       if (isAuthenticated) {
-        await uploadFile(file);
+        await uploadFile(photo);
         return;
       }
 
       // No account required: take an anonymous session, then upload as soon
       // as the Convex client is authenticated with it.
-      pendingFileRef.current = file;
+      pendingFileRef.current = photo;
       setIsWaitingForSession(true);
-      setBusy("preparing");
 
       // The Convex client can lag behind a session that already exists, and
       // signing in anonymously over one would drop the account it belongs to.
@@ -355,7 +382,6 @@ export function HiddenFileInput({
   return (
     <input
       accept="image/*"
-      capture="environment"
       className="sr-only"
       disabled={controller.isBusy}
       id={controller.inputId}
@@ -376,25 +402,29 @@ function UploadTile({
   label?: string;
 }) {
   return (
-    <button
-      className={cn(
-        "liquid-glass glass-press flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-greige/60 border-dashed text-ink transition-colors hover:border-brass disabled:pointer-events-none disabled:opacity-60",
-        className
-      )}
-      disabled={controller.isBusy}
-      onClick={controller.openPicker}
-      type="button"
-    >
+    <>
       <HiddenFileInput controller={controller} />
-      {controller.isBusy ? (
-        <Loader2 className="size-6 animate-spin text-brass" />
-      ) : (
-        <Upload className="size-6 text-brass" />
-      )}
-      <span className="font-medium text-sm">
-        {controller.isBusy ? busyLabel(controller.busy) : (label ?? "New room")}
-      </span>
-    </button>
+      <button
+        className={cn(
+          "liquid-glass glass-press flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-greige/60 border-dashed text-ink transition-colors hover:border-brass disabled:pointer-events-none disabled:opacity-60",
+          className
+        )}
+        disabled={controller.isBusy}
+        onClick={controller.openPicker}
+        type="button"
+      >
+        {controller.isBusy ? (
+          <Loader2 className="size-6 animate-spin text-brass" />
+        ) : (
+          <Upload className="size-6 text-brass" />
+        )}
+        <span className="font-medium text-sm">
+          {controller.isBusy
+            ? busyLabel(controller.busy)
+            : (label ?? "New room")}
+        </span>
+      </button>
+    </>
   );
 }
 

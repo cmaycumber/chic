@@ -1,4 +1,8 @@
 import type { Organization, WebSite, WithContext } from "schema-dts";
+import { siteConfig } from "@/lib/site-config";
+
+const DESCRIPTION =
+  "Chic is an AI room designer: upload a photo of your room, comment to change anything, and shop the real furniture. Free to try.";
 
 export function OrganizationStructuredData() {
   const jsonLd: WithContext<Organization> = {
@@ -6,14 +10,14 @@ export function OrganizationStructuredData() {
     "@type": "Organization",
     contactPoint: {
       "@type": "ContactPoint",
-      contactType: "Customer Service",
+      contactType: "customer support",
+      url: siteConfig.supportUrl,
     },
-    description:
-      "Free AI interior designer providing professional design guidance and room transformations",
-    logo: "https://chic.com/logo.png",
+    description: DESCRIPTION,
+    legalName: siteConfig.company,
+    logo: `${siteConfig.baseUrl}/logo.png`,
     name: "Chic",
-    sameAs: [],
-    url: "https://chic.com",
+    url: siteConfig.baseUrl,
   };
 
   return (
@@ -31,14 +35,9 @@ export function WebsiteStructuredData() {
   const jsonLd: WithContext<WebSite> = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    description:
-      "Free AI-powered interior design tool. Get instant professional design ideas, room layouts, and personalized recommendations.",
-    name: "Chic - AI Interior Designer",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://chic.com/search?q={search_term_string}",
-    },
-    url: "https://chic.com",
+    description: DESCRIPTION,
+    name: "Chic",
+    url: siteConfig.baseUrl,
   };
 
   return (

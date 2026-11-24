@@ -159,7 +159,9 @@ function RoomCard({ room }: { room: Room }) {
           room.role === "collaborator" && "hidden"
         )}
       >
-        <DropdownMenu>
+        {/* Non-modal, so the dialogs it opens are the only modal layer and
+            the page is clickable again once they close. */}
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               aria-label="Room options"
@@ -172,20 +174,12 @@ function RoomCard({ room }: { room: Room }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                openRenameDialog();
-              }}
-            >
+            <DropdownMenuItem onSelect={openRenameDialog}>
               <Pencil className="size-4" />
               Rename
             </DropdownMenuItem>
             <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault();
-                setDeleteOpen(true);
-              }}
+              onSelect={() => setDeleteOpen(true)}
               variant="destructive"
             >
               <Trash2 className="size-4" />

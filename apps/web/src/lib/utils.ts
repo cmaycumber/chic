@@ -42,7 +42,10 @@ function canvasToJpeg(canvas: HTMLCanvasElement, name: string): Promise<File> {
  * Browsers already honour EXIF when decoding, so drawing the decoded image
  * to a canvas yields upright pixels. AI models and other clients read the
  * raw bytes, which is why un-normalized phone photos came back sideways.
- * Falls back to the original file if decoding fails (e.g. unsupported format).
+ *
+ * Throws when the browser cannot decode the file at all (HEIC outside Safari,
+ * a renamed non-image): uploading those bytes would make a room whose photo
+ * no browser can show.
  */
 export async function fixImageOrientation(file: File): Promise<File> {
   const url = URL.createObjectURL(file);
@@ -60,9 +63,8 @@ export async function fixImageOrientation(file: File): Promise<File> {
       return file;
     }
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return await canvasToJpeg(canvas, file.name);
-  } catch {
-    return file;
+    // The browser can show it, so the original is still a usable fallback.
+    return await canvasToJpeg(canvas, file.name).catch(() => file);
   } finally {
     URL.revokeObjectURL(url);
   }

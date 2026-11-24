@@ -22,7 +22,7 @@ export function RoomDesignerCta({ roomLabel }: RoomDesignerCtaProps) {
         </p>
         <UploadRoomButton label="Upload a photo" variant="compact" />
         <p className="text-muted-foreground text-xs">
-          Free, no sign-up required.
+          Your first edits are free. No sign-up.
         </p>
       </div>
     </section>

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     description:
-      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to use.",
+      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to try.",
     images: [
       {
         alt: "About Chic",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     description:
-      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to use.",
+      "Upload a photo, comment on what to change, and shop the result. No prompts, no sign-up, free to try.",
     images: ["/images/ai-room-designer-hero.png"],
     title: "About Chic",
   },
@@ -52,8 +52,8 @@ export default function AboutPage() {
             <p className="mt-6 text-lg text-muted-foreground">
               Chic turns a photo of your room into a room you can actually
               change, and buy from. Upload a photo, leave a comment on what you
-              want different, and watch it happen in about 20 seconds. Free, no
-              sign-up required.
+              want different, and watch it happen in about 20 seconds. Your
+              first edits are free, and there's no sign-up.
             </p>
             <p className="mt-4 text-muted-foreground text-sm">
               Chic is made by {siteConfig.company}.
@@ -101,7 +101,9 @@ export default function AboutPage() {
                 <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/10">
                   <Clock className="size-8 text-primary" />
                 </div>
-                <h3 className="mt-6 font-semibold text-xl">Free, no sign-up</h3>
+                <h3 className="mt-6 font-semibold text-xl">
+                  Free to try, no sign-up
+                </h3>
                 <p className="mt-4 text-muted-foreground">
                   Upload a photo and start commenting without creating an
                   account. Rooms stick around on their own for 7 days. Sign in

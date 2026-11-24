@@ -366,7 +366,9 @@ function RoomMenu({
 
   return (
     <>
-      <DropdownMenu>
+      {/* Non-modal, so the dialogs it opens are the only modal layer and
+          the room is clickable again once they close. */}
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button size="icon-sm" type="button" variant="glass-dark">
             <MoreHorizontal className="size-4" />
@@ -420,10 +422,7 @@ function RoomMenu({
           {people.role === "owner" ? (
             <DropdownMenuItem
               className="text-[var(--accent-coral)] focus:text-[var(--accent-coral)]"
-              onSelect={(event) => {
-                event.preventDefault();
-                setConfirmOpen(true);
-              }}
+              onSelect={() => setConfirmOpen(true)}
             >
               <Trash2 className="size-4" />
               Delete room

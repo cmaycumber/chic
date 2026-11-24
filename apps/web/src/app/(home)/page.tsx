@@ -1,7 +1,68 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import type { WebApplication, WithContext } from "schema-dts";
 import { HomeShowcase } from "@/components/home-showcase";
 import { RoomComposerBar } from "@/components/room-composer-bar";
 import { siteConfig } from "@/lib/site-config";
+
+const TITLE = "Free AI Room Designer: Redesign Your Room From a Photo";
+const DESCRIPTION =
+  "Upload a photo of your room and comment to change anything. See the redesign in about 20 seconds, then shop the real furniture. Free to try, no sign-up.";
+
+export const metadata: Metadata = {
+  alternates: { canonical: `${siteConfig.baseUrl}/` },
+  description: DESCRIPTION,
+  openGraph: {
+    description: DESCRIPTION,
+    images: [
+      {
+        alt: "Chic AI room designer: upload a photo, comment to change it, shop the look",
+        height: 630,
+        url: "/images/ai-room-designer-hero.png",
+        width: 1200,
+      },
+    ],
+    siteName: "Chic",
+    title: TITLE,
+    type: "website",
+    url: `${siteConfig.baseUrl}/`,
+  },
+  title: `${TITLE} | Chic`,
+  twitter: {
+    card: "summary_large_image",
+    description: DESCRIPTION,
+    images: ["/images/ai-room-designer-hero.png"],
+    title: TITLE,
+  },
+};
+
+const webApplicationJsonLd: WithContext<WebApplication> = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  applicationCategory: "DesignApplication",
+  description: DESCRIPTION,
+  name: "Chic",
+  offers: [
+    {
+      "@type": "Offer",
+      description: "3 free edits to start",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    {
+      "@type": "Offer",
+      description: "50 edits",
+      price: "5",
+      priceCurrency: "USD",
+    },
+  ],
+  operatingSystem: "Web",
+  publisher: {
+    "@type": "Organization",
+    name: siteConfig.company,
+  },
+  url: `${siteConfig.baseUrl}/`,
+};
 
 const FOOTER_LINKS = [
   { href: "/ideas", label: "Room ideas" },
@@ -14,6 +75,18 @@ const FOOTER_LINKS = [
 export default function HomePage() {
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-ink">
+      <script
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Required for JSON-LD structured data for SEO
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(webApplicationJsonLd),
+        }}
+        type="application/ld+json"
+      />
+      {/* The page's visible copy lives in the photo and composer, so the
+          heading is for search engines and screen readers only. */}
+      <h1 className="sr-only">
+        Chic: free AI room designer. Redesign your room from a photo.
+      </h1>
       <HomeShowcase />
 
       {/* Bottom-anchored composer column */}

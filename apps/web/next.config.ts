@@ -38,6 +38,10 @@ const nextConfig: NextConfig = {
       { destination: "/ideas", permanent: true, source: "/explore/:designId" },
       { destination: "/ideas", permanent: true, source: "/design/:designId" },
       { destination: "/rooms", permanent: true, source: "/saved" },
+      // The standalone room designer page duplicated the home page, which now
+      // carries that search intent itself.
+      { destination: "/", permanent: true, source: "/design-tools" },
+      { destination: "/", permanent: true, source: "/design-tools/:path*" },
     ];
   },
   rewrites() {

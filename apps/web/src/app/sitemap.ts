@@ -39,12 +39,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/about`,
     },
     {
-      changeFrequency: "weekly",
-      lastModified: new Date(),
-      priority: 0.9,
-      url: `${baseUrl}/design-tools/ai-room-designer`,
-    },
-    {
       changeFrequency: "daily",
       lastModified: new Date(),
       priority: 0.8,

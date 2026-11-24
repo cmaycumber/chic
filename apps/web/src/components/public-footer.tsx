@@ -14,7 +14,7 @@ export function PublicFooter() {
           <p className="text-muted-foreground text-sm">{siteConfig.tagline}</p>
         </div>
 
-        <div className="mb-12 grid gap-12 md:grid-cols-5">
+        <div className="mb-12 grid gap-12 md:grid-cols-4">
           <div className="space-y-3">
             <h4 className="font-medium text-sm">Product</h4>
             <div className="flex flex-col gap-2 text-muted-foreground text-sm">
@@ -29,18 +29,6 @@ export function PublicFooter() {
                 href="/blog"
               >
                 Blog
-              </Link>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm">Tools</h4>
-            <div className="flex flex-col gap-2 text-muted-foreground text-sm">
-              <Link
-                className="transition-colors hover:text-foreground"
-                href="/design-tools/ai-room-designer"
-              >
-                Room Designer
               </Link>
             </div>
           </div>
